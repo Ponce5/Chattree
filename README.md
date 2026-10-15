@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icons/icon.png" width="96" height="96" alt="Chattree Logo" />
+  <img src="assets/chattree-icon.jpg" width="96" height="96" alt="Chattree Logo" style="border-radius: 20%;" />
 </p>
 
 # Chattree — Official Repository
