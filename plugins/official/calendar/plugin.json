@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "com.chattree.official.calendar",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "name": "Device Calendar",
+  "description": "Enables AI and slash commands to create, view, and schedule native calendar events on the phone.",
+  "author": "Chattree Core Team",
+  "authorEmail": "support@chattree.chat",
+  "homepageUrl": "https://github.com/chattree/chattree",
+  "primaryCommand": "calendar",
+  "aliases": ["cal", "schedule", "evento"],
+  "type": "imported",
+  "capabilities": [
+    "calendar.create",
+    "calendar.read"
+  ],
+  "optionalCapabilities": [
+    "calendar.update",
+    "calendar.delete"
+  ],
+  "tags": [
+    "official",
+    "calendar",
+    "productivity",
+    "events",
+    "device"
+  ],
+  "changelog": "1.0.0: Initial official release of the device calendar plugin.",
+  "runtime": "wasm",
+  "entrypoint": "calendar_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 4,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.calendar.create",
+      "command": "calendar",
+      "displayName": "Schedule Calendar Event",
+      "description": "Schedule a new event in the device calendar: /calendar add <title> | <startDate> [| <endDate>] [| <description>]",
+      "capabilities": [
+        "calendar.create",
+        "calendar.read"
+      ]
+    },
+    {
+      "id": "com.chattree.official.calendar.list",
+      "command": "calendar-list",
+      "displayName": "List Calendar Events",
+      "description": "List events in the device calendar for a date range: /calendar-list <startDate> <endDate>",
+      "capabilities": [
+        "calendar.read"
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "default_calendar_id",
+      "label": "Default Calendar Identifier",
+      "type": "string",
+      "defaultValue": "primary",
+      "description": "Target calendar ID for scheduled events ('primary' uses the system default)."
+    },
+    {
+      "key": "default_event_duration_minutes",
+      "label": "Default Duration (Minutes)",
+      "type": "number",
+      "defaultValue": "60",
+      "description": "Default event duration in minutes if no end time is specified."
+    }
+  ]
+}
