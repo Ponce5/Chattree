@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minAppVersion": "1.0.0",
   "name": "Device Calendar",
   "description": "Enables AI and slash commands to create, view, and schedule native calendar events on the phone.",
@@ -26,11 +26,11 @@
     "events",
     "device"
   ],
-  "changelog": "1.0.2: Clean calendar event creation flow via standard Host API.",
+  "changelog": "1.0.3: Robust argument parsing, automatic default calendar selection, and friendly user-facing responses.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "62d79bbba364d13b49f3eba731b6f05974917e16ffd154fc3036ea536ce16310",
+  "wasmSha256": "7f03687518cc0508b19553617d208628ef400201c1fa39bb5d18e1dfeaf12f4f",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
