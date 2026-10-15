@@ -30,7 +30,7 @@
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "wasmSha256": "62d79bbba364d13b49f3eba731b6f05974917e16ffd154fc3036ea536ce16310",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,

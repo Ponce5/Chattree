@@ -38,6 +38,23 @@
   ;; Default fallback payload template
   (data (i32.const 3072) "{\"api\":\"calendar\",\"operation\":\"create\",\"payload\":{\"calendarId\":\"primary\",\"title\":\"New Event\"}}")
 
+  ;; Memory Copy helper for universal WASM 1.0 compatibility
+  (func $memcpy (param $dst i32) (param $src i32) (param $len i32)
+    (local $i i32)
+    (loop $copy_loop
+      (if (i32.lt_u (local.get $i) (local.get $len))
+        (then
+          (i32.store8
+            (i32.add (local.get $dst) (local.get $i))
+            (i32.load8_u (i32.add (local.get $src) (local.get $i)))
+          )
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $copy_loop)
+        )
+      )
+    )
+  )
+
   ;; ============================================================================
   ;; Primary Entrypoint: calendar_entry(in_ptr: i32, in_len: i32) -> i32
   ;; ============================================================================
@@ -52,10 +69,7 @@
     )
 
     ;; 2. Prepare JSON Request Buffer at Offset 2048
-    ;; In standard usage, the plugin parses $in_ptr to extract title, dates, and description,
-    ;; or invokes host_call with structured parameters.
-    ;; We copy our request payload template (98 bytes) into offset 2048:
-    (memory.copy
+    (call $memcpy
       (i32.const 2048)
       (i32.const 3072)
       (i32.const 98)
@@ -86,7 +100,7 @@
     ;; If error or immediate sync return, copy response to output offset 1024
     (if (i32.gt_s (local.get $call_res) (i32.const 0))
       (then
-        (memory.copy
+        (call $memcpy
           (i32.const 1024)
           (i32.const 4096)
           (local.get $call_res)
@@ -105,7 +119,7 @@
   ;; ============================================================================
   (func (export "resume") (param $res_ptr i32) (param $res_len i32) (result i32)
     ;; Copy result JSON from $res_ptr to chat output buffer (offset 1024)
-    (memory.copy
+    (call $memcpy
       (i32.const 1024)
       (local.get $res_ptr)
       (local.get $res_len)
