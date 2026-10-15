@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icons/icon.png" width="96" height="96" alt="Chattree Logo" />
+</p>
+
 # Chattree — Official Repository
 
 Welcome to the official **Chattree** open-source repository.
@@ -24,6 +28,7 @@ Here you will find:
 ```text
 chattree-repo/
 ├── .github/              # Issue/PR templates and workflow definitions
+├── assets/               # Brand assets, logos, and ecosystem icons
 ├── docs/                 # Public technical documentation & architecture guides
 ├── examples/             # Official developer examples and integration patterns
 ├── plugins/
