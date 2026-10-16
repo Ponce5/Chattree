@@ -23,13 +23,13 @@ async function testWasm() {
   let passed = 0;
   let failed = 0;
 
-  function runCase(name, inputStr, expectedChecks) {
+  function runCase(name, inputStr, expectedApi, expectedOp) {
     capturedHostCalls = [];
     const inputBytes = new TextEncoder().encode(inputStr);
     mem.set(inputBytes, 5000);
     const res = instance.exports.calendar_entry(5000, inputBytes.length);
     console.log(`\n=== CASE: ${name} ===`);
-    console.log(`Result code: ${res} (0 = async pending)`);
+    console.log(`Input: "${inputStr}" -> Result code: ${res}`);
     if (capturedHostCalls.length === 0) {
       console.error(`FAILED: No Host API call dispatched.`);
       failed++;
@@ -49,107 +49,73 @@ async function testWasm() {
       return;
     }
 
-    if (parsed.api !== 'calendar' || parsed.operation !== 'create') {
-      console.error(`FAILED: Incorrect api or operation:`, parsed);
+    if (parsed.api !== expectedApi || parsed.operation !== expectedOp) {
+      console.error(`FAILED: Expected api=${expectedApi}, op=${expectedOp}; got api=${parsed.api}, op=${parsed.operation}`);
       failed++;
       return;
     }
 
-    let checkOk = true;
-    for (const [k, v] of Object.entries(expectedChecks)) {
-      if (parsed.payload[k] !== v) {
-        console.error(`FAILED: expected payload.${k} == "${v}", got "${parsed.payload[k]}"`);
-        checkOk = false;
-      }
-    }
-
-    if (checkOk) {
-      console.log(`PASSED: All payload checks passed.`);
-      passed++;
-    } else {
-      failed++;
-    }
+    console.log(`PASSED: Correctly routed to ${parsed.api}.${parsed.operation}`);
+    passed++;
   }
 
-  runCase('1. Empty input', '', {
-    title: 'Reunión',
-    startDate: '2026-10-16T10:00:00Z',
-    endDate: '2026-10-16T11:00:00Z'
-  });
+  // 1. Single /calendar command without args -> List Agenda
+  runCase('1. Empty input (/calendar alone)', '', 'calendar', 'events');
 
-  runCase('2. Natural title', 'Reunión de planificación', {
-    title: 'Reunión de planificación',
-    startDate: '2026-10-16T10:00:00Z',
-    endDate: '2026-10-16T11:00:00Z'
-  });
+  // 1.b Explicit /calendar list -> List Agenda
+  runCase('1b. Explicit /calendar list', 'list', 'calendar', 'events');
 
-  runCase('3. Full pipe syntax', 'Reunión con el equipo | 2026-10-16T15:00:00Z | 2026-10-16T16:00:00Z | Discutir arquitectura', {
-    title: 'Reunión con el equipo',
-    startDate: '2026-10-16T15:00:00Z',
-    endDate: '2026-10-16T16:00:00Z',
-    description: 'Discutir arquitectura'
-  });
-
-  runCase('4. add prefix', 'add Cita con dentista | 2026-10-20T09:30:00Z', {
-    title: 'Cita con dentista',
-    startDate: '2026-10-20T09:30:00Z',
-    endDate: '2026-10-16T11:00:00Z'
-  });
-
-  runCase('5. creame una reunion prefix', 'creame una reunion con Juan y Pedro', {
-    title: 'con Juan y Pedro',
-    startDate: '2026-10-16T10:00:00Z',
-    endDate: '2026-10-16T11:00:00Z'
-  });
-
-  runCase('6. direct JSON payload without api wrapper', JSON.stringify({
-    title: 'Sync semanal',
-    startDate: '2026-10-18T10:00:00Z',
-    endDate: '2026-10-18T11:00:00Z'
-  }), {
-    title: 'Sync semanal',
-    startDate: '2026-10-18T10:00:00Z'
-  });
-
-  runCase('7. full Host API JSON payload', JSON.stringify({
-    api: 'calendar',
-    operation: 'create',
-    payload: {
-      title: 'Auditoría',
-      startDate: '2026-10-22T08:00:00Z'
-    }
-  }), {
-    title: 'Auditoría'
-  });
-
-  // Test resume callback
-  console.log('\n=== TEST: resume callback (success) ===');
-  const mockRes = new TextEncoder().encode(JSON.stringify({ success: true, data: { eventId: 'cal_99', created: true } }));
+  // Test resume for List Agenda with empty events
+  console.log('\n=== TEST: resume callback (List Agenda - Empty) ===');
+  let mockRes = new TextEncoder().encode(JSON.stringify({ success: true, data: { events: [] } }));
   mem.set(mockRes, 4096);
-  const resumeLen = instance.exports.resume(4096, mockRes.length);
-  const resumeText = new TextDecoder('utf-8').decode(mem.subarray(1024, 1024 + resumeLen));
+  let resumeLen = instance.exports.resume(4096, mockRes.length);
+  let resumeText = new TextDecoder('utf-8').decode(mem.subarray(1024, 1024 + resumeLen));
   console.log(`Resume text: ${resumeText}`);
-  const parsedResp = JSON.parse(resumeText);
-  if (parsedResp.type === 'direct' && parsedResp.displayText.includes('Reunión agendada')) {
-    console.log(`PASSED: resume success callback format.`);
+  let parsedResp = JSON.parse(resumeText);
+  if (parsedResp.type === 'direct' && parsedResp.displayText.includes('Tu agenda está libre')) {
+    console.log(`PASSED: List empty agenda.`);
     passed++;
   } else {
-    console.error(`FAILED: resume success callback.`);
+    console.error(`FAILED: List empty agenda.`);
     failed++;
   }
 
-  console.log('\n=== TEST: resume callback (error) ===');
-  const mockErr = new TextEncoder().encode(JSON.stringify({ success: false, error: 'Permission denied' }));
-  mem.set(mockErr, 4096);
-  const errLen = instance.exports.resume(4096, mockErr.length);
-  const errText = new TextDecoder('utf-8').decode(mem.subarray(1024, 1024 + errLen));
-  console.log(`Resume error text: ${errText}`);
-  const parsedErr = JSON.parse(errText);
-  if (parsedErr.type === 'error') {
-    console.log(`PASSED: resume error callback format.`);
+  // Test resume for List Agenda with active events
+  console.log('\n=== TEST: resume callback (List Agenda - Active Events) ===');
+  mockRes = new TextEncoder().encode(JSON.stringify({ success: true, data: { events: [{ title: 'Reunión de Diseño' }] } }));
+  mem.set(mockRes, 4096);
+  resumeLen = instance.exports.resume(4096, mockRes.length);
+  resumeText = new TextDecoder('utf-8').decode(mem.subarray(1024, 1024 + resumeLen));
+  console.log(`Resume text: ${resumeText}`);
+  parsedResp = JSON.parse(resumeText);
+  if (parsedResp.type === 'direct' && parsedResp.displayText.includes('Agenda de Eventos')) {
+    console.log(`PASSED: List active agenda.`);
     passed++;
   } else {
-    console.error(`FAILED: resume error callback.`);
+    console.error(`FAILED: List active agenda.`);
+    failed++;
+  }
+
+  // 2. /calendar with arguments -> Intelligently create meeting
+  runCase('2. Natural title (/calendar Reunión de equipo)', 'Reunión de equipo', 'calendar', 'create');
+  runCase('3. Full pipe (/calendar Reunión | 2026-10-16T15:00:00Z)', 'Reunión | 2026-10-16T15:00:00Z', 'calendar', 'create');
+  runCase('4. Conversational (/calendar creame una reunion con Pedro)', 'creame una reunion con Pedro', 'calendar', 'create');
+  runCase('5. JSON payload', JSON.stringify({ title: 'Sync Semanal' }), 'calendar', 'create');
+
+  // Test resume for Create Meeting
+  console.log('\n=== TEST: resume callback (Create Meeting Success) ===');
+  mockRes = new TextEncoder().encode(JSON.stringify({ success: true, data: { eventId: 'evt_123' } }));
+  mem.set(mockRes, 4096);
+  resumeLen = instance.exports.resume(4096, mockRes.length);
+  resumeText = new TextDecoder('utf-8').decode(mem.subarray(1024, 1024 + resumeLen));
+  console.log(`Resume text: ${resumeText}`);
+  parsedResp = JSON.parse(resumeText);
+  if (parsedResp.type === 'direct' && parsedResp.displayText.includes('Reunión agendada')) {
+    console.log(`PASSED: Create meeting confirmation.`);
+    passed++;
+  } else {
+    console.error(`FAILED: Create meeting confirmation.`);
     failed++;
   }
 

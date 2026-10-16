@@ -6,23 +6,26 @@
   <img src="icon.png" width="96" height="96" alt="Chattree Calendar Minimalist Icon" style="border-radius: 20%;" />
 </p>
 
-# Chattree Official Calendar Plugin (v1.1.0)
+# Chattree Official Calendar Plugin (v1.2.0)
 
-The **Chattree Official Calendar Plugin** empowers Chattree's on-device AI assistant and users to schedule, manage, and query native calendar events directly on Android (`CalendarContract`) and iOS (`EventKit`) through conversational chat interactions and slash commands.
+The **Chattree Official Calendar Plugin** provides a unified, intelligent calendar extension for Chattree. It consolidates all features under a single `/calendar` command with a minimalist calendar icon:
+
+- **Empty Invocations (`/calendar`)**: Instantly inspects the device calendar and displays your scheduled agenda and upcoming meetings.
+- **Conversational & AI-Driven Scheduling**: When given arguments or invoked by the AI (e.g. *"créame una reunión con el equipo mañana a las 10:00 AM"*), it intelligently parses parameters, normalizes dates, and schedules the event directly in the phone's native calendar.
 
 ---
 
-## 1. Overview & 100% AI Integration
+## 1. Overview & Single-Command Architecture
 
-This plugin bridges conversational intelligence with the physical device's calendar database inside an isolated WebAssembly sandbox:
-
-- **100% Conversational AI Support**: When a user says *"créame una reunión con el equipo mañana a las 10:00 AM para revisar el presupuesto"*, Chattree's AI assistant executes the calendar action via the plugin tool, extracting the title, start date, and end date directly without canned or static automated messages.
-- **Direct & Flexible Syntax**: Accepts conversational phrases, pipe-delimited parameters, and direct JSON function payloads:
-  - Natural / Direct: `/calendar Reunión de Producto | 2026-10-16T15:00:00Z | 2026-10-16T16:00:00Z | Discutir roadmap`
-  - Quick Meeting Command: `/reunion Reunión con proveedores`
+- **Unified Slash Command**: Only one clean command in the slash palette: `/calendar`.
+- **Query Agenda (`/calendar`)**: Without parameters, queries the device calendar via `calendar.events` and reports upcoming commitments.
+- **Schedule Events (`/calendar ...`)**: With natural text, pipe format, or JSON, creates the calendar event via `calendar.create`.
+- **Flexible Syntax**:
+  - Empty: `/calendar` (shows agenda)
+  - Natural: `/calendar Reunión de Producto | 2026-10-16T15:00:00Z | 2026-10-16T16:00:00Z | Discutir roadmap`
+  - Conversational: `/calendar creame una reunion con proveedores`
   - Function Calling JSON: `{"title":"Reunión","startDate":"2026-10-16T10:00:00Z","endDate":"2026-10-16T11:00:00Z"}`
-- **Automated Fallback & Time Normalization**: If the user or AI specifies an event title without dates, the plugin automatically provides valid default ISO timestamps for the upcoming hour, ensuring the host calendar API never rejects the event.
-- **Standardized ToolResult Output**: Returns clean, native `ToolResult` JSON (`{"type":"direct","displayText":"..."}`) allowing the AI to present real confirmation data seamlessly in the chat.
+- **Standardized ToolResult Output**: Always returns native JSON (`{"type":"direct","displayText":"..."}`) allowing the AI to present real confirmation data seamlessly in the chat.
 - **Privacy & Local Execution**: Scheduling occurs directly on-device via `ChattreeHostApi`. No private schedule data leaves the phone.
 
 ---
@@ -42,24 +45,17 @@ Declared in [`plugin.json`](./plugin.json):
 
 ---
 
-## 3. Command & Tool Specifications
+## 3. Command Specification
 
-### Primary Command: `/calendar`
-**Aliases:** `/cal`, `/schedule`, `/evento`, `/reunion`, `/meeting`, `/cita`, `/agenda`, `/agendar`
+### Command: `/calendar`
+**Alias:** `/cal`
 
-#### Syntax Patterns:
+#### Usage:
 ```text
-/calendar <título> | <fecha_inicio_ISO> [| <fecha_fin_ISO>] [| <descripción>]
-/calendar add <título> | <fecha_inicio_ISO>
-/reunion <título> [| <fecha_inicio_ISO>]
-/calendar-list <fecha_inicio> <fecha_fin>
-```
-
-#### Examples:
-```text
-/calendar Reunión de Diseño | 2026-10-16T15:00:00Z | 2026-10-16T16:00:00Z | Discutir arquitectura UI
-/reunion Revisión de sprint con equipo móvil
-/calendar add Dentista | 2026-10-20T09:30:00Z
+/calendar                                  -> Muestra tu agenda y próximos eventos
+/calendar <título>                         -> Crea una reunión con fechas automáticas
+/calendar "Reunión de Diseño" | 2026-10-16T15:00:00Z | 2026-10-16T16:00:00Z
+/calendar Cita Médica
 ```
 
 ---
