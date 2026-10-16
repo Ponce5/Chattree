@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "minAppVersion": "1.0.0",
   "name": "Device Calendar",
-  "description": "Enables AI and slash commands to create, view, and schedule native calendar events on the phone.",
+  "description": "Enables AI and users to create, schedule, and view native device calendar events and meetings seamlessly through conversational requests (e.g. 'créame una reunión') and slash commands.",
   "author": "Chattree Core Team",
   "authorEmail": "support@chattree.chat",
   "homepageUrl": "https://github.com/chattree/chattree",
   "primaryCommand": "calendar",
-  "aliases": ["cal", "schedule", "evento"],
+  "aliases": ["cal", "schedule", "evento", "reunion", "meeting", "cita", "agenda", "agendar"],
   "type": "imported",
   "capabilities": [
     "calendar.create",
@@ -24,13 +24,15 @@
     "calendar",
     "productivity",
     "events",
-    "device"
+    "reunion",
+    "device",
+    "ai"
   ],
-  "changelog": "1.0.3: Robust argument parsing, automatic default calendar selection, and friendly user-facing responses.",
+  "changelog": "1.1.0: Full AI conversational support ('créame una reunión'), robust date and title extraction, direct JSON payload routing, minimalist black-and-white icon, and standardized ToolResult responses without canned static messages.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "7f03687518cc0508b19553617d208628ef400201c1fa39bb5d18e1dfeaf12f4f",
+  "wasmSha256": "511f5570d09600067230dc69fa13675964206a5ffc81d87f1e800a46c374772c",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
@@ -39,8 +41,18 @@
     {
       "id": "com.chattree.official.calendar.create",
       "command": "calendar",
-      "displayName": "Schedule Calendar Event",
-      "description": "Schedule a new event in the device calendar: /calendar add <title> | <startDate> [| <endDate>] [| <description>]",
+      "displayName": "Schedule Calendar Event / Meeting",
+      "description": "Creates or schedules a meeting or event in the device calendar. Use whenever the user asks to schedule, book, or create an appointment or meeting (e.g. 'créame una reunión', 'agenda una cita', 'crear evento'). Syntax: /calendar <title> [| <startDate>] [| <endDate>] [| <description>]",
+      "capabilities": [
+        "calendar.create",
+        "calendar.read"
+      ]
+    },
+    {
+      "id": "com.chattree.official.calendar.reunion",
+      "command": "reunion",
+      "displayName": "Crear Reunión Directa",
+      "description": "Comando directo para agendar una reunión en el calendario. Sintaxis: /reunion <título> [| <fecha_inicio>]",
       "capabilities": [
         "calendar.create",
         "calendar.read"

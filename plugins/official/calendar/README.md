@@ -1,57 +1,72 @@
-# Chattree Official Calendar Plugin
+<p align="center">
+  <img src="logo.png" width="720" alt="Chattree Calendar Logo" style="border-radius: 12px; margin-bottom: 16px;" />
+</p>
 
-The **Chattree Official Calendar Plugin** enables the on-device AI assistant and conversational slash commands to schedule, manage, and query events directly in the smartphone's native device calendar (Android `CalendarContract` and iOS `EventKit`).
+<p align="center">
+  <img src="icon.png" width="96" height="96" alt="Chattree Calendar Minimalist Icon" style="border-radius: 20%;" />
+</p>
+
+# Chattree Official Calendar Plugin (v1.1.0)
+
+The **Chattree Official Calendar Plugin** empowers Chattree's on-device AI assistant and users to schedule, manage, and query native calendar events directly on Android (`CalendarContract`) and iOS (`EventKit`) through conversational chat interactions and slash commands.
 
 ---
 
-## 1. Overview & Use Cases
+## 1. Overview & 100% AI Integration
 
-This plugin bridges the conversational intelligence of Chattree with the physical device's calendar database, running inside an isolated WebAssembly sandbox:
+This plugin bridges conversational intelligence with the physical device's calendar database inside an isolated WebAssembly sandbox:
 
-- **AI-Driven Scheduling**: Users can converse naturally in chat (e.g. *"Agenda una reunión con el equipo mañana a las 10:00 AM para revisar el presupuesto"*). Chattree's intent router formats the parameters and invokes the calendar plugin.
-- **Direct Slash Commands**: Power users can use `/calendar` or `/calendar-add` to create events quickly from the chat interface without switching apps.
-- **Privacy & Local Execution**: Event scheduling happens directly on the device through the `ChattreeHostApi`. No calendar data, titles, or dates are relayed to external cloud proxies.
+- **100% Conversational AI Support**: When a user says *"créame una reunión con el equipo mañana a las 10:00 AM para revisar el presupuesto"*, Chattree's AI assistant executes the calendar action via the plugin tool, extracting the title, start date, and end date directly without canned or static automated messages.
+- **Direct & Flexible Syntax**: Accepts conversational phrases, pipe-delimited parameters, and direct JSON function payloads:
+  - Natural / Direct: `/calendar Reunión de Producto | 2026-10-16T15:00:00Z | 2026-10-16T16:00:00Z | Discutir roadmap`
+  - Quick Meeting Command: `/reunion Reunión con proveedores`
+  - Function Calling JSON: `{"title":"Reunión","startDate":"2026-10-16T10:00:00Z","endDate":"2026-10-16T11:00:00Z"}`
+- **Automated Fallback & Time Normalization**: If the user or AI specifies an event title without dates, the plugin automatically provides valid default ISO timestamps for the upcoming hour, ensuring the host calendar API never rejects the event.
+- **Standardized ToolResult Output**: Returns clean, native `ToolResult` JSON (`{"type":"direct","displayText":"..."}`) allowing the AI to present real confirmation data seamlessly in the chat.
+- **Privacy & Local Execution**: Scheduling occurs directly on-device via `ChattreeHostApi`. No private schedule data leaves the phone.
 
 ---
 
 ## 2. Capabilities & Permissions
 
-This plugin requires explicit, scoped capabilities declared in [`plugin.json`](./plugin.json):
+Declared in [`plugin.json`](./plugin.json):
 
 | Capability | Tier | Category | Purpose |
 |---|---|---|---|
-| `calendar.create` | 🟡 Sensitive | Device | Allows creating new events in the default or specified calendar. |
-| `calendar.read` | 🟡 Sensitive | Device | Reads available calendar accounts and checks for schedule conflicts. |
-| `calendar.update` | 🟡 Sensitive (Optional) | Device | Allows editing existing calendar events. |
-| `calendar.delete` | 🟡 Sensitive (Optional) | Device | Allows removing events upon explicit user instruction. |
+| `calendar.create` | 🟡 Sensitive | Device | Creates events in the device default or specified calendar. |
+| `calendar.read` | 🟡 Sensitive | Device | Queries available calendar accounts and inspects event schedules. |
+| `calendar.update` | 🟡 Sensitive (Optional) | Device | Modifies existing calendar entries upon request. |
+| `calendar.delete` | 🟡 Sensitive (Optional) | Device | Removes events upon explicit user instruction. |
 
-> **User Consent Prompt:** Because calendar operations are categorized under the **Sensitive** tier, Chattree prompts the user for explicit permission upon the first invocation.
+> **User Consent:** Categorized under the **Sensitive** tier; Chattree requests user consent upon first invocation.
 
 ---
 
 ## 3. Command & Tool Specifications
 
-### Primary Slash Command: `/calendar`
-Aliases: `/cal`, `/schedule`, `/evento`
+### Primary Command: `/calendar`
+**Aliases:** `/cal`, `/schedule`, `/evento`, `/reunion`, `/meeting`, `/cita`, `/agenda`, `/agendar`
 
-#### Syntax:
+#### Syntax Patterns:
 ```text
-/calendar add <title> | <startDate> [| <endDate>] [| <description>]
-/calendar list <startDate> <endDate>
+/calendar <título> | <fecha_inicio_ISO> [| <fecha_fin_ISO>] [| <descripción>]
+/calendar add <título> | <fecha_inicio_ISO>
+/reunion <título> [| <fecha_inicio_ISO>]
+/calendar-list <fecha_inicio> <fecha_fin>
 ```
 
 #### Examples:
 ```text
-/calendar add "Reunión de Diseño" | 2026-10-15T15:00:00Z | 2026-10-15T16:00:00Z | "Discutir arquitectura UI"
-/calendar add "Dentista" | 2026-10-20T09:30:00Z
-/calendar list 2026-10-15T00:00:00Z 2026-10-15T23:59:59Z
+/calendar Reunión de Diseño | 2026-10-16T15:00:00Z | 2026-10-16T16:00:00Z | Discutir arquitectura UI
+/reunion Revisión de sprint con equipo móvil
+/calendar add Dentista | 2026-10-20T09:30:00Z
 ```
 
 ---
 
 ## 4. Host API Communication Protocol
 
-The plugin interacts with the host app through the imported `chattree.host_call` function:
+The plugin interacts with Chattree through the imported `chattree.host_call` function:
 
 ```wat
 (import "chattree" "host_call"
@@ -67,8 +82,8 @@ The plugin interacts with the host app through the imported `chattree.host_call`
   "payload": {
     "calendarId": "primary",
     "title": "Reunión de Diseño",
-    "startDate": "2026-10-15T15:00:00Z",
-    "endDate": "2026-10-15T16:00:00Z",
+    "startDate": "2026-10-16T15:00:00Z",
+    "endDate": "2026-10-16T16:00:00Z",
     "description": "Discutir arquitectura UI"
   }
 }
@@ -80,66 +95,58 @@ The plugin interacts with the host app through the imported `chattree.host_call`
   "success": true,
   "data": {
     "eventId": "cal_evt_98412",
-    "created": true,
-    "calendarName": "Personal"
+    "created": true
   },
   "error": null
 }
 ```
 
-Because calendar interactions involve asynchronous OS permissions and I/O, `host_call` returns `0` immediately. When the system completes the operation, Chattree invokes the plugin's exported `resume(resPtr, resLen)` callback with the result.
+When completed, Chattree calls `resume(resPtr, resLen)`. The plugin formats a `ToolResult` payload written to linear memory offset `1024`:
+```json
+{
+  "type": "direct",
+  "displayText": "✅ Reunión agendada con éxito en el calendario."
+}
+```
 
 ---
 
-## 5. Building & Packaging
+## 5. Building, Testing & Packaging
 
 ### Prerequisites
-- [wabt (WebAssembly Binary Toolkit)](https://github.com/WebAssembly/wabt) installed (`wat2wasm`).
+- [wabt](https://github.com/WebAssembly/wabt) (`wat2wasm`)
+- Node.js (for testing and cryptographic hash verification)
 
 ### Step 1: Compile WebAssembly
 ```bash
 wat2wasm plugin.wat -o plugin.wasm
 ```
 
-### Step 2: Compute SHA-256 Hash
-- **Linux/macOS:**
-  ```bash
-  sha256sum plugin.wasm
-  ```
-- **Windows (PowerShell):**
-  ```powershell
-  (Get-FileHash -Algorithm SHA256 .\plugin.wasm).Hash.ToLower()
-  ```
-
-Update the `"wasmSha256"` field in [`plugin.json`](./plugin.json) with this 64-character hash.
+### Step 2: Run Automated Tests
+```bash
+node ../../../scripts/test_calendar_wasm.js
+```
 
 ### Step 3: Package as `.chattree-plugin`
-All files must be at the root of the ZIP archive:
-
-- **Linux / macOS:**
-  ```bash
-  zip calendar.chattree-plugin plugin.json plugin.wasm
-  ```
-- **Windows (PowerShell):**
-  ```powershell
-  Compress-Archive -Path plugin.json, plugin.wasm -DestinationPath calendar.zip
-  Rename-Item calendar.zip calendar.chattree-plugin
-  ```
+```bash
+node -e "
+const fs = require('fs');
+const { zipSync } = require('../../../Web/node_modules/fflate');
+const zip = zipSync({
+  'plugin.json': fs.readFileSync('plugin.json'),
+  'plugin.wasm': fs.readFileSync('plugin.wasm'),
+  'icon.png': fs.readFileSync('icon.png')
+});
+fs.writeFileSync('calendar-v1.1.0.chattree-plugin', zip);
+fs.writeFileSync('calendar.chattree-plugin', zip);
+"
+```
 
 ---
 
-## 6. Testing & Deployment on Mobile
+## 6. Installation & Deployment on Mobile
 
-### Option A: Via ADB (Fastest for Developers)
-1. Enable USB Debugging on your Android test phone.
-2. Push the package directly to device storage:
-   ```bash
-   adb push calendar.chattree-plugin /sdcard/Download/
-   ```
-3. In Chattree on your phone:
-   - Navigate to **Settings → Plugins → Import Plugin**.
-   - Select `calendar.chattree-plugin` from your Downloads.
-   - Accept the requested `calendar.create` permission when prompted.
-
-### Option B: Chattree Marketplace
-Submit the package through the Chattree Developer Portal or submit directly to the official catalog.
+1. In Chattree on your device, navigate to **Settings → Plugins → Import Plugin**.
+2. Select `calendar-v1.1.0.chattree-plugin`.
+3. Accept the `calendar.create` and `calendar.read` permissions.
+4. Tell the AI assistant: *"Créame una reunión con el equipo mañana a las 10 AM"* or type `/calendar` to schedule events instantly.
