@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "minAppVersion": "1.0.0",
   "name": "Device Calendar",
   "description": "Unified smart calendar tool. Run /calendar without arguments to view your agenda, or provide details for the AI to intelligently schedule meetings directly in the device calendar.",
@@ -27,11 +27,11 @@
     "device",
     "ai"
   ],
-  "changelog": "1.2.0: Unified all calendar operations into a single /calendar command with minimalist calendar icon. Calling /calendar with no arguments shows current agenda; calling with arguments or conversational requests intelligently schedules meetings via AI.",
+  "changelog": "1.2.1: Corregido el parsing de respuestas del Host API para admitir cualquier formato JSON (con o sin espacios), protegido el buffer de memoria en offset 0 para evitar corrupcion de entrada y resuelto el falso error de permisos al agendar reuniones.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "4fc260957e737d842dc0f6ecaa5b6327ed949ad007196b29312e5eb8d544f319",
+  "wasmSha256": "f90cf53c906376f25998a5de47fbdd77a8c0591ff7966d1dc95015edec2d78a7",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
