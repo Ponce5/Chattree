@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "minAppVersion": "1.0.0",
   "name": "Device Calendar",
   "description": "Herramienta inteligente de calendario. Escribe /calendar para ver tu agenda, o pide a la IA que agende reuniones, citas o eventos directamente en el calendario del dispositivo.",
@@ -27,11 +27,11 @@
     "device",
     "ai"
   ],
-  "changelog": "1.2.4: Integración pura con la IA de Chattree. Eliminado el parseo rígido de barras y palabras clave fijas; la IA procesa el lenguaje natural y genera llamadas directas con fecha y hora precisas. 1.2.3: Timeout aumentado a 15000 ms.",
+  "changelog": "1.2.5: Corrección de codificación UTF-8 en salida JSON para /calendar y /cal. Manejo robusto de errores de host al consultar eventos y agendamiento con IA.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "6b7f305a43be398e59a7b93c3e24abf232bec1327dc9aff5469f88b0670c852e",
+  "wasmSha256": "b9930075e3ebd182379212836b679f565581dfe3fd8c77161c2684a0bb0d6d45",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 15000,

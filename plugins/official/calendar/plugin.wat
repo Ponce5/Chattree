@@ -35,29 +35,23 @@
   ;; {"api":"calendar","operation":"create","payload":
   (data (i32.const 16730) "{\"api\":\"calendar\",\"operation\":\"create\",\"payload\":")
 
-  ;; Offset 17000: ToolResult Create Success Response (84 bytes UTF-8)
-  ;; {"type":"direct","displayText":"✅ Reunión agendada con éxito en el calendario."}
-  (data (i32.const 17000) "{\"type\":\"direct\",\"displayText\":\"\\E2\\9C\\85 Reuni\\C3\\B3n agendada con \\C3\\A9xito en el calendario.\"}")
+  ;; Offset 17000: ToolResult Create Success Response (82 bytes UTF-8)
+  (data (i32.const 17000) "{\"type\":\"direct\",\"displayText\":\"✅ Evento agendado con éxito en el calendario.\"}")
 
-  ;; Offset 17100: ToolResult Permission Error Response (112 bytes UTF-8)
-  ;; {"type":"error","errorMessage":"No se pudo consultar la agenda del calendario. Revisa los permisos en Ajustes."}
-  (data (i32.const 17100) "{\"type\":\"error\",\"errorMessage\":\"No se pudo consultar la agenda del calendario. Revisa los permisos en Ajustes.\"}")
+  ;; Offset 17100: ToolResult Permission Error Response (101 bytes UTF-8)
+  (data (i32.const 17100) "{\"type\":\"error\",\"errorMessage\":\"No se pudo acceder al calendario. Verifica los permisos en Ajustes.\"}")
 
-  ;; Offset 17230: ToolResult List Agenda Active (117 bytes UTF-8)
-  ;; {"type":"direct","displayText":"📅 Agenda de Eventos: Tienes eventos programados sincronizados en tu calendario."}
-  (data (i32.const 17230) "{\"type\":\"direct\",\"displayText\":\"\\F0\\9F\\93\\85 Agenda de Eventos: Tienes eventos programados sincronizados en tu calendario.\"}")
+  ;; Offset 17230: ToolResult List Agenda Active (104 bytes UTF-8)
+  (data (i32.const 17230) "{\"type\":\"direct\",\"displayText\":\"📅 Agenda sincronizada: tienes eventos programados en tu calendario.\"}")
 
   ;; Offset 17360: ToolResult List Agenda Empty (102 bytes UTF-8)
-  ;; {"type":"direct","displayText":"📅 Tu agenda está libre. No tienes eventos programados próximos."}
-  (data (i32.const 17360) "{\"type\":\"direct\",\"displayText\":\"\\F0\\9F\\93\\85 Tu agenda est\\C3\\A1 libre. No tienes eventos programados pr\\C3\\B3ximos.\"}")
+  (data (i32.const 17360) "{\"type\":\"direct\",\"displayText\":\"📅 Tu agenda está libre. No tienes eventos programados próximos.\"}")
 
-  ;; Offset 17480: ToolResult Generic Error Response (110 bytes UTF-8)
-  ;; {"type":"error","errorMessage":"No se pudo consultar los eventos del calendario. Por favor intenta de nuevo."}
-  (data (i32.const 17480) "{\"type\":\"error\",\"errorMessage\":\"No se pudo consultar los eventos del calendario. Por favor intenta de nuevo.\"}")
+  ;; Offset 17480: ToolResult Generic Error Response (97 bytes UTF-8)
+  (data (i32.const 17480) "{\"type\":\"error\",\"errorMessage\":\"No se pudo consultar el calendario. Por favor intenta de nuevo.\"}")
 
-  ;; Offset 18000: Natural Language Guidance Fallback (156 bytes UTF-8)
-  ;; {"type":"direct","displayText":"📅 Pide a la IA lo que deseas agendar con fecha y hora, o escribe /calendar para ver los eventos de tu agenda."}
-  (data (i32.const 18000) "{\"type\":\"direct\",\"displayText\":\"\\F0\\9F\\93\\85 Pide a la IA lo que deseas agendar con fecha y hora, o escribe /calendar para ver los eventos de tu agenda.\"}")
+  ;; Offset 18000: Natural Language Guidance Fallback (146 bytes UTF-8)
+  (data (i32.const 18000) "{\"type\":\"direct\",\"displayText\":\"📅 Pide a la IA lo que deseas agendar con fecha y hora, o escribe /calendar para ver los eventos de tu agenda.\"}")
 
   ;; Keywords for JSON inspection:
   ;; Offset 17700: "\"success\":true" (14 bytes)
@@ -98,6 +92,9 @@
 
   ;; Offset 17940: "\"count\": 0" (10 bytes)
   (data (i32.const 17940) "\"count\": 0")
+
+  ;; Offset 17960: "\"list\"" (6 bytes)
+  (data (i32.const 17960) "\"list\"")
 
   ;; ---------------------------------------------------------------------------
   ;; Helper: Byte-by-byte memory copy
@@ -187,8 +184,8 @@
     ;; Guard against empty / invalid response length
     (if (i32.le_s (local.get $res_len) (i32.const 0))
       (then
-        (call $memcpy (i32.const 1024) (i32.const 17480) (i32.const 110))
-        (return (i32.const 110))
+        (call $memcpy (i32.const 1024) (i32.const 17480) (i32.const 97))
+        (return (i32.const 97))
       )
     )
 
@@ -197,16 +194,8 @@
     (local.set $has_permiso (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17860) (i32.const 7)) (i32.const 0)))
     (if (i32.or (local.get $has_denied) (local.get $has_permiso))
       (then
-        (call $memcpy (i32.const 1024) (i32.const 17100) (i32.const 112))
-        (return (i32.const 112))
-      )
-    )
-
-    ;; Search for success indicators
-    (local.set $has_success_true
-      (i32.or
-        (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17700) (i32.const 14)) (i32.const 0))
-        (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17720) (i32.const 15)) (i32.const 0))
+        (call $memcpy (i32.const 1024) (i32.const 17100) (i32.const 101))
+        (return (i32.const 101))
       )
     )
 
@@ -215,6 +204,15 @@
       (i32.or
         (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17740) (i32.const 15)) (i32.const 0))
         (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17760) (i32.const 16)) (i32.const 0))
+      )
+    )
+
+    ;; If host returned an error JSON (success: false), copy host response directly to 1024!
+    ;; wasm_runtime.dart will parse it and show the exact error message from the host.
+    (if (local.get $has_success_false)
+      (then
+        (call $memcpy (i32.const 1024) (local.get $res_ptr) (local.get $res_len))
+        (return (local.get $res_len))
       )
     )
 
@@ -246,50 +244,29 @@
       (i32.or (i32.eq (local.get $op) (i32.const 2)) (local.get $has_events))
     )
 
-    ;; Success determination:
-    (local.set $is_success
-      (i32.and
-        (i32.eqz (local.get $has_success_false))
-        (i32.or
-          (local.get $has_success_true)
-          (i32.or
-            (local.get $has_eventid)
-            (i32.and (local.get $is_list) (local.get $has_events))
-          )
-        )
-      )
-    )
-
-    (if (local.get $is_success)
+    (if (local.get $is_list)
       (then
-        (if (local.get $is_list)
+        ;; If events array is empty OR no title found:
+        (if (i32.or (local.get $has_empty_events) (i32.eqz (local.get $has_title)))
           (then
-            ;; If events array is empty OR no title found:
-            (if (i32.or (local.get $has_empty_events) (i32.eqz (local.get $has_title)))
-              (then
-                ;; 17360: empty agenda (102 bytes)
-                (call $memcpy (i32.const 1024) (i32.const 17360) (i32.const 102))
-                (return (i32.const 102))
-              )
-              (else
-                ;; 17230: active agenda (117 bytes)
-                (call $memcpy (i32.const 1024) (i32.const 17230) (i32.const 117))
-                (return (i32.const 117))
-              )
-            )
+            ;; 17360: empty agenda (102 bytes)
+            (call $memcpy (i32.const 1024) (i32.const 17360) (i32.const 102))
+            (return (i32.const 102))
           )
           (else
-            ;; 17000: create success (84 bytes)
-            (call $memcpy (i32.const 1024) (i32.const 17000) (i32.const 84))
-            (return (i32.const 84))
+            ;; 17230: active agenda (104 bytes)
+            (call $memcpy (i32.const 1024) (i32.const 17230) (i32.const 104))
+            (return (i32.const 104))
           )
         )
       )
+      (else
+        ;; 17000: create success (82 bytes)
+        (call $memcpy (i32.const 1024) (i32.const 17000) (i32.const 82))
+        (return (i32.const 82))
+      )
     )
-
-    ;; Failure fallback
-    (call $memcpy (i32.const 1024) (i32.const 17480) (i32.const 110))
-    (i32.const 110)
+    (i32.const 0)
   )
 
   ;; ============================================================================
@@ -302,6 +279,7 @@
     (local $c i32)
     (local $i i32)
     (local $req_len i32)
+    (local $is_json_list i32)
 
     (local.set $src (local.get $in_ptr))
     (local.set $rem (local.get $in_len))
@@ -394,13 +372,18 @@
     ;; -------------------------------------------------------------------------
     ;; CASE B: Arguments provided
     ;; -------------------------------------------------------------------------
-    (i32.store (i32.const 8192) (i32.const 1))
 
     ;; B.1: JSON input from the AI (starts with '{' = 123)
     (if (i32.and (i32.gt_u (local.get $rem) (i32.const 1)) (i32.eq (i32.load8_u (local.get $src)) (i32.const 123)))
       (then
-        ;; Check if input has {"action":"list"}
-        (if (i32.ge_s (call $str_find (local.get $src) (local.get $rem) (i32.const 17800) (i32.const 8)) (i32.const 0))
+        ;; Check if input has "list" in JSON
+        (local.set $is_json_list
+          (i32.or
+            (i32.ge_s (call $str_find (local.get $src) (local.get $rem) (i32.const 17960) (i32.const 6)) (i32.const 0)) ;; "\"list\""
+            (i32.ge_s (call $str_find (local.get $src) (local.get $rem) (i32.const 17800) (i32.const 8)) (i32.const 0)) ;; "\"events\""
+          )
+        )
+        (if (local.get $is_json_list)
           (then
             ;; Switch to list operation
             (i32.store (i32.const 8192) (i32.const 2))
@@ -414,6 +397,9 @@
             (return (call $process_response (i32.const 4096) (local.get $call_res)))
           )
         )
+
+        ;; Operation = 1 (create)
+        (i32.store (i32.const 8192) (i32.const 1))
 
         ;; Check if input already has "api" wrapper
         (local.set $i (i32.const 0))
@@ -462,9 +448,9 @@
     )
 
     ;; B.2: Non-JSON input (Fallback if called without AI interpretation)
-    ;; Offset 18000: Guidance message (156 bytes)
-    (call $memcpy (i32.const 1024) (i32.const 18000) (i32.const 156))
-    (return (i32.const 156))
+    ;; Offset 18000: Guidance message (146 bytes)
+    (call $memcpy (i32.const 1024) (i32.const 18000) (i32.const 146))
+    (return (i32.const 146))
   )
 
   ;; ============================================================================
