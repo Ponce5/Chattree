@@ -96,6 +96,9 @@
   ;; Offset 17960: "\"list\"" (6 bytes)
   (data (i32.const 17960) "\"list\"")
 
+  ;; Offset 17980: "\"api\"" (5 bytes)
+  (data (i32.const 17980) "\"api\"")
+
   ;; ---------------------------------------------------------------------------
   ;; Helper: Byte-by-byte memory copy
   ;; ---------------------------------------------------------------------------
@@ -401,33 +404,18 @@
         ;; Operation = 1 (create)
         (i32.store (i32.const 8192) (i32.const 1))
 
-        ;; Check if input already has "api" wrapper
-        (local.set $i (i32.const 0))
-        (loop $check_api
-          (if (i32.and (i32.lt_u (local.get $i) (local.get $rem)) (i32.lt_u (local.get $i) (i32.const 25)))
-            (then
-              (if (i32.and
-                    (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $i))) (i32.const 97)) ;; 'a'
-                    (i32.and
-                      (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 1)))) (i32.const 112)) ;; 'p'
-                      (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 2)))) (i32.const 105)) ;; 'i'
-                    )
-                  )
-                (then
-                  (call $memcpy (i32.const 2048) (local.get $src) (local.get $rem))
-                  (local.set $req_len (local.get $rem))
-                  (local.set $call_res
-                    (call $host_call (i32.const 2048) (local.get $req_len) (i32.const 4096) (i32.const 4096))
-                  )
-                  (if (i32.eq (local.get $call_res) (i32.const 0))
-                    (then (return (i32.const 0)))
-                  )
-                  (return (call $process_response (i32.const 4096) (local.get $call_res)))
-                )
-              )
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $check_api)
+        ;; Check if input already has "\"api\"" wrapper (5 bytes at offset 17980)
+        (if (i32.ge_s (call $str_find (local.get $src) (local.get $rem) (i32.const 17980) (i32.const 5)) (i32.const 0))
+          (then
+            (call $memcpy (i32.const 2048) (local.get $src) (local.get $rem))
+            (local.set $req_len (local.get $rem))
+            (local.set $call_res
+              (call $host_call (i32.const 2048) (local.get $req_len) (i32.const 4096) (i32.const 4096))
             )
+            (if (i32.eq (local.get $call_res) (i32.const 0))
+              (then (return (i32.const 0)))
+            )
+            (return (call $process_response (i32.const 4096) (local.get $call_res)))
           )
         )
 
