@@ -114,14 +114,10 @@ When completed, Chattree calls `resume(resPtr, resLen)`. The plugin formats a `T
 wat2wasm plugin.wat -o plugin.wasm
 ```
 
-### Step 2: Run Automated Tests
+### Step 2: Package as `.chattree-plugin`
+Empaqueta los 4 archivos permitidos en un archivo ZIP renombrado a `.chattree-plugin`:
 ```bash
-node ../../../scripts/test_calendar_wasm.js
-```
-
-### Step 3: Package as `.chattree-plugin`
-```bash
-node ../../../scripts/package_calendar.js
+zip -9 calendar-v1.2.3.chattree-plugin plugin.json plugin.wasm icon.png README.md
 ```
 
 > **Archivos permitidos:** `plugin.json`, `plugin.wasm`, `icon.png`, `README.md`. No incluir `logo.png` u otros archivos — el validador de Chattree los rechazará.
