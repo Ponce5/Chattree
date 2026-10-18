@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "com.chattree.example.notes-demo",
+  "version": "1.0.0",
+  "name": "Notes Demo",
+  "description": "Example plugin demonstrating Chattree Notes API: create and search notes.",
+  "author": "Chattree SDK Examples",
+  "primaryCommand": "notes-demo",
+  "aliases": ["ndemo"],
+  "type": "imported",
+  "capabilities": [
+    "chattree.notes.create",
+    "chattree.notes.search"
+  ],
+  "tags": ["demo", "example", "notes"],
+  "changelog": "1.0.0: Initial release.",
+  "runtime": "wasm",
+  "entrypoint": "notes_demo",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "REPLACE_WITH_SHA256_OF_YOUR_COMPILED_PLUGIN_WASM",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 4,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.example.notes-demo.notes-demo",
+      "command": "notes-demo",
+      "displayName": "Notes Demo",
+      "description": "Create and search notes: /notes-demo save <title> | /notes-demo search <query>",
+      "capabilities": [
+        "chattree.notes.create",
+        "chattree.notes.search"
+      ]
+    }
+  ]
+}

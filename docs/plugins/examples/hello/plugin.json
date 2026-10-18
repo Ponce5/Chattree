@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "com.chattree.example.hello",
+  "version": "1.0.0",
+  "name": "Hello",
+  "description": "Minimal example plugin: greets the user. Uses no capabilities.",
+  "author": "Chattree SDK Examples",
+  "primaryCommand": "hello",
+  "aliases": [],
+  "type": "imported",
+  "capabilities": [],
+  "tags": [
+    "demo",
+    "example",
+    "hello"
+  ],
+  "changelog": "1.0.0: Initial release.",
+  "runtime": "wasm",
+  "entrypoint": "hello",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "REPLACE_WITH_SHA256_OF_YOUR_COMPILED_PLUGIN_WASM",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 2,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.example.hello.hello",
+      "command": "hello",
+      "displayName": "Hello",
+      "description": "Greets you: /hello <name>",
+      "capabilities": []
+    }
+  ]
+}

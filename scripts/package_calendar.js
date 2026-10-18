@@ -23,20 +23,25 @@ for (const file of filesToInclude) {
 
 const zipped = fflate.zipSync(zipData, { level: 9 });
 
-// Save calendar-v1.2.1.chattree-plugin and calendar.chattree-plugin
-const v121Path = path.join(pluginDir, 'calendar-v1.2.1.chattree-plugin');
+// Save calendar-v1.2.2.chattree-plugin and calendar.chattree-plugin
+const v122Path = path.join(pluginDir, 'calendar-v1.2.2.chattree-plugin');
 const latestPath = path.join(pluginDir, 'calendar.chattree-plugin');
 
-fs.writeFileSync(v121Path, zipped);
+fs.writeFileSync(v122Path, zipped);
 fs.writeFileSync(latestPath, zipped);
 
 console.log(`Successfully created:`);
-console.log(`- ${v121Path} (${zipped.length} bytes)`);
+console.log(`- ${v122Path} (${zipped.length} bytes)`);
 console.log(`- ${latestPath} (${zipped.length} bytes)`);
 
-// Clean up old v1.2.0 package if exists
-const oldPath = path.join(pluginDir, 'calendar-v1.2.0.chattree-plugin');
-if (fs.existsSync(oldPath)) {
-  fs.unlinkSync(oldPath);
-  console.log(`Removed obsolete ${oldPath}`);
+// Clean up old package versions if exist
+const oldPaths = [
+  path.join(pluginDir, 'calendar-v1.2.0.chattree-plugin'),
+  path.join(pluginDir, 'calendar-v1.2.1.chattree-plugin')
+];
+for (const oldPath of oldPaths) {
+  if (fs.existsSync(oldPath)) {
+    fs.unlinkSync(oldPath);
+    console.log(`Removed obsolete ${oldPath}`);
+  }
 }
