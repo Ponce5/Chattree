@@ -6,7 +6,7 @@
   <img src="icon.png" width="96" height="96" alt="Chattree Calendar Minimalist Icon" style="border-radius: 20%;" />
 </p>
 
-# Chattree Official Calendar Plugin (v1.2.0)
+# Chattree Official Calendar Plugin (v1.2.1)
 
 The **Chattree Official Calendar Plugin** provides a unified, intelligent calendar extension for Chattree. It consolidates all features under a single `/calendar` command with a minimalist calendar icon:
 

@@ -7,7 +7,6 @@ const filesToInclude = [
   'plugin.json',
   'plugin.wasm',
   'icon.png',
-  'logo.png',
   'README.md'
 ];
 
