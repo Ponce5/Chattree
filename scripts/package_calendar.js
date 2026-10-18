@@ -23,21 +23,22 @@ for (const file of filesToInclude) {
 
 const zipped = fflate.zipSync(zipData, { level: 9 });
 
-// Save calendar-v1.2.2.chattree-plugin and calendar.chattree-plugin
-const v122Path = path.join(pluginDir, 'calendar-v1.2.2.chattree-plugin');
+// Save calendar-v1.2.3.chattree-plugin and calendar.chattree-plugin
+const v123Path = path.join(pluginDir, 'calendar-v1.2.3.chattree-plugin');
 const latestPath = path.join(pluginDir, 'calendar.chattree-plugin');
 
-fs.writeFileSync(v122Path, zipped);
+fs.writeFileSync(v123Path, zipped);
 fs.writeFileSync(latestPath, zipped);
 
 console.log(`Successfully created:`);
-console.log(`- ${v122Path} (${zipped.length} bytes)`);
+console.log(`- ${v123Path} (${zipped.length} bytes)`);
 console.log(`- ${latestPath} (${zipped.length} bytes)`);
 
 // Clean up old package versions if exist
 const oldPaths = [
   path.join(pluginDir, 'calendar-v1.2.0.chattree-plugin'),
-  path.join(pluginDir, 'calendar-v1.2.1.chattree-plugin')
+  path.join(pluginDir, 'calendar-v1.2.1.chattree-plugin'),
+  path.join(pluginDir, 'calendar-v1.2.2.chattree-plugin')
 ];
 for (const oldPath of oldPaths) {
   if (fs.existsSync(oldPath)) {

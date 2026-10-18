@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "minAppVersion": "1.0.0",
   "name": "Device Calendar",
-  "description": "Unified smart calendar tool. Run /calendar without arguments to view your agenda, or provide details for the AI to intelligently schedule meetings directly in the device calendar.",
+  "description": "Herramienta inteligente de calendario. Escribe /calendar para ver tu agenda, o pide a la IA que agende reuniones, citas o eventos directamente en el calendario del dispositivo.",
   "author": "Chattree Core Team",
   "authorEmail": "support@chattree.chat",
   "homepageUrl": "https://github.com/chattree/chattree",
@@ -27,41 +27,98 @@
     "device",
     "ai"
   ],
-  "changelog": "1.2.2: Eliminado logo.png del paquete para cumplir con la lista de archivos permitidos por Chattree y optimizar el tamaño de instalación. 1.2.1: Corregido el parsing de respuestas del Host API para admitir cualquier formato JSON (con o sin espacios), protegido el buffer de memoria en offset 0 para evitar corrupcion de entrada y resuelto el falso error de permisos al agendar reuniones.",
+  "changelog": "1.2.3: Aumentado timeoutMs a 15000 para tolerar el dialogo de permisos del sistema operativo y las operaciones de E/S del dispositivo. Agregado intentContract completo al tool para que la IA pueda agendar eventos de forma inteligente sin comandos fijos. Corregida descripcion del plugin en español. 1.2.2: Eliminado logo.png del paquete para cumplir con la lista de archivos permitidos. 1.2.1: Corregido el parsing de respuestas del Host API.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
   "wasmSha256": "f90cf53c906376f25998a5de47fbdd77a8c0591ff7966d1dc95015edec2d78a7",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
-  "timeoutMs": 5000,
+  "timeoutMs": 15000,
   "fuelLimit": 50000000,
   "tools": [
     {
       "id": "com.chattree.official.calendar.main",
       "command": "calendar",
       "displayName": "Calendario y Agenda",
-      "description": "Comando inteligente del calendario. Sin parámetros (/calendar) muestra tu agenda y eventos programados. Con texto o petición de la IA, agenda automáticamente la reunión o cita en el calendario. Sintaxis: /calendar [título | inicio | fin | descripción]",
+      "description": "Herramienta inteligente de calendario. Sin argumentos muestra la agenda y proximos eventos del dispositivo. Con texto crea una reunion o cita en el calendario. La IA puede llamar este comando directamente para agendar eventos cuando el usuario lo solicite.",
       "capabilities": [
         "calendar.create",
         "calendar.read"
-      ]
+      ],
+      "intentContract": {
+        "validIntents": ["create", "list", "unknown"],
+        "fields": [
+          {
+            "key": "TITLE",
+            "description": "titulo del evento o reunion, o null si es consulta de agenda"
+          },
+          {
+            "key": "START",
+            "description": "fecha y hora de inicio en formato ISO 8601 (YYYY-MM-DDTHH:MM:SS) o null"
+          },
+          {
+            "key": "END",
+            "description": "fecha y hora de fin en formato ISO 8601 o null"
+          },
+          {
+            "key": "DESCRIPTION",
+            "description": "descripcion opcional del evento o null"
+          }
+        ],
+        "examples": [
+          {
+            "input": "agendame una reunion con el equipo mañana a las 10 AM",
+            "output": {
+              "INTENT": "create",
+              "TITLE": "Reunion con el equipo",
+              "START": "null",
+              "END": "null",
+              "DESCRIPTION": "null",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "que tengo en el calendario",
+            "output": {
+              "INTENT": "list",
+              "TITLE": "null",
+              "START": "null",
+              "END": "null",
+              "DESCRIPTION": "null",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "crea una cita medica el viernes a las 3 PM por una hora",
+            "output": {
+              "INTENT": "create",
+              "TITLE": "Cita medica",
+              "START": "null",
+              "END": "null",
+              "DESCRIPTION": "null",
+              "CONFIDENCE": "high"
+            }
+          }
+        ],
+        "maxResponseTokens": 120
+      }
     }
   ],
   "settings": [
     {
       "key": "default_calendar_id",
-      "label": "Default Calendar Identifier",
+      "label": "Identificador de Calendario",
       "type": "string",
       "defaultValue": "primary",
-      "description": "Target calendar ID for scheduled events ('primary' uses the system default)."
+      "description": "ID del calendario destino para nuevos eventos ('primary' usa el predeterminado del sistema)."
     },
     {
       "key": "default_event_duration_minutes",
-      "label": "Default Duration (Minutes)",
+      "label": "Duracion Predeterminada (Minutos)",
       "type": "number",
       "defaultValue": "60",
-      "description": "Default event duration in minutes if no end time is specified."
+      "description": "Duracion en minutos de los eventos si no se especifica hora de fin."
     }
   ]
 }

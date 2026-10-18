@@ -1,12 +1,8 @@
 <p align="center">
-  <img src="logo.png" width="720" alt="Chattree Calendar Logo" style="border-radius: 12px; margin-bottom: 16px;" />
-</p>
-
-<p align="center">
   <img src="icon.png" width="96" height="96" alt="Chattree Calendar Minimalist Icon" style="border-radius: 20%;" />
 </p>
 
-# Chattree Official Calendar Plugin (v1.2.2)
+# Chattree Official Calendar Plugin (v1.2.3)
 
 The **Chattree Official Calendar Plugin** provides a unified, intelligent calendar extension for Chattree. It consolidates all features under a single `/calendar` command with a minimalist calendar icon:
 
@@ -125,25 +121,16 @@ node ../../../scripts/test_calendar_wasm.js
 
 ### Step 3: Package as `.chattree-plugin`
 ```bash
-node -e "
-const fs = require('fs');
-const { zipSync } = require('../../../Web/node_modules/fflate');
-const zip = zipSync({
-  'plugin.json': fs.readFileSync('plugin.json'),
-  'plugin.wasm': fs.readFileSync('plugin.wasm'),
-  'icon.png': fs.readFileSync('icon.png'),
-  'README.md': fs.readFileSync('README.md')
-});
-fs.writeFileSync('calendar-v1.2.2.chattree-plugin', zip);
-fs.writeFileSync('calendar.chattree-plugin', zip);
-"
+node ../../../scripts/package_calendar.js
 ```
+
+> **Archivos permitidos:** `plugin.json`, `plugin.wasm`, `icon.png`, `README.md`. No incluir `logo.png` u otros archivos — el validador de Chattree los rechazará.
 
 ---
 
 ## 6. Installation & Deployment on Mobile
 
-1. In Chattree on your device, navigate to **Settings → Plugins → Import Plugin**.
-2. Select `calendar-v1.2.2.chattree-plugin`.
-3. Accept the `calendar.create` and `calendar.read` permissions.
-4. Tell the AI assistant: *"Créame una reunión con el equipo mañana a las 10 AM"* or type `/calendar` to schedule events instantly.
+1. En Chattree, navega a **Ajustes → Plugins → Importar Plugin**.
+2. Selecciona `calendar-v1.2.3.chattree-plugin`.
+3. Acepta los permisos `calendar.create` y `calendar.read` cuando el sistema los solicite.
+4. Dile a la IA: *"Agéndame una reunión con el equipo mañana a las 10 AM"*, o escribe `/calendar` para ver tu agenda al instante.
