@@ -4,10 +4,10 @@
 ;; Runtime: Isolated WASM sandbox with 4 memory pages (256 KB)
 ;; Host API: chattree.host_call(reqPtr, reqLen, resPtr, resMaxLen) -> i32
 ;;
-;; Intelligent Architecture (/calendar):
-;;   - Empty, "list", or "agenda": Queries real device agenda events.
-;;   - Direct JSON from AI: Parses structured JSON from LLM function calls.
-;;   - Natural speech from user: Creates events using current device date/time.
+;; Pure AI Architecture:
+;;   - Empty / "list": Queries device calendar events directly.
+;;   - JSON (from AI): Wraps and calls device calendar.create with structured parameters.
+;;   - Zero keyword matching, zero pipes: All natural language is resolved by Chattree AI.
 ;; ==============================================================================
 
 (module
@@ -31,56 +31,33 @@
   ;; {"api":"calendar","operation":"events","payload":{"calendarId":"primary"}}
   (data (i32.const 16384) "{\"api\":\"calendar\",\"operation\":\"events\",\"payload\":{\"calendarId\":\"primary\"}}")
 
-  ;; Offset 16500: Create Request Prefix (82 bytes)
-  ;; {"api":"calendar","operation":"create","payload":{"calendarId":"primary","title":"
-  (data (i32.const 16500) "{\"api\":\"calendar\",\"operation\":\"create\",\"payload\":{\"calendarId\":\"primary\",\"title\":\"")
-
-  ;; Offset 16600: Infix StartDate (15 bytes)
-  ;; ","startDate":"
-  (data (i32.const 16600) "\",\"startDate\":\"")
-
-  ;; Offset 16630: Infix EndDate (13 bytes)
-  ;; ","endDate":"
-  (data (i32.const 16630) "\",\"endDate\":\"")
-
-  ;; Offset 16660: Infix Description (17 bytes)
-  ;; ","description":"
-  (data (i32.const 16660) "\",\"description\":\"")
-
-  ;; Offset 16690: Suffix (3 bytes)
-  ;; "}}
-  (data (i32.const 16690) "\"}}")
-
-  ;; Offset 16700: Default Description (24 bytes)
-  ;; Agendado con Chattree AI
-  (data (i32.const 16700) "Agendado con Chattree AI")
-
   ;; Offset 16730: Direct JSON Wrap Prefix (49 bytes)
   ;; {"api":"calendar","operation":"create","payload":
   (data (i32.const 16730) "{\"api\":\"calendar\",\"operation\":\"create\",\"payload\":")
 
-  ;; Offset 16790: Default Title "Reunión" (8 bytes UTF-8)
-  (data (i32.const 16790) "Reuni\C3\B3n")
-
   ;; Offset 17000: ToolResult Create Success Response (84 bytes UTF-8)
   ;; {"type":"direct","displayText":"✅ Reunión agendada con éxito en el calendario."}
-  (data (i32.const 17000) "{\"type\":\"direct\",\"displayText\":\"\E2\9C\85 Reuni\C3\B3n agendada con \C3\A9xito en el calendario.\"}")
+  (data (i32.const 17000) "{\"type\":\"direct\",\"displayText\":\"\\E2\\9C\\85 Reuni\\C3\\B3n agendada con \\C3\\A9xito en el calendario.\"}")
 
   ;; Offset 17100: ToolResult Permission Error Response (112 bytes UTF-8)
   ;; {"type":"error","errorMessage":"No se pudo consultar la agenda del calendario. Revisa los permisos en Ajustes."}
   (data (i32.const 17100) "{\"type\":\"error\",\"errorMessage\":\"No se pudo consultar la agenda del calendario. Revisa los permisos en Ajustes.\"}")
 
   ;; Offset 17230: ToolResult List Agenda Active (117 bytes UTF-8)
-  ;; {"type":"direct","displayText":"📅 Agenda de Eventos:\nTienes eventos programados sincronizados en tu calendario."}
-  (data (i32.const 17230) "{\"type\":\"direct\",\"displayText\":\"\F0\9F\93\85 Agenda de Eventos:\\nTienes eventos programados sincronizados en tu calendario.\"}")
+  ;; {"type":"direct","displayText":"📅 Agenda de Eventos: Tienes eventos programados sincronizados en tu calendario."}
+  (data (i32.const 17230) "{\"type\":\"direct\",\"displayText\":\"\\F0\\9F\\93\\85 Agenda de Eventos: Tienes eventos programados sincronizados en tu calendario.\"}")
 
   ;; Offset 17360: ToolResult List Agenda Empty (102 bytes UTF-8)
   ;; {"type":"direct","displayText":"📅 Tu agenda está libre. No tienes eventos programados próximos."}
-  (data (i32.const 17360) "{\"type\":\"direct\",\"displayText\":\"\F0\9F\93\85 Tu agenda est\C3\A1 libre. No tienes eventos programados pr\C3\B3ximos.\"}")
+  (data (i32.const 17360) "{\"type\":\"direct\",\"displayText\":\"\\F0\\9F\\93\\85 Tu agenda est\\C3\\A1 libre. No tienes eventos programados pr\\C3\\B3ximos.\"}")
 
   ;; Offset 17480: ToolResult Generic Error Response (110 bytes UTF-8)
   ;; {"type":"error","errorMessage":"No se pudo consultar los eventos del calendario. Por favor intenta de nuevo."}
   (data (i32.const 17480) "{\"type\":\"error\",\"errorMessage\":\"No se pudo consultar los eventos del calendario. Por favor intenta de nuevo.\"}")
+
+  ;; Offset 18000: Natural Language Guidance Fallback (156 bytes UTF-8)
+  ;; {"type":"direct","displayText":"📅 Pide a la IA lo que deseas agendar con fecha y hora, o escribe /calendar para ver los eventos de tu agenda."}
+  (data (i32.const 18000) "{\"type\":\"direct\",\"displayText\":\"\\F0\\9F\\93\\85 Pide a la IA lo que deseas agendar con fecha y hora, o escribe /calendar para ver los eventos de tu agenda.\"}")
 
   ;; Keywords for JSON inspection:
   ;; Offset 17700: "\"success\":true" (14 bytes)
@@ -134,32 +111,6 @@
             (i32.add (local.get $dst) (local.get $i))
             (i32.load8_u (i32.add (local.get $src) (local.get $i)))
           )
-          (local.set $i (i32.add (local.get $i) (i32.const 1)))
-          (br $loop)
-        )
-      )
-    )
-  )
-
-  ;; ---------------------------------------------------------------------------
-  ;; Helper: Copy string sanitizing JSON quotes, backslashes, and control chars (< 32)
-  ;; ---------------------------------------------------------------------------
-  (func $copy_sanitized (param $dst i32) (param $src i32) (param $len i32)
-    (local $i i32)
-    (local $char i32)
-    (loop $loop
-      (if (i32.lt_u (local.get $i) (local.get $len))
-        (then
-          (local.set $char (i32.load8_u (i32.add (local.get $src) (local.get $i))))
-          ;; Replace '"' (34) or '\' (92) with space (32)
-          (if (i32.or (i32.eq (local.get $char) (i32.const 34)) (i32.eq (local.get $char) (i32.const 92)))
-            (then (local.set $char (i32.const 32)))
-          )
-          ;; Replace any control character < 32 with space (32)
-          (if (i32.lt_u (local.get $char) (i32.const 32))
-            (then (local.set $char (i32.const 32)))
-          )
-          (i32.store8 (i32.add (local.get $dst) (local.get $i)) (local.get $char))
           (local.set $i (i32.add (local.get $i) (i32.const 1)))
           (br $loop)
         )
@@ -252,8 +203,6 @@
     )
 
     ;; Search for success indicators
-    ;; 17700: "\"success\":true" (14)
-    ;; 17720: "\"success\": true" (15)
     (local.set $has_success_true
       (i32.or
         (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17700) (i32.const 14)) (i32.const 0))
@@ -262,8 +211,6 @@
     )
 
     ;; Search for explicit failure indicators
-    ;; 17740: "\"success\":false" (15)
-    ;; 17760: "\"success\": false" (16)
     (local.set $has_success_false
       (i32.or
         (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17740) (i32.const 15)) (i32.const 0))
@@ -281,10 +228,6 @@
     (local.set $has_title (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17820) (i32.const 7)) (i32.const 0)))
 
     ;; Empty events indicators:
-    ;; 17880: "\"events\":[]" (11)
-    ;; 17900: "\"events\": []" (12)
-    ;; 17920: "\"count\":0" (9)
-    ;; 17940: "\"count\": 0" (10)
     (local.set $has_empty_events
       (i32.or
         (i32.ge_s (call $str_find (local.get $res_ptr) (local.get $res_len) (i32.const 17880) (i32.const 11)) (i32.const 0))
@@ -304,8 +247,6 @@
     )
 
     ;; Success determination:
-    ;; True if success_true is found OR eventId is found OR (is_list and events is found)
-    ;; AND success_false is NOT present.
     (local.set $is_success
       (i32.and
         (i32.eqz (local.get $has_success_false))
@@ -360,20 +301,12 @@
     (local $rem i32)
     (local $c i32)
     (local $i i32)
-    (local $title_src i32)
-    (local $title_len i32)
-    (local $start_src i32)
-    (local $start_len i32)
-    (local $end_src i32)
-    (local $end_len i32)
-    (local $dest i32)
     (local $req_len i32)
-    (local $has_pipe i32)
 
     (local.set $src (local.get $in_ptr))
     (local.set $rem (local.get $in_len))
 
-    ;; 1. Trim leading whitespace (spaces: 32, tabs: 9, newlines: 10, 13)
+    ;; 1. Trim leading whitespace
     (loop $trim_lead
       (if (i32.gt_u (local.get $rem) (i32.const 0))
         (then
@@ -411,7 +344,7 @@
     )
 
     ;; -------------------------------------------------------------------------
-    ;; CASE A: Empty argument or "list" / "agenda" -> Query Agenda Events
+    ;; CASE A: Empty argument or "list" / "agenda" -> Query Device Events
     ;; -------------------------------------------------------------------------
     (if (i32.or
           (i32.eqz (local.get $rem))
@@ -430,7 +363,7 @@
                 )
               )
             )
-            ;; "agenda" (6 bytes: 97, 103, 101, 110, 100, 97)
+            ;; "agenda" (6 bytes)
             (i32.and
               (i32.eq (local.get $rem) (i32.const 6))
               (i32.and
@@ -459,11 +392,11 @@
     )
 
     ;; -------------------------------------------------------------------------
-    ;; CASE B: Arguments provided -> Intelligently Schedule Event
+    ;; CASE B: Arguments provided
     ;; -------------------------------------------------------------------------
     (i32.store (i32.const 8192) (i32.const 1))
 
-    ;; B.1: Direct JSON input (starts with '{' = 123)
+    ;; B.1: JSON input from the AI (starts with '{' = 123)
     (if (i32.and (i32.gt_u (local.get $rem) (i32.const 1)) (i32.eq (i32.load8_u (local.get $src)) (i32.const 123)))
       (then
         ;; Check if input has {"action":"list"}
@@ -528,188 +461,10 @@
       )
     )
 
-    ;; B.2: Check if input contains a pipe '|' (ASCII 124)
-    (local.set $has_pipe (i32.const 0))
-    (local.set $i (i32.const 0))
-    (loop $scan_pipe
-      (if (i32.lt_u (local.get $i) (local.get $rem))
-        (then
-          (if (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $i))) (i32.const 124))
-            (then
-              (local.set $has_pipe (i32.const 1))
-            )
-            (else
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $scan_pipe)
-            )
-          )
-        )
-      )
-    )
-
-    ;; If PIPE is present: parse pipe format: title [| start] [| end] [| description]
-    (if (local.get $has_pipe)
-      (then
-        ;; Segment 1: Title
-        (local.set $title_src (local.get $src))
-        (local.set $i (i32.const 0))
-        (loop $p_title
-          (if (i32.lt_u (local.get $i) (local.get $rem))
-            (then
-              (if (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $i))) (i32.const 124))
-                (then (nop))
-                (else
-                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                  (br $p_title)
-                )
-              )
-            )
-          )
-        )
-        (local.set $title_len (local.get $i))
-
-        ;; Advance past first '|'
-        (local.set $src (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 1))))
-        (local.set $rem (i32.sub (local.get $rem) (i32.add (local.get $i) (i32.const 1))))
-
-        ;; Segment 2: Start Date
-        (local.set $start_src (local.get $src))
-        (local.set $i (i32.const 0))
-        (loop $p_start
-          (if (i32.lt_u (local.get $i) (local.get $rem))
-            (then
-              (if (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $i))) (i32.const 124))
-                (then (nop))
-                (else
-                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                  (br $p_start)
-                )
-              )
-            )
-          )
-        )
-        (local.set $start_len (local.get $i))
-
-        ;; Build JSON with provided segments
-        (local.set $dest (i32.const 2048))
-        ;; Copy create prefix (82 bytes)
-        (call $memcpy (local.get $dest) (i32.const 16500) (i32.const 82))
-        (local.set $dest (i32.add (local.get $dest) (i32.const 82)))
-
-        (call $copy_sanitized (local.get $dest) (local.get $title_src) (local.get $title_len))
-        (local.set $dest (i32.add (local.get $dest) (local.get $title_len)))
-
-        (if (i32.gt_u (local.get $start_len) (i32.const 0))
-          (then
-            ;; Infix StartDate (15 bytes)
-            (call $memcpy (local.get $dest) (i32.const 16600) (i32.const 15))
-            (local.set $dest (i32.add (local.get $dest) (i32.const 15)))
-            (call $copy_sanitized (local.get $dest) (local.get $start_src) (local.get $start_len))
-            (local.set $dest (i32.add (local.get $dest) (local.get $start_len)))
-          )
-        )
-
-        ;; Suffix (3 bytes: "}}")
-        (call $memcpy (local.get $dest) (i32.const 16690) (i32.const 3))
-        (local.set $dest (i32.add (local.get $dest) (i32.const 3)))
-        (local.set $req_len (i32.sub (local.get $dest) (i32.const 2048)))
-
-        (local.set $call_res
-          (call $host_call (i32.const 2048) (local.get $req_len) (i32.const 4096) (i32.const 4096))
-        )
-        (if (i32.eq (local.get $call_res) (i32.const 0))
-          (then (return (i32.const 0)))
-        )
-        (return (call $process_response (i32.const 4096) (local.get $call_res)))
-      )
-    )
-
-    ;; B.3: Pure Natural Language input (No pipes! The user speech IS the event title!)
-    ;; Check and strip common Spanish prefixes if present (e.g. "agendame una reunion ", "agendar ", etc.)
-    (if (i32.gt_u (local.get $rem) (i32.const 13))
-      (then
-        ;; Check "agendame una " (13 bytes: 'a','g','e','n','d','a','m','e',' ','u','n','a',' ')
-        (if (i32.and
-              (i32.eq (i32.load8_u (local.get $src)) (i32.const 97))
-              (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.const 1))) (i32.const 103))
-            )
-          (then
-            (if (i32.and
-                  (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.const 8))) (i32.const 32))
-                  (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.const 12))) (i32.const 32))
-                )
-              (then
-                (local.set $src (i32.add (local.get $src) (i32.const 13)))
-                (local.set $rem (i32.sub (local.get $rem) (i32.const 13)))
-              )
-            )
-          )
-        )
-      )
-    )
-
-    (if (i32.gt_u (local.get $rem) (i32.const 11))
-      (then
-        ;; Check "creame una " (11 bytes: 'c','r','e','a','m','e',' ','u','n','a',' ')
-        (if (i32.and
-              (i32.eq (i32.load8_u (local.get $src)) (i32.const 99))
-              (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.const 1))) (i32.const 114))
-            )
-          (then
-            (if (i32.and
-                  (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.const 6))) (i32.const 32))
-                  (i32.eq (i32.load8_u (i32.add (local.get $src) (i32.const 10))) (i32.const 32))
-                )
-              (then
-                (local.set $src (i32.add (local.get $src) (i32.const 11)))
-                (local.set $rem (i32.sub (local.get $rem) (i32.const 11)))
-              )
-            )
-          )
-        )
-      )
-    )
-
-    ;; Fallback title if empty after trim
-    (local.set $title_src (local.get $src))
-    (local.set $title_len (local.get $rem))
-    (if (i32.eqz (local.get $title_len))
-      (then
-        (local.set $title_src (i32.const 16790))
-        (local.set $title_len (i32.const 8)) ;; "Reunión"
-      )
-    )
-
-    ;; Construct JSON: {"api":"calendar","operation":"create","payload":{"calendarId":"primary","title":"<title>","description":"Agendado con Chattree AI"}}
-    (local.set $dest (i32.const 2048))
-    ;; Copy create prefix (82 bytes)
-    (call $memcpy (local.get $dest) (i32.const 16500) (i32.const 82))
-    (local.set $dest (i32.add (local.get $dest) (i32.const 82)))
-
-    (call $copy_sanitized (local.get $dest) (local.get $title_src) (local.get $title_len))
-    (local.set $dest (i32.add (local.get $dest) (local.get $title_len)))
-
-    ;; Copy Infix Description (17 bytes: '","description":"')
-    (call $memcpy (local.get $dest) (i32.const 16660) (i32.const 17))
-    (local.set $dest (i32.add (local.get $dest) (i32.const 17)))
-
-    ;; Copy default description (24 bytes: 'Agendado con Chattree AI')
-    (call $memcpy (local.get $dest) (i32.const 16700) (i32.const 24))
-    (local.set $dest (i32.add (local.get $dest) (i32.const 24)))
-
-    ;; Suffix (3 bytes: '"}')
-    (call $memcpy (local.get $dest) (i32.const 16690) (i32.const 3))
-    (local.set $dest (i32.add (local.get $dest) (i32.const 3)))
-    (local.set $req_len (i32.sub (local.get $dest) (i32.const 2048)))
-
-    ;; Dispatch call to Host API
-    (local.set $call_res
-      (call $host_call (i32.const 2048) (local.get $req_len) (i32.const 4096) (i32.const 4096))
-    )
-    (if (i32.eq (local.get $call_res) (i32.const 0))
-      (then (return (i32.const 0)))
-    )
-    (return (call $process_response (i32.const 4096) (local.get $call_res)))
+    ;; B.2: Non-JSON input (Fallback if called without AI interpretation)
+    ;; Offset 18000: Guidance message (156 bytes)
+    (call $memcpy (i32.const 1024) (i32.const 18000) (i32.const 156))
+    (return (i32.const 156))
   )
 
   ;; ============================================================================
