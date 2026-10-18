@@ -28,7 +28,5 @@ Every official plugin maintained here must adhere to the highest quality and sec
 
 ## Official Plugins Catalog
 
-| Plugin | Package ID | Primary Command | Capabilities | Status |
-|---|---|---|---|---|
-| [Device Calendar](./calendar/README.md) | `com.chattree.official.calendar` | `/calendar` | `calendar.create`, `calendar.read` | ✅ Available |
+*No official plugins are currently active in this directory. Community and official submissions undergo review before indexing.*
 

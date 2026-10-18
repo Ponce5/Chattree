@@ -29,13 +29,13 @@ All plugins distributed through the Chattree Marketplace follow a standardized l
 Official and community plugins are organized under `plugins/official/<plugin-slug>/`:
 
 ```text
-plugins/official/calendar/
+plugins/official/<plugin-slug>/
 ├── src/                      # Source code (WAT, Rust, C, etc.)
 ├── plugin.wat                # WebAssembly text source (if applicable)
 ├── plugin.wasm               # Compiled WebAssembly binary
 ├── plugin.json               # Required manifest
 ├── icon.png                  # 512x512 transparent/dark PNG icon
-└── calendar-vX.Y.Z.chattree-plugin  # Packaged bundle
+└── <plugin-slug>-vX.Y.Z.chattree-plugin  # Packaged bundle
 ```
 
 ### 2. Building the `.chattree-plugin` Package
@@ -43,13 +43,13 @@ The bundle is a standard ZIP archive with files located directly in the root (no
 
 ```powershell
 # Windows (PowerShell)
-Compress-Archive -Path plugin.json, plugin.wasm, icon.png -DestinationPath calendar-v1.0.2.zip -Force
-Rename-Item "calendar-v1.0.2.zip" "calendar-v1.0.2.chattree-plugin"
+Compress-Archive -Path plugin.json, plugin.wasm, icon.png -DestinationPath plugin-v1.0.0.zip -Force
+Rename-Item "plugin-v1.0.0.zip" "<plugin-slug>-v1.0.0.chattree-plugin"
 ```
 
 ```bash
 # Linux / macOS
-zip -9 calendar-v1.0.2.chattree-plugin plugin.json plugin.wasm icon.png
+zip -9 <plugin-slug>-v1.0.0.chattree-plugin plugin.json plugin.wasm icon.png
 ```
 
 ### 3. Publishing an Initial Release
