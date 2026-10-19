@@ -1,0 +1,55 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.openmark",
+  "version": "1.0.0",
+  "name": "OpenMark Studio",
+  "description": "Studio de presentaciones y diapositivas de carrusel basadas en codigo impulsadas por IA.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "openmark",
+  "aliases": [
+    "om",
+    "slide",
+    "carousel"
+  ],
+  "type": "imported",
+  "category": "media",
+  "capabilities": [
+    "network.http",
+    "storage.private",
+    "share.text"
+  ],
+  "tags": [
+    "openmark",
+    "carousel",
+    "slides",
+    "presentation",
+    "canvas",
+    "design",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/openmark/icon.png",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/openmark/banner.png",
+  "changelog": "1.0.0: Initial public release of OpenMark Studio for Chattree Marketplace.",
+  "runtime": "wasm",
+  "entrypoint": "openmark_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "171ef8f7d6651a40c9e049e832584807630679de9df03f66df83dcca767db8d4",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 4,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.openmark.create",
+      "command": "openmark",
+      "displayName": "OpenMark Canvas Studio",
+      "description": "Crea una diapositiva visual 1080x1080 con IA: /openmark <tema>",
+      "capabilities": [
+        "network.http",
+        "storage.private",
+        "share.text"
+      ]
+    }
+  ]
+}
