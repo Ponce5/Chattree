@@ -45,11 +45,15 @@
     (local $req_len i32)
     (local $prefix_len i32)
 
-    ;; 1. Check if input is empty
+    ;; 1. If input is empty (e.g. user invoked "/calendar" with no arguments), automatically list all events!
     (if (i32.eqz (local.get $in_len))
       (then
-        ;; Return default usage string (47 bytes)
-        (return (i32.const 47))
+        ;; Copy list request from offset 3200 to offset 2048 (46 bytes)
+        (memory.copy (i32.const 2048) (i32.const 3200) (i32.const 46))
+        ;; Call host_call(reqPtr=2048, reqLen=46, resPtr=4096, resMaxLen=4096)
+        (drop (call $host_call (i32.const 2048) (i32.const 46) (i32.const 4096) (i32.const 4096)))
+        ;; Return 0 to indicate asynchronous operation pending
+        (return (i32.const 0))
       )
     )
 
