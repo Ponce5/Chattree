@@ -69,6 +69,18 @@
       )
     )
 
+    ;; 2.5 Check if input is a direct JSON Host API request (starts with '{' = ASCII 123)
+    (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123))
+      (then
+        ;; Copy raw JSON request into request buffer at offset 2048
+        (memory.copy (i32.const 2048) (local.get $in_ptr) (local.get $in_len))
+        ;; Call host_call(reqPtr=2048, reqLen=in_len, resPtr=4096, resMaxLen=4096)
+        (drop (call $host_call (i32.const 2048) (local.get $in_len) (i32.const 4096) (i32.const 4096)))
+        ;; Return 0 to indicate asynchronous operation pending
+        (return (i32.const 0))
+      )
+    )
+
     ;; 3. Default: Create event using input text as title
     (local.set $prefix_len (i32.const 56))
 
