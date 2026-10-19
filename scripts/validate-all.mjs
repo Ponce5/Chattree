@@ -10,6 +10,7 @@ const targets = [
   "examples/notes-demo",
   "templates/plugin",
   "plugins/official/echo",
+  "plugins/official/calendar",
 ];
 
 console.log("Running comprehensive validation on all repository plugins...\n");

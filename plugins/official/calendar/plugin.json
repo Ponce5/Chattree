@@ -1,0 +1,53 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.calendar",
+  "version": "1.0.0",
+  "name": "Calendar Plugin",
+  "description": "Official on-device calendar integration for scheduling and inspecting calendar events.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "calendar",
+  "aliases": ["cal", "agenda"],
+  "type": "imported",
+  "category": "productivity",
+  "capabilities": [
+    "calendar.create",
+    "calendar.read"
+  ],
+  "tags": [
+    "calendar",
+    "events",
+    "agenda",
+    "scheduler",
+    "official"
+  ],
+  "changelog": "1.0.0: Initial release of official Calendar plugin with AI tool integration.",
+  "runtime": "wasm",
+  "entrypoint": "calendar_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "c728fb43045ea0367aea1589afaf3489819947873a3d954f56277a60587881d2",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 4,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.calendar.create",
+      "command": "calendar",
+      "displayName": "Add Calendar Event",
+      "description": "Schedules a new event in the device calendar: /calendar <event title>",
+      "capabilities": [
+        "calendar.create"
+      ]
+    },
+    {
+      "id": "com.chattree.official.calendar.list",
+      "command": "calendar",
+      "displayName": "List Calendar Events",
+      "description": "Lists upcoming events from the device calendar: /calendar list",
+      "capabilities": [
+        "calendar.read"
+      ]
+    }
+  ]
+}

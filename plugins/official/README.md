@@ -20,3 +20,5 @@ Every official plugin maintained here adheres to strict security, performance, a
 | Plugin | Command | Description | Capabilities |
 |---|---|---|---|
 | [`echo/`](./echo/) | `/echo <message>` | Minimal echo utility demonstrating zero-overhead WebAssembly execution. | *(None)* |
+| [`calendar/`](./calendar/) | `/calendar <event title>` | Official device calendar integration with AI tool support for scheduling and querying events. | `calendar.create`, `calendar.read` |
+
