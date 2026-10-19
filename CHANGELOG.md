@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.1.1] - 2026-10-19
+
+### Added
+- **Native Canvas-to-PNG On-Device Engine:** Chattree's chat feed now renders visual presentation slides directly using Flutter's native Canvas and `RepaintBoundary` at 1080×1080 retina resolution.
+- **OpenMark Studio v1.2.1:** Removed external image placeholder dependencies (Vercel og-image). Added 1-tap "Guardar PNG" export, direct native image sharing to WhatsApp/social apps, and a collapsible React/TSX syntax-highlighted code drawer.
+- **Clean Chat Bubble Experience:** Upgraded `ChatBubble` with automatic slide detection, displaying the visual canvas card and dedicated social copy card without polluting the chat feed with raw TSX code or markdown markup.
+
+---
+
 ## [1.1.0] - 2026-10-19
 
 ### Added

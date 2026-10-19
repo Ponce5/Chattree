@@ -35,12 +35,13 @@ Puedes utilizar cualquiera de los siguientes comandos cortos:
 ## 📦 Especificaciones Técnicas
 
 - **ID**: `com.chattree.official.openmark`
-- **Versión**: `1.0.0`
+- **Versión**: `1.2.1`
 - **Runtime**: WebAssembly (`wasm`)
 - **Memoria máxima**: 4 páginas (256 KB)
 - **Timeout**: 5000 ms
 - **Capacidades**:
-  - `network.http` (Fetch de activos visuales de alta definición)
+  - `canvas.render` (Renderizado visual interactivo y exportación a imagen PNG 1080×1080)
+  - `network.http` (Fetch de activos y conectividad)
   - `storage.private` (Persistencia de configuraciones locales)
   - `share.text` (Compartir diapositivas generadas)
 
