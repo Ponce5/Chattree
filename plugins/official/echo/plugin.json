@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.echo",
+  "version": "1.0.0",
+  "name": "Echo Plugin",
+  "description": "Official first-party echo plugin demonstrating zero-capability text processing.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "echo",
+  "aliases": [],
+  "type": "imported",
+  "category": "utilities",
+  "capabilities": [],
+  "tags": ["official", "echo", "demo"],
+  "changelog": "1.0.0: Initial official release.",
+  "runtime": "wasm",
+  "entrypoint": "echo",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "893b70249d05130eebbc2fe1ea3ce2a69c7983151dc1161ed475aa1eea282ce2",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 2,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.echo.echo",
+      "command": "echo",
+      "displayName": "Echo",
+      "description": "Echoes text back: /echo <message>",
+      "capabilities": []
+    }
+  ]
+}

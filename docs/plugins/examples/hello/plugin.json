@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.example.hello",
   "version": "1.0.0",
@@ -8,6 +9,7 @@
   "primaryCommand": "hello",
   "aliases": [],
   "type": "imported",
+  "category": "utilities",
   "capabilities": [],
   "tags": [
     "demo",
@@ -18,7 +20,7 @@
   "runtime": "wasm",
   "entrypoint": "hello",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "REPLACE_WITH_SHA256_OF_YOUR_COMPILED_PLUGIN_WASM",
+  "wasmSha256": "9dd8ed1480ce0435851c56aa5de7113e76e1ec1085e4249759ba33731a0424f8",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 2,
   "timeoutMs": 5000,

@@ -234,3 +234,65 @@ When fetching data from public APIs:
 4. `network.http_request` is asynchronous:
    - Call `host_call` → receives `0`.
    - Implement exported `resume(resPtr, resLen)` to receive the response.
+
+---
+
+## Best Practices: Memory & Buffer Management in Rust / C
+
+When building plugins in Rust or C, understanding linear memory layout and UTF-8 safety is critical to prevent crashes, fuel exhaustion, or memory corruption.
+
+### 1. The Linear Memory Layout
+Chattree uses a well-defined shared memory convention:
+- **Offset `0` to `1023`**: Reserved for input strings passed from Chattree.
+- **Offset `1024` onwards**: Destination for plugin output text.
+- **High Offsets (e.g. `2048`, `4096`)**: Request and response scratch buffers for Host API calls.
+
+### 2. Preventing Buffer Overflow on Output
+Writing past the allocated linear memory space causes runtime traps (`out of bounds memory access`).
+
+```rust
+// Static output buffer sized appropriately
+static mut OUTPUT_BUFFER: [u8; 16384] = [0; 16384]; // 16 KB
+
+#[no_mangle]
+pub extern "C" fn my_command(input_ptr: *const u8, input_len: usize) -> i32 {
+    let result_string = generate_large_report();
+    let bytes = result_string.as_bytes();
+
+    unsafe {
+        // Enforce boundary check against maximum buffer size
+        let copy_len = bytes.len().min(OUTPUT_BUFFER.len());
+        OUTPUT_BUFFER[..copy_len].copy_from_slice(&bytes[..copy_len]);
+        copy_len as i32
+    }
+}
+```
+
+### 3. Safe UTF-8 Boundary Handling
+Never slice a UTF-8 byte stream at arbitrary indices. If a multi-byte Unicode character (e.g. emojis or accented characters) is split mid-codepoint, `std::str::from_utf8` will fail or produce replacement characters (``).
+
+```rust
+/// Truncates a UTF-8 string safely at the nearest valid character boundary.
+fn safe_truncate_utf8(s: &str, max_bytes: usize) -> &str {
+    if max_bytes >= s.len() {
+        return s;
+    }
+    let mut boundary = max_bytes;
+    while boundary > 0 && !s.is_char_boundary(boundary) {
+        boundary -= 1;
+    }
+    &s[..boundary]
+}
+```
+
+### 4. Memory Growth & Page Allocation
+Each WebAssembly memory page represents **64 KB**. If your plugin processes large datasets, ensure `plugin.json` allocates sufficient pages:
+
+```json
+{
+  "maxMemoryPages": 8  // 8 pages = 512 KB
+}
+```
+
+In Rust, the default allocator (`wee_alloc` or standard `dlmalloc`) will grow linear memory via the `memory.grow` instruction automatically within the limit defined by `maxMemoryPages` (up to 256 pages / 16 MB).
+

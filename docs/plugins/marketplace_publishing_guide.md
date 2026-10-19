@@ -177,32 +177,52 @@ You can publish your plugin through either the web interface or the REST API.
 You can publish programmatically via the submission endpoint:
 
 ```http
-POST /api/plugins/submit
+POST https://chattree.chat/api/plugins/submit
 Content-Type: application/json
 ```
 
-#### Request Payload
+#### Request Headers
+| Header | Value | Required | Description |
+|---|---|---|---|
+| `Content-Type` | `application/json` | ✅ | Must specify JSON body |
+| `User-Agent` | `your-tool/1.0` | ⚪ | Recommended identifier |
+
+#### Request Payload Specification
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `download_url` | string (URL) | ✅ | Direct HTTPS download URL to the `.chattree-plugin` asset attached to a GitHub Release. |
+| `icon_url` | string (URL) | ✅ | Public HTTPS URL for the 512x512 plugin icon, strictly hosted on GitHub domains (`raw.githubusercontent.com`, `user-images.githubusercontent.com`, `github.com`). |
+| `banner_url` | string (URL) | ⚪ | Optional promotional banner image (1200x630 px) hosted on GitHub. |
+| `source_url` | string (URL) | ⚪ | Public GitHub repository URL containing the plugin source code. |
+| `homepage_url` | string (URL) | ⚪ | Project or author website URL. |
+| `author_url` | string (URL) | ⚪ | GitHub profile or personal page of the developer. |
+| `license` | string | ⚪ | SPDX license identifier (default: `"MIT"`). |
+| `category` | string | ⚪ | One of: `productivity`, `utilities`, `devtools`, `ai`, `automation`, `files`, `communication`, `media`, `education`, `other` (default: `"utilities"`). |
+| `name` | string | ⚪ | Overrides manifest display name if desired. |
+| `short_description` | string | ⚪ | Brief summary shown in mobile cards (max 120 chars). |
+| `description` | string | ⚪ | Extended description shown on the plugin details page. |
+| `changelog` | string | ⚪ | Release notes describing the updates in this version. |
+
+#### JSON Payload Example
 ```json
 {
   "download_url": "https://github.com/<owner>/<repo>/releases/download/v1.0.0/weather-v1.0.0.chattree-plugin",
   "icon_url": "https://raw.githubusercontent.com/<owner>/<repo>/main/icon.png",
-  "repository_url": "https://github.com/<owner>/<repo>",
-  "publisher_name": "Acme Developer",
-  "publisher_email": "developer@example.com",
-  "publisher_website": "https://example.com",
-  "auto_approve": true
+  "source_url": "https://github.com/<owner>/<repo>",
+  "category": "utilities",
+  "license": "MIT",
+  "changelog": "1.0.0: Initial public release."
 }
 ```
 
 #### Example via PowerShell
 ```powershell
 $body = @{
-  download_url      = "https://github.com/<owner>/<repo>/releases/download/v1.0.0/weather-v1.0.0.chattree-plugin"
-  icon_url          = "https://raw.githubusercontent.com/<owner>/<repo>/main/icon.png"
-  repository_url    = "https://github.com/<owner>/<repo>"
-  publisher_name    = "Acme Developer"
-  publisher_email   = "developer@example.com"
-  publisher_website = "https://example.com"
+  download_url = "https://github.com/<owner>/<repo>/releases/download/v1.0.0/weather-v1.0.0.chattree-plugin"
+  icon_url     = "https://raw.githubusercontent.com/<owner>/<repo>/main/icon.png"
+  source_url   = "https://github.com/<owner>/<repo>"
+  category     = "utilities"
+  license      = "MIT"
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "https://chattree.chat/api/plugins/submit" `
@@ -218,29 +238,61 @@ curl -X POST https://chattree.chat/api/plugins/submit \
   -d '{
     "download_url": "https://github.com/<owner>/<repo>/releases/download/v1.0.0/weather-v1.0.0.chattree-plugin",
     "icon_url": "https://raw.githubusercontent.com/<owner>/<repo>/main/icon.png",
-    "repository_url": "https://github.com/<owner>/<repo>",
-    "publisher_name": "Acme Developer",
-    "publisher_email": "developer@example.com"
+    "source_url": "https://github.com/<owner>/<repo>",
+    "category": "utilities",
+    "license": "MIT"
   }'
 ```
 
-#### Successful Response (`200 OK`)
+#### HTTP Response Statuses & Error Codes
+
+| Status Code | Code Identifier | Description |
+|---|---|---|
+| **`200 OK`** | *(Success)* | Package successfully downloaded from GitHub, validated, and registered in the catalog. |
+| **`400 Bad Request`** | `MISSING_DOWNLOAD_URL` | The `download_url` property was missing or empty. |
+| **`400 Bad Request`** | `MISSING_ICON_URL` | The `icon_url` property was missing or empty. |
+| **`400 Bad Request`** | `INVALID_ICON_HOST` | The icon URL is not hosted on an allowed GitHub domain. |
+| **`400 Bad Request`** | `GITHUB_FETCH_FAILED` | Failed to download package from GitHub Release (verify asset is public). |
+| **`400 Bad Request`** | `PACKAGE_TOO_LARGE` | The package exceeds the maximum limit of 25 MB. |
+| **`400 / 422 Unprocessable`** | `VALIDATION_FAILED` | Package failed schema or integrity verification (see `details` array). |
+| **`409 Conflict`** | `VERSION_ALREADY_EXISTS` | The specified plugin version is already registered in the marketplace. |
+| **`429 Too Many Requests`** | `RATE_LIMIT_EXCEEDED` | Exceeded limit of 5 submissions per hour per IP. |
+| **`500 Internal Error`** | `SERVER_ERROR` | Internal database or registry failure. |
+
+##### Successful Response (`200 OK`)
 ```json
 {
   "success": true,
   "submissionId": "5329803a-25ef-41ad-bfdd-6baba3e78e91",
   "status": "published",
-  "message": "Plugin registered and published successfully.",
+  "message": "Plugin registered and published successfully. It is now live and available in the Chattree mobile app.",
   "plugin": {
     "id": "com.example.weather",
     "slug": "live-weather",
     "version": "1.0.0",
     "name": "Live Weather",
+    "category": "utilities",
     "downloadUrl": "https://github.com/.../weather-v1.0.0.chattree-plugin",
     "packageSize": 1436,
     "sha256": "07298334903f19a2ff897156103187781292e36d742b31f78315ef7a1a088a68",
     "capabilities": ["network.http", "location.current"]
-  }
+  },
+  "warnings": []
+}
+```
+
+##### Validation Failure Response (`400 / 422 Unprocessable Entity`)
+```json
+{
+  "error": "Plugin package validation failed.",
+  "code": "VALIDATION_FAILED",
+  "details": [
+    "WASM SHA-256 checksum mismatch! The hash in plugin.json does not match plugin.wasm.",
+    "Capability \"chat.history.read\" is marked as not available in the current WASM runtime."
+  ],
+  "warnings": [
+    "Declared capability \"custom.sensor\" is not recognized in the standard catalogue."
+  ]
 }
 ```
 

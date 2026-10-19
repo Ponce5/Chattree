@@ -1,32 +1,42 @@
-# Chattree Technical Documentation
+# Chattree Technical Documentation Portal
 
-This directory is designated for the public technical documentation of the Chattree ecosystem.
-
----
-
-## Planned Documentation Scope
-
-Future technical documentation hosted in this directory will cover:
-
-1. **Architecture & Overview**:
-   - System design principles and conversational tree models.
-   - Core runtime lifecycle and modular service layout.
-
-2. **Developer Guides**:
-   - Getting started with Chattree developer tools and SDKs.
-   - Step-by-step tutorials for building and integrating custom extensions.
-
-3. **Plugin System & Extensibility**:
-   - Plugin anatomy, lifecycle events, and distribution standards.
-   - Manifest specifications and configuration options.
-
-4. **Security, Permissions & Capabilities**:
-   - Execution sandbox model and isolation boundaries.
-   - Fine-grained permission system and declarative capability requests.
-
-5. **API & Schema References**:
-   - Comprehensive technical references for public APIs, types, and schemas.
+Welcome to the technical documentation library for the **Chattree** ecosystem — an on-device AI platform featuring local Vector RAG, hybrid cloud model orchestration, and a sandboxed WebAssembly (WASM) plugin runtime for Android.
 
 ---
 
-> **Note:** Official technical specifications and guides will be populated here as they are reviewed and prepared for public release.
+## Documentation Directory Index
+
+### 1. Core Architecture & System Concepts
+- **[Core Concepts & Architecture](./core-concepts.md)**: High-level architectural overview covering on-device LLMs, local Vector RAG embeddings, and the WebAssembly isolation boundary.
+- **[Installation & Toolchain Setup](./installation.md)**: Device prerequisites for Android and developer toolchain setup for compiling WebAssembly plugins.
+- **[Authentication & Configuration](./authentication-configuration.md)**: Zero-telemetry hardware keystore security, API keys for remote models, and plugin permission controls.
+- **[Notes & Reminders (Vector RAG)](./notes-reminders.md)**: Conversational slash commands (`/note`, `/reminder`) and programmatic Host API access with vector indexing.
+- **[External AI Providers](./ai_providers/architecture.md)**: Interface contracts, encrypted credential storage, and provider adapters for OpenAI, Gemini, and Anthropic.
+
+### 2. WebAssembly Plugin SDK
+- **[Plugin SDK Overview](./plugins/README.md)**: Architecture of the plugin subsystem, execution lifecycle, memory layout, and runtime host boundary.
+- **[Getting Started with Plugins](./plugins/getting-started.md)**: Hands-on walkthrough building, compiling, hashing, and packaging your first plugin from scratch.
+- **[Plugin Manifest Specification (`plugin.json`)](./plugins/plugin-manifest.md)**: Authoritative specification for manifest fields, limits, tools, and permission requests.
+- **[ChattreeHostApi Reference](./plugins/host-api.md)**: Complete specification of all `chattree.host_call` namespaces, synchronous vs. asynchronous execution, and data payloads.
+- **[Capabilities & Permissions Catalogue](./plugins/capabilities.md)**: Full taxonomy of security tiers (normal, sensitive, critical) and permissions required per Host API operation.
+- **[Package Format Specification (`.chattree-plugin`)](./plugins/package-format.md)**: ZIP container rules, root-level layout, SHA-256 cryptographic verification, and packaging tools.
+- **[Security & Sandbox Model](./plugins/security.md)**: Linear memory isolation, instruction fuel limits, timeout enforcement, and network SSRF guards.
+- **[Versioning & Compatibility](./plugins/versioning.md)**: SemVer rules for plugins, `schemaVersion`, `runtimeApiVersion`, and backward compatibility guarantees.
+- **[Marketplace Publishing Guide](./plugins/marketplace_publishing_guide.md)**: End-to-end publishing via GitHub Releases and the submission portal or REST API.
+- **[Host API Error Codes](./plugins/errors.md)**: Comprehensive diagnostic reference for runtime faults, permission rejections, and execution errors.
+
+### 3. Developer Tutorials, Examples & Diagnostics
+- **[Guides & Tutorials](./tutorials.md)**: Step-by-step tutorials for building plugins in WAT and Rust, HTTP networking, and private storage.
+- **[Code Examples](./code-examples.md)**: Copy-pasteable recipes and patterns for common extension scenarios.
+- **[Runnable Examples (`examples/`)](../examples/README.md)**:
+  - **[`/hello`](../examples/hello/)**: Zero-capability minimal WAT greeting plugin.
+  - **[`/notes-demo`](../examples/notes-demo/)**: Asynchronous integration with Chattree Notes Host API.
+- **[Official Starter Template (`templates/plugin/`)](../templates/plugin/README.md)**: Turnkey starter kit featuring WAT and Rust configurations.
+- **[Troubleshooting & Diagnostics](./troubleshooting.md)**: Solutions for common installation, compilation, timeout, and permission issues.
+- **[Frequently Asked Questions (FAQ)](./faq.md)**: Answers to common questions regarding offline inference, storage, and privacy.
+
+---
+
+## Synchronization with Chattree Web
+
+Technical documentation in this directory serves as the **Single Source of Truth** for the public website. The web application synchronizes these guides directly using `Web/scripts/sync-docs.mjs` into its localized documentation interface at `https://chattree.chat/docs`.

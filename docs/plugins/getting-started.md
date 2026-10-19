@@ -12,7 +12,7 @@ No prior Chattree knowledge required.
   - **Rust** via `cargo build --target wasm32-unknown-unknown`
   - **C/C++** via Emscripten or `wasi-sdk`
   - **Go** via `tinygo build -target wasm`
-- The Dart SDK (for packaging) — only if you want to use the included build scripts
+- Standard archive utility (`zip`, PowerShell `Compress-Archive`, or Node.js)
 - A way to transfer the `.chattree-plugin` file to your Android/iOS device
   (ADB, Google Drive, email, USB, etc.)
 
@@ -229,27 +229,28 @@ plugin.wasm     ← compiled WASM binary (required for runtime="wasm")
 icon.png        ← optional icon (512×512 PNG recommended)
 ```
 
-### Using the included Dart script
+### Option A: Using the Chattree Developer Packager Tool
 
-If you have Dart installed, you can use or adapt the script in `tool/build_echo_plugin.dart`
-as a reference. It:
+The official CLI tool automatically synchronizes the `wasmSha256` checksum and bundles the files at root level:
 
-1. Reads the WASM bytes.
-2. Computes the SHA-256.
-3. Builds the `plugin.json`.
-4. Creates a ZIP archive and writes `my-plugin.chattree-plugin`.
+```bash
+node tools/package-plugin.mjs path/to/my-hello-plugin/
+```
 
-### Using any ZIP tool
+### Option B: Using Standard ZIP Tools
+
+Ensure `plugin.json` and `plugin.wasm` are at the **root** of the ZIP archive:
 
 ```bash
 # Linux / macOS
-zip my-plugin.chattree-plugin plugin.json plugin.wasm
+zip -9 my-plugin.chattree-plugin plugin.json plugin.wasm
 
 # Windows (PowerShell)
-Compress-Archive -Path plugin.json, plugin.wasm -DestinationPath my-plugin.chattree-plugin
+Compress-Archive -Path plugin.json, plugin.wasm -DestinationPath my-plugin.zip
+Rename-Item my-plugin.zip my-plugin.chattree-plugin
 ```
 
-> **Important**: The ZIP must contain `plugin.json` at the root (not inside a subdirectory).
+> **Important**: The ZIP archive must contain `plugin.json` at the root (not inside a nested subdirectory).
 
 ---
 
@@ -301,6 +302,6 @@ Chattree will:
 
 - Read [plugin-manifest.md](plugin-manifest.md) for every manifest field.
 - Study [capabilities.md](capabilities.md) to learn what APIs you can access.
-- See [examples/hello/](examples/hello/) for the complete Hello example.
-- See [examples/notes-demo/](examples/notes-demo/) for a plugin that reads and creates Notes.
+- See [examples/hello/](../../examples/hello) for the complete Hello example.
+- See [examples/notes-demo/](../../examples/notes-demo) for a plugin that reads and creates Notes.
 - Read [security.md](security.md) to understand the sandbox boundaries.

@@ -41,44 +41,32 @@ my-plugin.chattree-plugin  (ZIP archive)
 
 ## Creating the archive
 
-### Using a standard ZIP tool
+### Option 1: Using the Chattree Developer Packager Tool
+
+The official CLI packager automatically computes the SHA-256 hash of `plugin.wasm`, ensures `plugin.json` is updated, and bundles all required files at the root of the archive:
+
+```bash
+# From the repository root
+node tools/package-plugin.mjs path/to/my-plugin/
+```
+
+This outputs `<id>-v<version>.chattree-plugin` ready for installation or marketplace publishing.
+
+### Option 2: Using Standard ZIP Tools
+
+Ensure that all files (`plugin.json`, `plugin.wasm`, and optionally `icon.png`) are located at the **root** of the ZIP archive:
 
 ```bash
 # Linux / macOS
-zip my-plugin.chattree-plugin plugin.json plugin.wasm
-zip my-plugin.chattree-plugin icon.png   # optional, run after above
+zip -9 my-plugin.chattree-plugin plugin.json plugin.wasm icon.png
 
 # Windows PowerShell
-Compress-Archive -Path plugin.json, plugin.wasm -DestinationPath my-plugin.zip
+Compress-Archive -Path plugin.json, plugin.wasm, icon.png -DestinationPath my-plugin.zip
 Rename-Item my-plugin.zip my-plugin.chattree-plugin
 ```
 
-### Using the reference Dart build scripts
+> **Warning:** Never zip the parent directory itself (e.g. `zip my-plugin.zip my-plugin/`). The extractor requires `plugin.json` to be at the root entry of the archive.
 
-The `tool/` directory in the Chattree repository contains reference scripts:
-
-| Script | Purpose |
-|--------|---------|
-| `tool/build_echo_plugin.dart` | Builds the echo demo plugin |
-| `tool/build_http_plugin.dart` | Builds the HTTP demo plugin |
-| `tool/build_storage_plugin.dart` | Builds the storage demo plugin |
-
-Run any of them with:
-
-```bash
-dart run tool/build_echo_plugin.dart
-```
-
-This outputs the `.chattree-plugin` file in `tool/`.
-
-### Adapting for your own plugin
-
-Copy and modify `build_echo_plugin.dart`:
-
-1. Replace the WASM bytes (or read from file).
-2. Update the manifest fields.
-3. Set your command name, ID, capabilities.
-4. Run the script to produce your `.chattree-plugin`.
 
 ---
 

@@ -245,9 +245,43 @@ Your WASM module must declare this import to use any Host API:
 
 ### chattree.context.*
 
+The `chattree.context.read` operation allows a plugin to inspect the conversational invocation context.
+
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
 | `chattree.context.read` | ❌ | `{}` | `{ currentMessage, explicitContext, authorized, restricted, timestamp }` |
+
+#### Context Payload Specification
+
+```json
+{
+  "api": "chattree.context",
+  "operation": "read",
+  "payload": {}
+}
+```
+
+##### Successful Response (`success: true`)
+```json
+{
+  "success": true,
+  "data": {
+    "currentMessage": "Can you summarize /myplugin notes.md for our weekly sync?",
+    "explicitContext": "notes.md",
+    "authorized": true,
+    "restricted": false,
+    "timestamp": 1729278000000
+  }
+}
+```
+
+#### Field Explanations
+
+- **`currentMessage` (string):** The complete, untruncated text of the user prompt in which the plugin command was invoked. This allows tools to understand the conversational intent, natural language modifiers, and surrounding prompt context without granting access to the full historical chat tree.
+- **`explicitContext` (string):** The specific string argument passed directly after the slash command. For example, if the prompt is `Please run /weather Tokyo tomorrow`, `explicitContext` will contain strictly `"Tokyo tomorrow"`, while `currentMessage` contains the entire sentence.
+- **`authorized` (boolean):** Indicates whether the active user has granted the `chattree.context.read` capability to the plugin. If the user revokes or declines this permission, `authorized` is `false`, and `currentMessage` and `explicitContext` return empty strings (`""`).
+- **`restricted` (boolean):** Evaluates to `true` if the conversation is running under restricted privacy mode (e.g., incognito chats, ephemeral trees, or system prompts containing confidential keys). In restricted mode, external plugins cannot inspect surrounding text even if authorized, preventing context leakage.
+- **`timestamp` (number):** Unix epoch timestamp in milliseconds when the message was dispatched by the user.
 
 ---
 

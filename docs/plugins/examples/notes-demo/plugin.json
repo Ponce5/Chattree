@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.example.notes-demo",
   "version": "1.0.0",
@@ -8,6 +9,7 @@
   "primaryCommand": "notes-demo",
   "aliases": ["ndemo"],
   "type": "imported",
+  "category": "productivity",
   "capabilities": [
     "chattree.notes.create",
     "chattree.notes.search"
@@ -17,7 +19,7 @@
   "runtime": "wasm",
   "entrypoint": "notes_demo",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "REPLACE_WITH_SHA256_OF_YOUR_COMPILED_PLUGIN_WASM",
+  "wasmSha256": "1d738ca121ef5c1b7168a7df4df84610a69a2c054a3437585fbc39a56068675a",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,

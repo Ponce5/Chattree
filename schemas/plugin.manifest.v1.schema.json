@@ -1,0 +1,311 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chattree.chat/schemas/plugin.manifest.v1.schema.json",
+  "title": "Chattree Plugin Manifest Schema v1",
+  "description": "Formal schema for Chattree WebAssembly plugin manifests (plugin.json).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "name",
+    "description",
+    "author",
+    "primaryCommand",
+    "type",
+    "runtime",
+    "entrypoint",
+    "wasmPath",
+    "wasmSha256",
+    "runtimeApiVersion"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URI to this JSON schema for editor autocompletion and validation."
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of the manifest specification format. Must be 1."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*[a-z0-9]$",
+      "description": "Globally unique reverse-domain identifier (e.g., com.example.my-plugin). Must contain at least one dot."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$",
+      "description": "Semantic Versioning string (MAJOR.MINOR.PATCH)."
+    },
+    "minAppVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Minimum Chattree app version required to execute this plugin."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Human-readable display name of the plugin."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Short explanation of the plugin functionality."
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Name of the publisher or author."
+    },
+    "authorEmail": {
+      "type": "string",
+      "format": "email",
+      "description": "Public contact email address of the publisher."
+    },
+    "homepageUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Official project website or repository documentation URL."
+    },
+    "primaryCommand": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Default slash command without the leading slash (e.g. 'hello' for /hello)."
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "description": "Alternative slash command triggers."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["imported", "builtin"],
+      "description": "Distribution category. Third-party community plugins must use 'imported'."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "productivity",
+        "utilities",
+        "devtools",
+        "ai",
+        "automation",
+        "files",
+        "communication",
+        "media",
+        "education",
+        "other"
+      ],
+      "description": "Marketplace category for directory listing."
+    },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/capabilityIdentifier"
+      },
+      "description": "Mandatory Host API capabilities required by the plugin."
+    },
+    "optionalCapabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/definitions/capabilityIdentifier"
+      },
+      "description": "Capabilities requested on an opportunistic basis."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-_]+$"
+      },
+      "description": "Keywords for discovery in the marketplace."
+    },
+    "changelog": {
+      "type": "string",
+      "description": "Release notes for the current version."
+    },
+    "runtime": {
+      "type": "string",
+      "enum": ["wasm"],
+      "description": "Sandboxed execution environment. Must be 'wasm'."
+    },
+    "entrypoint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Name of the exported WebAssembly function called by Chattree."
+    },
+    "wasmPath": {
+      "type": "string",
+      "const": "plugin.wasm",
+      "description": "Relative filename of the WebAssembly binary in the package root. Must be 'plugin.wasm'."
+    },
+    "wasmSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Cryptographic SHA-256 hex digest of plugin.wasm (64 lowercase hex characters)."
+    },
+    "runtimeApiVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of the Chattree Host API contract. Must be '1.0.0'."
+    },
+    "maxMemoryPages": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 256,
+      "default": 4,
+      "description": "Maximum memory limit in 64 KB WebAssembly pages (max 256 pages = 16 MB)."
+    },
+    "timeoutMs": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 60000,
+      "default": 5000,
+      "description": "Per-invocation execution timeout in milliseconds (max 60000 ms)."
+    },
+    "fuelLimit": {
+      "type": "integer",
+      "minimum": 1000,
+      "default": 50000000,
+      "description": "Instruction fuel limit to prevent infinite loops."
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/pluginTool"
+      },
+      "description": "Declared tools and commands exposed to the user or conversational agent."
+    },
+    "settings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/pluginSetting"
+      },
+      "description": "Configurable parameters shown in the plugin settings UI."
+    }
+  },
+  "definitions": {
+    "capabilityIdentifier": {
+      "type": "string",
+      "enum": [
+        "storage.private",
+        "share.text",
+        "share.file",
+        "open.url",
+        "open.app",
+        "network.http",
+        "notifications.send",
+        "files.pick",
+        "files.read",
+        "files.write",
+        "calendar.read",
+        "calendar.create",
+        "calendar.update",
+        "calendar.delete",
+        "contacts.read",
+        "contacts.create",
+        "contacts.update",
+        "location.current",
+        "camera.capture",
+        "chattree.notes.read",
+        "chattree.notes.search",
+        "chattree.notes.create",
+        "chattree.notes.update",
+        "chattree.notes.delete",
+        "chattree.reminders.read",
+        "chattree.reminders.create",
+        "chattree.reminders.update",
+        "chattree.reminders.delete",
+        "chattree.reminders.complete",
+        "chattree.context.read",
+        "chat.history.read",
+        "ai.context",
+        "ai.embeddings"
+      ]
+    },
+    "pluginTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "command", "displayName", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this tool within the plugin."
+        },
+        "command": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "Slash command trigger without leading slash."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Label displayed in chat suggestions and toolbar."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Explanation of tool usage and argument expectations."
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/capabilityIdentifier"
+          },
+          "description": "Sub-capabilities specifically required by this tool."
+        }
+      }
+    },
+    "pluginSetting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "type"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_.-]+$",
+          "description": "Key identifier used to read the setting via storage or config APIs."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable label rendered in settings UI."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "boolean", "number", "select"],
+          "description": "Field input control type."
+        },
+        "defaultValue": {
+          "type": "string",
+          "description": "Default value if unset."
+        },
+        "description": {
+          "type": "string",
+          "description": "Help text explaining the configuration setting."
+        },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Selectable choices when type is 'select'."
+        },
+        "isSecret": {
+          "type": "boolean",
+          "default": false,
+          "description": "Mask input in the UI and store in device secure keystore if true."
+        }
+      }
+    }
+  }
+}

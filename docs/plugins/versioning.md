@@ -101,18 +101,16 @@ If an operation's input/output changes in a backward-incompatible way:
 5. Rebuild the `.chattree-plugin` archive.
 6. Distribute the new archive.
 
-Users must manually import the new `.chattree-plugin` to update.
-(Automatic update via URL is planned for a future release.)
+Users can import the new `.chattree-plugin` manually, or receive seamless in-app update notifications if the plugin is registered in the Chattree Marketplace.
 
 ---
 
 ## Distributing updates
 
-Currently, plugin updates are distributed the same way as first-time installs:
-users import the new `.chattree-plugin` package.
+Plugin updates can be distributed through two channels:
+1. **Chattree Marketplace:** When published to GitHub Releases and registered via `POST /api/plugins/submit`, Chattree automatically checks for newer SemVer versions and presents an "Update" button to installed users.
+2. **Direct Manual Distribution:** Users download and import the updated `.chattree-plugin` directly in **Settings → Plugins → Import plugin**.
 
-A future **Marketplace** will provide update notifications and one-tap upgrades.
-The package format will be identical.
 
 ---
 

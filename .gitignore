@@ -39,6 +39,8 @@ out/
 .nuxt/
 coverage/
 *.tsbuildinfo
+*.chattree-plugin
+target/
 
 # Python / Tools
 __pycache__/

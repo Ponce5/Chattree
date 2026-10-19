@@ -79,7 +79,7 @@ When a plugin behaves unexpectedly, verify these items first:
 - **Solution:**
   1. Verify the capability is listed in `plugin.json → capabilities`.
   2. Navigate to **Settings → Plugins → [Plugin] → Permissions** and toggle the permission on.
-  3. Ensure the capability name is spelled correctly according to the [Capabilities Catalogue](/en/docs/plugins/capabilities).
+  3. Ensure the capability name is spelled correctly according to the [Capabilities Catalogue](./plugins/capabilities.md).
 
 ### Error: Network Request Blocked (SSRF Protection)
 - **Cause:** The URL targets `localhost`, `127.0.0.1`, `192.168.x.x`, or another private IP range.

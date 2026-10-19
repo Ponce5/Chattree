@@ -1,0 +1,35 @@
+{
+  "$schema": "../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.example.starter",
+  "version": "1.0.0",
+  "name": "Starter Plugin",
+  "description": "Official starter template for building custom WebAssembly plugins in Chattree.",
+  "author": "Chattree Community",
+  "authorEmail": "developer@example.com",
+  "homepageUrl": "https://chattree.chat/docs/plugins/getting-started",
+  "primaryCommand": "starter",
+  "aliases": ["start"],
+  "type": "imported",
+  "category": "utilities",
+  "capabilities": [],
+  "tags": ["starter", "template", "wasm"],
+  "changelog": "1.0.0: Initial release of the starter template.",
+  "runtime": "wasm",
+  "entrypoint": "starter_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "500fbc96507d1d97e5ecfd172de32ca80db5996a88ec53f08106dd9ccffed3c5",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 2,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.example.starter.starter",
+      "command": "starter",
+      "displayName": "Starter Command",
+      "description": "Echoes back your input: /starter <message>",
+      "capabilities": []
+    }
+  ]
+}

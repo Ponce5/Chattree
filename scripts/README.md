@@ -1,16 +1,15 @@
 # Repository Automation Scripts
 
-This directory is reserved for repository maintenance, automation, validation, and release scripts.
+This directory houses maintenance, verification, and automation scripts for the Chattree repository.
 
 ---
 
-## Purpose & Scope
+## Active Scripts
 
-Scripts maintained in this directory support repo-level lifecycle tasks, including:
-- Repository integrity and link checks.
-- Schema compliance validation across plugins and templates.
-- Automated release bundling, changelog updates, and version tagging.
+### 1. `validate-all.mjs`
+Validates all plugins, starter templates, and examples in the repository against the formal JSON schema and runtime constraints.
 
----
-
-> **Note:** Automation scripts will be populated as repository automation workflows are implemented.
+**Usage:**
+```bash
+node scripts/validate-all.mjs
+```

@@ -41,7 +41,7 @@ chattree-repo/
 ├── CHANGELOG.md          # Release history and unreleased changes
 ├── CODE_OF_CONDUCT.md    # Community standards and conduct expectations
 ├── CONTRIBUTING.md       # Contribution guidelines and development workflow
-├── LICENSE               # License terms (Pending official determination)
+├── LICENSE               # MIT License
 ├── README.md             # Repository overview and entry point
 ├── SECURITY.md           # Responsible vulnerability disclosure policy
 └── SUPPORT.md            # Getting help and support resources
@@ -55,19 +55,10 @@ Chattree features an extensible WebAssembly (WASM) plugin ecosystem. Official pl
 
 Plugins are packaged as cryptographically verified `.chattree-plugin` archives and published through the **Chattree Marketplace**:
 - **Distribution:** Hosted as public binary assets on GitHub Releases.
-- **Publication & Updates:** Submitted via the [Chattree Plugin Submission Portal](https://chattree.chat/submit-plugin) or the automated REST API.
+- **Publication & Updates:** Submitted via the [Chattree Plugin Submission Portal](https://chattree.chat/submit-plugin) or the automated REST API (`POST /api/plugins/submit`).
 - **In-App Delivery:** Instantly discoverable in the Chattree mobile app with automatic update notifications.
 
-For step-by-step instructions on packaging, publishing, and updating plugins, refer to the [Plugin Lifecycle Guide in CONTRIBUTING.md](./CONTRIBUTING.md#plugin-lifecycle-development-packaging-publishing--updates).
-
----
-
-## Project Status & Roadmap
-
-This repository is currently in its initial setup phase:
-- Repository structure and baseline community governance established.
-- Core specifications, schemas, and official documentation are being prepared for public release.
-- Contribution pipelines, continuous integration, and automated verification workflows will be activated alongside the initial releases.
+For step-by-step instructions on packaging, publishing, and updating plugins, refer to the [Marketplace Publishing Guide](./docs/plugins/marketplace_publishing_guide.md).
 
 ---
 
@@ -79,4 +70,4 @@ We welcome community feedback and contributions! Please review [CONTRIBUTING.md]
 
 ## License
 
-> **Notice:** The official open-source license for Chattree is currently under review by the core team and will be announced prior to public release. See [LICENSE](./LICENSE) for details.
+This project is licensed under the terms of the [MIT License](./LICENSE).
