@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "name": "Calendar Plugin",
   "description": "Official on-device calendar integration for scheduling and inspecting calendar events.",
   "author": "Chattree Core Team",
@@ -21,7 +21,7 @@
     "scheduler",
     "official"
   ],
-  "changelog": "1.3.5: Fixed buffer byte length for /calendar (no args) and /calendar list — resolves Unterminated string parse error.",
+  "changelog": "1.3.6: Updated icon and banner artwork with balanced margins and padding.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
