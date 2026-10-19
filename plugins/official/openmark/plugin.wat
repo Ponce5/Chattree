@@ -1,432 +1,178 @@
+;; OpenMark Code-First Presentation Plugin for Chattree
 (module
-  (memory (export "memory") 4)
+  (memory (export "memory") 8)
 
-  ;; Pre-load string segments in memory
-  ;; help at 8000 (283 bytes)
-  (data (i32.const 8000) "### \f0\9f\8e\a8 OpenMark Studio v1.0.3\0a*Code-First Presentation & Carousel Studio para Chattree.*\0a\0a**Uso:**\0a`/openmark <tema o idea>`\0a\0a**Ejemplos:**\0a\e2\80\a2 `/openmark 3 Estrategias de Crecimiento`\0a\e2\80\a2 `/openmark Inteligencia Artificial en 2026`\0a\e2\80\a2 `/openmark Habitos para alta productividad`\0a")
+  ;; Theme: dino (len: 2627)
+  (data (i32.const 16384) "### \f0\9f\8e\a8 OpenMark Studio \e2\80\94 Slide Canvas (1080\c3\971080)\0a\0a![OpenMark Slide](https://og-image.vercel.app/**CIENCIA%20%26%20PALEONTOLOG%C3%8DA**.png?theme=dark&md=1&fontSize=65px)\0a\0a---\0a\0a#### \f0\9f\93\90 Especificaci\c3\b3n de Dise\c3\b1o (Code-First)\0a* **Formato**: 1080 \c3\97 1080 px (Relaci\c3\b3n 1:1 Cuadrado)\0a* **Paleta**: Selva Jur\c3\a1sica & F\c3\b3sil (`Primary #10B981` \e2\80\a2 `Surface #112018` \e2\80\a2 `Background #08100C`)\0a* **Tipograf\c3\ada**: Space Grotesk / Inter\0a* **M\c3\a9trica Destacada**: **100 TON** (Argentinosaurus \e2\80\a2 14 elefantes de peso)\0a\0a```tsx\0a// \e2\94\80\e2\94\80\e2\94\80 React Slide 1 Component (OpenMark Code-First) \e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\0aexport const Slide1: React.FC<SlideProps> = ({ theme, data }) => (\0a  <div style={{\0a    width: \"1080px\", height: \"1080px\",\0a    background: \"#08100C\",\0a    fontFamily: \"Space Grotesk / Inter\",\0a    display: \"flex\", flexDirection: \"column\",\0a    justifyContent: \"space-between\", padding: \"80px\",\0a    position: \"relative\", overflow: \"hidden\"\0a  }}>\0a    {/* Fondo Acentuado Asim\c3\a9trico */}\0a    <span style={{\0a      position: \"absolute\", top: \"20px\", right: \"-10px\",\0a      fontSize: \"240px\", fontWeight: 900,\0a      color: \"#10B981\", opacity: 0.05, lineHeight: 0.8\0a    }}>\0a      DINO\0a    </span>\0a    {/* Badge */}\0a    <div style={{\0a      background: \"#10B981\", color: \"#08100C\",\0a      padding: \"10px 28px\", borderRadius: \"99px\",\0a      fontSize: \"15px\", fontWeight: 800, letterSpacing: \"2px\",\0a      alignSelf: \"flex-start\", textTransform: \"uppercase\"\0a    }}>\0a      CIENCIA & PALEONTOLOG\c3\8dA\0a    </div>\0a    {/* Tarjeta Principal */}\0a    <div style={{\0a      background: \"#112018\", borderLeft: \"8px solid #10B981\",\0a      borderRadius: \"24px\", padding: \"48px 56px\", zIndex: 2\0a    }}>\0a      <h1 style={{ color: \"#F5F5FA\", fontSize: \"58px\", fontWeight: 900, lineHeight: 1.15, margin: \"0 0 20px\" }}>\0a        {data?.headline}\0a      </h1>\0a      <p style={{ color: \"#10B981\", fontSize: \"24px\", margin: 0, fontWeight: 600 }}>\0a        M\c3\a9trica Clave: 100 TON \e2\80\94 Argentinosaurus \e2\80\a2 14 elefantes de peso\0a      </p>\0a    </div>\0a    {/* Pie de Slide */}\0a    <div style={{ display: \"flex\", justifyContent: \"space-between\", borderTop: \"1px solid rgba(255,255,255,0.1)\", paddingTop: \"24px\" }}>\0a      <span style={{ color: \"#F5F5FA\", fontSize: \"20px\", fontWeight: 700 }}>OPENMARK STUDIO</span>\0a      <span style={{ color: \"#10B981\", fontSize: \"18px\" }}>SLIDE 01 / 05</span>\0a    </div>\0a  </div>\0a);\0a```\0a\0a---\0a\0a#### \f0\9f\93\b1 Copy para Redes Sociales\0a> \f0\9f\94\a5 **CIENCIA & PALEONTOLOG\c3\8dA**  \0a> Desliza para descubrir los puntos clave que transforman tu perspectiva sobre este tema.\0a> \0a> #Paleontologia #Dinosaurios #Ciencia #Evolucion #Aves #OpenMark\0a")
 
-  ;; url_prefix at 9000 (740 bytes)
-  (data (i32.const 9000) "### \f0\9f\8e\a8 OpenMark Studio \e2\80\94 Slide Canvas (1080x1080)\0a\0a![OpenMark Slide](https://quickchart.io/graphviz?format=png&width=1080&graph=digraph%7Bbgcolor%3D%22%230A0A0F%22pad%3D%220.5%22node%5Bshape%3Dnone%2Cfontname%3D%22Helvetica%22%5Dcard%5Blabel%3D%3C%3CTABLE%20BGCOLOR%3D%22%2316161D%22%20COLOR%3D%22%236C63FF%22%20PENWIDTH%3D%224%22%20CELLBORDER%3D%220%22%20CELLPADDING%3D%2230%22%20CELLSPACING%3D%220%22%20STYLE%3D%22ROUNDED%22%3E%3CTR%3E%3CTD%20ALIGN%3D%22LEFT%22%3E%3CFONT%20COLOR%3D%22%236C63FF%22%20POINT-SIZE%3D%2218%22%3E%3CB%3E%20%20OPENMARK%20STUDIO%20%E2%80%A2%20SLIDE%2001%20%20%3C%2FB%3E%3C%2FFONT%3E%3C%2FTD%3E%3C%2FTR%3E%3CTR%3E%3CTD%20ALIGN%3D%22LEFT%22%3E%3CFONT%20COLOR%3D%22%23FFFFFF%22%20POINT-SIZE%3D%2236%22%3E%3CB%3E")
+  ;; Theme: cyber (len: 2628)
+  (data (i32.const 19075) "### \f0\9f\8e\a8 OpenMark Studio \e2\80\94 Slide Canvas (1080\c3\971080)\0a\0a![OpenMark Slide](https://og-image.vercel.app/**TECH%20%26%20AI%20ARCHITECTURE**.png?theme=dark&md=1&fontSize=65px)\0a\0a---\0a\0a#### \f0\9f\93\90 Especificaci\c3\b3n de Dise\c3\b1o (Code-First)\0a* **Formato**: 1080 \c3\97 1080 px (Relaci\c3\b3n 1:1 Cuadrado)\0a* **Paleta**: Cyberpunk Obsidian (`Primary #00F0FF` \e2\80\a2 `Surface #12121E` \e2\80\a2 `Background #0A0A0F`)\0a* **Tipograf\c3\ada**: JetBrains Mono / Outfit\0a* **M\c3\a9trica Destacada**: **99.8%** (Latencia submilisegundo \e2\80\a2 Pipeline Vectorial)\0a\0a```tsx\0a// \e2\94\80\e2\94\80\e2\94\80 React Slide 1 Component (OpenMark Code-First) \e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\0aexport const Slide1: React.FC<SlideProps> = ({ theme, data }) => (\0a  <div style={{\0a    width: \"1080px\", height: \"1080px\",\0a    background: \"#0A0A0F\",\0a    fontFamily: \"JetBrains Mono / Outfit\",\0a    display: \"flex\", flexDirection: \"column\",\0a    justifyContent: \"space-between\", padding: \"80px\",\0a    position: \"relative\", overflow: \"hidden\"\0a  }}>\0a    {/* Fondo Acentuado Asim\c3\a9trico */}\0a    <span style={{\0a      position: \"absolute\", top: \"20px\", right: \"-10px\",\0a      fontSize: \"240px\", fontWeight: 900,\0a      color: \"#00F0FF\", opacity: 0.05, lineHeight: 0.8\0a    }}>\0a      CYBER\0a    </span>\0a    {/* Badge */}\0a    <div style={{\0a      background: \"#00F0FF\", color: \"#0A0A0F\",\0a      padding: \"10px 28px\", borderRadius: \"99px\",\0a      fontSize: \"15px\", fontWeight: 800, letterSpacing: \"2px\",\0a      alignSelf: \"flex-start\", textTransform: \"uppercase\"\0a    }}>\0a      TECH & AI ARCHITECTURE\0a    </div>\0a    {/* Tarjeta Principal */}\0a    <div style={{\0a      background: \"#12121E\", borderLeft: \"8px solid #00F0FF\",\0a      borderRadius: \"24px\", padding: \"48px 56px\", zIndex: 2\0a    }}>\0a      <h1 style={{ color: \"#FFFFFF\", fontSize: \"58px\", fontWeight: 900, lineHeight: 1.15, margin: \"0 0 20px\" }}>\0a        {data?.headline}\0a      </h1>\0a      <p style={{ color: \"#00F0FF\", fontSize: \"24px\", margin: 0, fontWeight: 600 }}>\0a        M\c3\a9trica Clave: 99.8% \e2\80\94 Latencia submilisegundo \e2\80\a2 Pipeline Vectorial\0a      </p>\0a    </div>\0a    {/* Pie de Slide */}\0a    <div style={{ display: \"flex\", justifyContent: \"space-between\", borderTop: \"1px solid rgba(255,255,255,0.1)\", paddingTop: \"24px\" }}>\0a      <span style={{ color: \"#FFFFFF\", fontSize: \"20px\", fontWeight: 700 }}>OPENMARK STUDIO</span>\0a      <span style={{ color: \"#00F0FF\", fontSize: \"18px\" }}>SLIDE 01 / 05</span>\0a    </div>\0a  </div>\0a);\0a```\0a\0a---\0a\0a#### \f0\9f\93\b1 Copy para Redes Sociales\0a> \f0\9f\94\a5 **TECH & AI ARCHITECTURE**  \0a> Desliza para descubrir los puntos clave que transforman tu perspectiva sobre este tema.\0a> \0a> #InteligenciaArtificial #Tech #NextGen #MachineLearning #OpenMark\0a")
 
-  ;; url_mid at 10000 (455 bytes)
-  (data (i32.const 10000) "%3C%2FB%3E%3C%2FFONT%3E%3C%2FTD%3E%3C%2FTR%3E%3CTR%3E%3CTD%20ALIGN%3D%22LEFT%22%3E%3CFONT%20COLOR%3D%22%23FFD166%22%20POINT-SIZE%3D%2214%22%3E%3CB%3E%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%E2%94%81%3C%2FB%3E%3C%2FFONT%3E%3C%2FTD%3E%3C%2FTR%3E")
+  ;; Theme: gold (len: 2602)
+  (data (i32.const 21767) "### \f0\9f\8e\a8 OpenMark Studio \e2\80\94 Slide Canvas (1080\c3\971080)\0a\0a![OpenMark Slide](https://og-image.vercel.app/**BUSINESS%20%26%20GROWTH%20HACKING**.png?theme=dark&md=1&fontSize=65px)\0a\0a---\0a\0a#### \f0\9f\93\90 Especificaci\c3\b3n de Dise\c3\b1o (Code-First)\0a* **Formato**: 1080 \c3\97 1080 px (Relaci\c3\b3n 1:1 Cuadrado)\0a* **Paleta**: Imperial Gold & Onyx (`Primary #F59E0B` \e2\80\a2 `Surface #1A1810` \e2\80\a2 `Background #0D0D09`)\0a* **Tipograf\c3\ada**: Outfit / Syne\0a* **M\c3\a9trica Destacada**: **10x** (Retorno sobre Inversi\c3\b3n \e2\80\a2 Escala B2B)\0a\0a```tsx\0a// \e2\94\80\e2\94\80\e2\94\80 React Slide 1 Component (OpenMark Code-First) \e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\0aexport const Slide1: React.FC<SlideProps> = ({ theme, data }) => (\0a  <div style={{\0a    width: \"1080px\", height: \"1080px\",\0a    background: \"#0D0D09\",\0a    fontFamily: \"Outfit / Syne\",\0a    display: \"flex\", flexDirection: \"column\",\0a    justifyContent: \"space-between\", padding: \"80px\",\0a    position: \"relative\", overflow: \"hidden\"\0a  }}>\0a    {/* Fondo Acentuado Asim\c3\a9trico */}\0a    <span style={{\0a      position: \"absolute\", top: \"20px\", right: \"-10px\",\0a      fontSize: \"240px\", fontWeight: 900,\0a      color: \"#F59E0B\", opacity: 0.05, lineHeight: 0.8\0a    }}>\0a      SCALE\0a    </span>\0a    {/* Badge */}\0a    <div style={{\0a      background: \"#F59E0B\", color: \"#0D0D09\",\0a      padding: \"10px 28px\", borderRadius: \"99px\",\0a      fontSize: \"15px\", fontWeight: 800, letterSpacing: \"2px\",\0a      alignSelf: \"flex-start\", textTransform: \"uppercase\"\0a    }}>\0a      BUSINESS & GROWTH HACKING\0a    </div>\0a    {/* Tarjeta Principal */}\0a    <div style={{\0a      background: \"#1A1810\", borderLeft: \"8px solid #F59E0B\",\0a      borderRadius: \"24px\", padding: \"48px 56px\", zIndex: 2\0a    }}>\0a      <h1 style={{ color: \"#FDFBF7\", fontSize: \"58px\", fontWeight: 900, lineHeight: 1.15, margin: \"0 0 20px\" }}>\0a        {data?.headline}\0a      </h1>\0a      <p style={{ color: \"#F59E0B\", fontSize: \"24px\", margin: 0, fontWeight: 600 }}>\0a        M\c3\a9trica Clave: 10x \e2\80\94 Retorno sobre Inversi\c3\b3n \e2\80\a2 Escala B2B\0a      </p>\0a    </div>\0a    {/* Pie de Slide */}\0a    <div style={{ display: \"flex\", justifyContent: \"space-between\", borderTop: \"1px solid rgba(255,255,255,0.1)\", paddingTop: \"24px\" }}>\0a      <span style={{ color: \"#FDFBF7\", fontSize: \"20px\", fontWeight: 700 }}>OPENMARK STUDIO</span>\0a      <span style={{ color: \"#F59E0B\", fontSize: \"18px\" }}>SLIDE 01 / 05</span>\0a    </div>\0a  </div>\0a);\0a```\0a\0a---\0a\0a#### \f0\9f\93\b1 Copy para Redes Sociales\0a> \f0\9f\94\a5 **BUSINESS & GROWTH HACKING**  \0a> Desliza para descubrir los puntos clave que transforman tu perspectiva sobre este tema.\0a> \0a> #Estrategia #Negocios #Emprendimiento #Growth #Marketing #OpenMark\0a")
 
-  ;; row_start at 10600 (97 bytes)
-  (data (i32.const 10600) "%3CTR%3E%3CTD%20ALIGN%3D%22LEFT%22%3E%3CFONT%20COLOR%3D%22%23F5F5FA%22%20POINT-SIZE%3D%2222%22%3E")
+  ;; Theme: emerald (len: 2585)
+  (data (i32.const 24433) "### \f0\9f\8e\a8 OpenMark Studio \e2\80\94 Slide Canvas (1080\c3\971080)\0a\0a![OpenMark Slide](https://og-image.vercel.app/**SOSTENIBILIDAD%20%26%20SALUD**.png?theme=dark&md=1&fontSize=65px)\0a\0a---\0a\0a#### \f0\9f\93\90 Especificaci\c3\b3n de Dise\c3\b1o (Code-First)\0a* **Formato**: 1080 \c3\97 1080 px (Relaci\c3\b3n 1:1 Cuadrado)\0a* **Paleta**: Nordic Forest & Mint (`Primary #10B981` \e2\80\a2 `Surface #0D1D16` \e2\80\a2 `Background #060F0B`)\0a* **Tipograf\c3\ada**: Geist / Inter\0a* **M\c3\a9trica Destacada**: **100%** (Org\c3\a1nico & Renovable \e2\80\a2 Ciclo Circular)\0a\0a```tsx\0a// \e2\94\80\e2\94\80\e2\94\80 React Slide 1 Component (OpenMark Code-First) \e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\0aexport const Slide1: React.FC<SlideProps> = ({ theme, data }) => (\0a  <div style={{\0a    width: \"1080px\", height: \"1080px\",\0a    background: \"#060F0B\",\0a    fontFamily: \"Geist / Inter\",\0a    display: \"flex\", flexDirection: \"column\",\0a    justifyContent: \"space-between\", padding: \"80px\",\0a    position: \"relative\", overflow: \"hidden\"\0a  }}>\0a    {/* Fondo Acentuado Asim\c3\a9trico */}\0a    <span style={{\0a      position: \"absolute\", top: \"20px\", right: \"-10px\",\0a      fontSize: \"240px\", fontWeight: 900,\0a      color: \"#10B981\", opacity: 0.05, lineHeight: 0.8\0a    }}>\0a      NATURE\0a    </span>\0a    {/* Badge */}\0a    <div style={{\0a      background: \"#10B981\", color: \"#060F0B\",\0a      padding: \"10px 28px\", borderRadius: \"99px\",\0a      fontSize: \"15px\", fontWeight: 800, letterSpacing: \"2px\",\0a      alignSelf: \"flex-start\", textTransform: \"uppercase\"\0a    }}>\0a      SOSTENIBILIDAD & SALUD\0a    </div>\0a    {/* Tarjeta Principal */}\0a    <div style={{\0a      background: \"#0D1D16\", borderLeft: \"8px solid #10B981\",\0a      borderRadius: \"24px\", padding: \"48px 56px\", zIndex: 2\0a    }}>\0a      <h1 style={{ color: \"#F0FDF4\", fontSize: \"58px\", fontWeight: 900, lineHeight: 1.15, margin: \"0 0 20px\" }}>\0a        {data?.headline}\0a      </h1>\0a      <p style={{ color: \"#10B981\", fontSize: \"24px\", margin: 0, fontWeight: 600 }}>\0a        M\c3\a9trica Clave: 100% \e2\80\94 Org\c3\a1nico & Renovable \e2\80\a2 Ciclo Circular\0a      </p>\0a    </div>\0a    {/* Pie de Slide */}\0a    <div style={{ display: \"flex\", justifyContent: \"space-between\", borderTop: \"1px solid rgba(255,255,255,0.1)\", paddingTop: \"24px\" }}>\0a      <span style={{ color: \"#F0FDF4\", fontSize: \"20px\", fontWeight: 700 }}>OPENMARK STUDIO</span>\0a      <span style={{ color: \"#10B981\", fontSize: \"18px\" }}>SLIDE 01 / 05</span>\0a    </div>\0a  </div>\0a);\0a```\0a\0a---\0a\0a#### \f0\9f\93\b1 Copy para Redes Sociales\0a> \f0\9f\94\a5 **SOSTENIBILIDAD & SALUD**  \0a> Desliza para descubrir los puntos clave que transforman tu perspectiva sobre este tema.\0a> \0a> #Sostenibilidad #Salud #Naturaleza #EcoDesign #OpenMark\0a")
 
-  ;; row_end at 10800 (35 bytes)
-  (data (i32.const 10800) "%3C%2FFONT%3E%3C%2FTD%3E%3C%2FTR%3E")
+  ;; Theme: default (len: 2597)
+  (data (i32.const 27082) "### \f0\9f\8e\a8 OpenMark Studio \e2\80\94 Slide Canvas (1080\c3\971080)\0a\0a![OpenMark Slide](https://og-image.vercel.app/**CREATIVIDAD%20%26%20PRODUCTIVIDAD**.png?theme=dark&md=1&fontSize=65px)\0a\0a---\0a\0a#### \f0\9f\93\90 Especificaci\c3\b3n de Dise\c3\b1o (Code-First)\0a* **Formato**: 1080 \c3\97 1080 px (Relaci\c3\b3n 1:1 Cuadrado)\0a* **Paleta**: Deep Violet & Electric Cyan (`Primary #8B5CF6` \e2\80\a2 `Surface #151226` \e2\80\a2 `Background #0B0914`)\0a* **Tipograf\c3\ada**: Inter / Outfit\0a* **M\c3\a9trica Destacada**: **3X** (Eficiencia en Flujo de Trabajo)\0a\0a```tsx\0a// \e2\94\80\e2\94\80\e2\94\80 React Slide 1 Component (OpenMark Code-First) \e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\e2\94\80\0aexport const Slide1: React.FC<SlideProps> = ({ theme, data }) => (\0a  <div style={{\0a    width: \"1080px\", height: \"1080px\",\0a    background: \"#0B0914\",\0a    fontFamily: \"Inter / Outfit\",\0a    display: \"flex\", flexDirection: \"column\",\0a    justifyContent: \"space-between\", padding: \"80px\",\0a    position: \"relative\", overflow: \"hidden\"\0a  }}>\0a    {/* Fondo Acentuado Asim\c3\a9trico */}\0a    <span style={{\0a      position: \"absolute\", top: \"20px\", right: \"-10px\",\0a      fontSize: \"240px\", fontWeight: 900,\0a      color: \"#8B5CF6\", opacity: 0.05, lineHeight: 0.8\0a    }}>\0a      FLOW\0a    </span>\0a    {/* Badge */}\0a    <div style={{\0a      background: \"#8B5CF6\", color: \"#0B0914\",\0a      padding: \"10px 28px\", borderRadius: \"99px\",\0a      fontSize: \"15px\", fontWeight: 800, letterSpacing: \"2px\",\0a      alignSelf: \"flex-start\", textTransform: \"uppercase\"\0a    }}>\0a      CREATIVIDAD & PRODUCTIVIDAD\0a    </div>\0a    {/* Tarjeta Principal */}\0a    <div style={{\0a      background: \"#151226\", borderLeft: \"8px solid #8B5CF6\",\0a      borderRadius: \"24px\", padding: \"48px 56px\", zIndex: 2\0a    }}>\0a      <h1 style={{ color: \"#F5F3FF\", fontSize: \"58px\", fontWeight: 900, lineHeight: 1.15, margin: \"0 0 20px\" }}>\0a        {data?.headline}\0a      </h1>\0a      <p style={{ color: \"#8B5CF6\", fontSize: \"24px\", margin: 0, fontWeight: 600 }}>\0a        M\c3\a9trica Clave: 3X \e2\80\94 Eficiencia en Flujo de Trabajo\0a      </p>\0a    </div>\0a    {/* Pie de Slide */}\0a    <div style={{ display: \"flex\", justifyContent: \"space-between\", borderTop: \"1px solid rgba(255,255,255,0.1)\", paddingTop: \"24px\" }}>\0a      <span style={{ color: \"#F5F3FF\", fontSize: \"20px\", fontWeight: 700 }}>OPENMARK STUDIO</span>\0a      <span style={{ color: \"#8B5CF6\", fontSize: \"18px\" }}>SLIDE 01 / 05</span>\0a    </div>\0a  </div>\0a);\0a```\0a\0a---\0a\0a#### \f0\9f\93\b1 Copy para Redes Sociales\0a> \f0\9f\94\a5 **CREATIVIDAD & PRODUCTIVIDAD**  \0a> Desliza para descubrir los puntos clave que transforman tu perspectiva sobre este tema.\0a> \0a> #Productividad #Diseno #Creatividad #CodeFirst #OpenMark #SocialMedia\0a")
 
-  ;; default_row at 11000 (198 bytes)
-  (data (i32.const 11000) "%3CTR%3E%3CTD%20ALIGN%3D%22LEFT%22%3E%3CFONT%20COLOR%3D%22%238585A4%22%20POINT-SIZE%3D%2222%22%3E%E2%80%A2%20Slide%20y%20canvas%20visual%20dise%C3%B1ado%20con%20IA%3C%2FFONT%3E%3C%2FTD%3E%3C%2FTR%3E")
+  ;; Help Text (len: 372)
+  (data (i32.const 29743) "### \f0\9f\8e\a8 OpenMark Studio v1.1.0\0a*Motor de dise\c3\b1o Code-First para carruseles y diapositivas de alta conversi\c3\b3n.*\0a\0a**Uso:**\0a`/openmark <tema o idea>`\0a\0a**Ejemplos:**\0a\e2\80\a2 `/openmark 3 Curiosidades de los Dinosaurios`\0a\e2\80\a2 `/openmark Inteligencia Artificial en 2026`\0a\e2\80\a2 `/openmark 3 Claves de Crecimiento para Empresas`\0a\e2\80\a2 `/openmark H\c3\a1bitos Diarios de Alta Productividad`\0a")
 
-  ;; url_suffix at 11300 (265 bytes)
-  (data (i32.const 11300) "%3CTR%3E%3CTD%20ALIGN%3D%22RIGHT%22%3E%3CFONT%20COLOR%3D%22%238585A4%22%20POINT-SIZE%3D%2214%22%3EOpenMark%20Canvas%20%E2%80%A2%20Chattree%3C%2FFONT%3E%3C%2FTD%3E%3C%2FTR%3E%3C%2FTABLE%3E%3E%5D%7D)\0a\0a---\0a### \f0\9f\93\90 Especificacion Code-First (OpenMark)\0a\e2\80\a2 **Titulo**: ")
+  (func $copy_output (param $src_ptr i32) (param $len i32) (result i32)
+    (memory.copy (i32.const 1024) (local.get $src_ptr) (local.get $len))
+    (local.get $len)
+  )
 
-  ;; specs at 11700 (133 bytes)
-  (data (i32.const 11700) "\0a\e2\80\a2 **Canvas**: 1080x1080 px (1:1 Square Carousel)\0a\e2\80\a2 **Paleta**: Primary `#6C63FF` \e2\80\a2 Surface `#16161D` \e2\80\a2 Background `#0A0A0F`\0a")
+  ;; Check substring of 4 characters at offset $pos
+  (func $match4 (param $ptr i32) (param $pos i32) (param $b0 i32) (param $b1 i32) (param $b2 i32) (param $b3 i32) (result i32)
+    (local $c0 i32) (local $c1 i32) (local $c2 i32) (local $c3 i32)
+    (local.set $c0 (i32.load8_u (i32.add (local.get $ptr) (local.get $pos))))
+    (if (i32.and (i32.ge_u (local.get $c0) (i32.const 65)) (i32.le_u (local.get $c0) (i32.const 90)))
+      (then (local.set $c0 (i32.add (local.get $c0) (i32.const 32)))))
+    (if (i32.ne (local.get $c0) (local.get $b0)) (then (return (i32.const 0))))
 
-  ;; desc_label at 12000 (26 bytes)
-  (data (i32.const 12000) "\0a**Contenido del Slide:**\0a")
+    (local.set $c1 (i32.load8_u (i32.add (local.get $ptr) (i32.add (local.get $pos) (i32.const 1)))))
+    (if (i32.and (i32.ge_u (local.get $c1) (i32.const 65)) (i32.le_u (local.get $c1) (i32.const 90)))
+      (then (local.set $c1 (i32.add (local.get $c1) (i32.const 32)))))
+    (if (i32.ne (local.get $c1) (local.get $b1)) (then (return (i32.const 0))))
+
+    (local.set $c2 (i32.load8_u (i32.add (local.get $ptr) (i32.add (local.get $pos) (i32.const 2)))))
+    (if (i32.and (i32.ge_u (local.get $c2) (i32.const 65)) (i32.le_u (local.get $c2) (i32.const 90)))
+      (then (local.set $c2 (i32.add (local.get $c2) (i32.const 32)))))
+    (if (i32.ne (local.get $c2) (local.get $b2)) (then (return (i32.const 0))))
+
+    (local.set $c3 (i32.load8_u (i32.add (local.get $ptr) (i32.add (local.get $pos) (i32.const 3)))))
+    (if (i32.and (i32.ge_u (local.get $c3) (i32.const 65)) (i32.le_u (local.get $c3) (i32.const 90)))
+      (then (local.set $c3 (i32.add (local.get $c3) (i32.const 32)))))
+    (if (i32.ne (local.get $c3) (local.get $b3)) (then (return (i32.const 0))))
+
+    (i32.const 1)
+  )
 
   (func (export "openmark_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
-    (local $out_ptr i32)
-    (local $title_ptr i32)
-    (local $title_len i32)
-    (local $desc_ptr i32)
-    (local $desc_len i32)
     (local $i i32)
-    (local $ch i32)
-    (local $limit i32)
-    (local $line_count i32)
-    (local $in_row i32)
+    (local $max_i i32)
+    (local $theme_offset i32)
+    (local $theme_len i32)
 
-    ;; 1. If empty, return help
+    ;; 1. Empty input -> help
     (if (i32.eqz (local.get $in_len))
       (then
-        (memory.copy (i32.const 1024) (i32.const 8000) (i32.const 283))
-        (return (i32.const 283))
+        (return (call $copy_output (i32.const 29743) (i32.const 372)))
       )
     )
 
-    ;; Default: title is entire input, no description
-    (local.set $title_ptr (local.get $in_ptr))
-    (local.set $title_len (local.get $in_len))
-    (local.set $desc_ptr (i32.const 0))
-    (local.set $desc_len (i32.const 0))
+    ;; Default: violet
+    (local.set $theme_offset (i32.const 27082))
+    (local.set $theme_len (i32.const 2597))
 
-    ;; If input starts with '/' (47), strip command word
-    (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 47))
+    (if (i32.ge_u (local.get $in_len) (i32.const 4))
       (then
-        (local.set $i (local.get $in_ptr))
-        (loop $skip_cmd
-          (if (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len)))
-            (then
-              (if (i32.eq (i32.load8_u (local.get $i)) (i32.const 32))
-                (then
-                  (loop $skip_sp
-                    (if (i32.and (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len))) (i32.eq (i32.load8_u (local.get $i)) (i32.const 32)))
-                      (then
-                        (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                        (br $skip_sp)
-                      )
-                    )
-                  )
-                  (local.set $title_ptr (local.get $i))
-                  (local.set $title_len (i32.sub (i32.add (local.get $in_ptr) (local.get $in_len)) (local.get $title_ptr)))
-                )
-                (else
-                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                  (br $skip_cmd)
-                )
-              )
-            )
-          )
-        )
-      )
-    )
-
-    ;; 2. Check if input is JSON (starts with '{' = 123)
-    (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123))
-      (then
-        ;; Scan for "title" (116, 105, 116, 108, 101)
-        (local.set $i (local.get $in_ptr))
-        (local.set $limit (i32.sub (i32.add (local.get $in_ptr) (local.get $in_len)) (i32.const 8)))
-        (loop $title_scan
-          (if (i32.lt_u (local.get $i) (local.get $limit))
-            (then
-              (if (i32.eq (i32.load8_u (local.get $i)) (i32.const 116))
-                (then
-                  (if (i32.eq (i32.load8_u (i32.add (local.get $i) (i32.const 1))) (i32.const 105))
-                    (then
-                      (if (i32.eq (i32.load8_u (i32.add (local.get $i) (i32.const 2))) (i32.const 116))
-                        (then
-                          (if (i32.eq (i32.load8_u (i32.add (local.get $i) (i32.const 3))) (i32.const 108))
-                            (then
-                              (if (i32.eq (i32.load8_u (i32.add (local.get $i) (i32.const 4))) (i32.const 101))
-                                (then
-                                  ;; Found 'title', advance to ':' (58)
-                                  (local.set $i (i32.add (local.get $i) (i32.const 5)))
-                                  (loop $find_colon
-                                    (if (i32.and (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len))) (i32.ne (i32.load8_u (local.get $i)) (i32.const 58)))
-                                      (then
-                                        (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                        (br $find_colon)
-                                      )
-                                    )
-                                  )
-                                  ;; Skip until opening quote '"' (34)
-                                  (loop $find_quote
-                                    (if (i32.and (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len))) (i32.ne (i32.load8_u (local.get $i)) (i32.const 34)))
-                                      (then
-                                        (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                        (br $find_quote)
-                                      )
-                                    )
-                                  )
-                                  ;; $i is at opening quote, advance to first char
-                                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                  (local.set $title_ptr (local.get $i))
-                                  ;; Find closing quote '"' (34)
-                                  (loop $title_end
-                                    (if (i32.and (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len))) (i32.ne (i32.load8_u (local.get $i)) (i32.const 34)))
-                                      (then
-                                        (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                        (br $title_end)
-                                      )
-                                    )
-                                  )
-                                  (local.set $title_len (i32.sub (local.get $i) (local.get $title_ptr)))
-                                  (local.set $limit (i32.const 0)) ;; break scan loop
-                                )
-                              )
-                            )
-                          )
-                        )
-                      )
-                    )
-                  )
-                )
-              )
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $title_scan)
-            )
-          )
-        )
-
-        ;; Scan for "desc" (100, 101, 115, 99)
-        (local.set $i (local.get $in_ptr))
-        (local.set $limit (i32.sub (i32.add (local.get $in_ptr) (local.get $in_len)) (i32.const 14)))
-        (loop $desc_scan
-          (if (i32.lt_u (local.get $i) (local.get $limit))
-            (then
-              (if (i32.eq (i32.load8_u (local.get $i)) (i32.const 100))
-                (then
-                  (if (i32.eq (i32.load8_u (i32.add (local.get $i) (i32.const 1))) (i32.const 101))
-                    (then
-                      (if (i32.eq (i32.load8_u (i32.add (local.get $i) (i32.const 2))) (i32.const 115))
-                        (then
-                          (if (i32.eq (i32.load8_u (i32.add (local.get $i) (i32.const 3))) (i32.const 99))
-                            (then
-                              ;; Found 'desc', advance to ':' (58)
-                              (local.set $i (i32.add (local.get $i) (i32.const 4)))
-                              (loop $find_desc_colon
-                                (if (i32.and (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len))) (i32.ne (i32.load8_u (local.get $i)) (i32.const 58)))
-                                  (then
-                                    (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                    (br $find_desc_colon)
-                                  )
-                                )
-                              )
-                              ;; Skip until opening quote '"' (34)
-                              (loop $desc_quote
-                                (if (i32.and (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len))) (i32.ne (i32.load8_u (local.get $i)) (i32.const 34)))
-                                  (then
-                                    (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                    (br $desc_quote)
-                                  )
-                                )
-                              )
-                              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                              (local.set $desc_ptr (local.get $i))
-                              ;; Find closing unescaped quote '"' (34)
-                              (loop $desc_end
-                                (if (i32.lt_u (local.get $i) (i32.add (local.get $in_ptr) (local.get $in_len)))
-                                  (then
-                                    (if (i32.eq (i32.load8_u (local.get $i)) (i32.const 34))
-                                      (then
-                                        (if (i32.ne (i32.load8_u (i32.sub (local.get $i) (i32.const 1))) (i32.const 92))
-                                          (then
-                                            (local.set $desc_len (i32.sub (local.get $i) (local.get $desc_ptr)))
-                                            (local.set $limit (i32.const 0))
-                                          )
-                                          (else
-                                            (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                            (br $desc_end)
-                                          )
-                                        )
-                                      )
-                                      (else
-                                        (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                                        (br $desc_end)
-                                      )
-                                    )
-                                  )
-                                )
-                              )
-                            )
-                          )
-                        )
-                      )
-                    )
-                  )
-                )
-              )
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $desc_scan)
-            )
-          )
-        )
-      )
-    )
-
-    ;; 3. Build Markdown Output at 1024
-    (local.set $out_ptr (i32.const 1024))
-
-    ;; Copy URL Prefix (740 bytes)
-    (memory.copy (local.get $out_ptr) (i32.const 9000) (i32.const 740))
-    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 740)))
-
-    ;; Copy title into URL (escaped, max 80 chars)
-    (local.set $i (i32.const 0))
-    (local.set $limit (local.get $title_len))
-    (if (i32.gt_u (local.get $limit) (i32.const 80))
-      (then (local.set $limit (i32.const 80)))
-    )
-    (loop $url_title_loop
-      (if (i32.lt_u (local.get $i) (local.get $limit))
-        (then
-          (local.set $ch (i32.load8_u (i32.add (local.get $title_ptr) (local.get $i))))
-          ;; Space (32) -> %20
-          (if (i32.eq (local.get $ch) (i32.const 32))
-            (then
-              (i32.store8 (local.get $out_ptr) (i32.const 37))
-              (i32.store8 (i32.add (local.get $out_ptr) (i32.const 1)) (i32.const 50))
-              (i32.store8 (i32.add (local.get $out_ptr) (i32.const 2)) (i32.const 48))
-              (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 3)))
-            )
-            (else
-              ;; Safe char check: skip quotes (34), backslash (92), < (60), > (62), & (38), # (35)
-              (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
-                   (i32.and (i32.ne (local.get $ch) (i32.const 92))
-                   (i32.and (i32.ne (local.get $ch) (i32.const 60))
-                   (i32.and (i32.ne (local.get $ch) (i32.const 62))
-                   (i32.and (i32.ne (local.get $ch) (i32.const 38))
-                            (i32.ne (local.get $ch) (i32.const 35)))))))
-                (then
-                  (i32.store8 (local.get $out_ptr) (local.get $ch))
-                  (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 1)))
-                )
-              )
-            )
-          )
-          (local.set $i (i32.add (local.get $i) (i32.const 1)))
-          (br $url_title_loop)
-        )
-      )
-    )
-
-    ;; Copy URL Mid (455 bytes)
-    (memory.copy (local.get $out_ptr) (i32.const 10000) (i32.const 455))
-    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 455)))
-
-    ;; Add Body Rows to Card (either from description or default row)
-    (if (i32.gt_u (local.get $desc_len) (i32.const 0))
-      (then
-        ;; Start first row
-        (memory.copy (local.get $out_ptr) (i32.const 10600) (i32.const 97))
-        (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 97)))
-        (local.set $in_row (i32.const 1))
-        (local.set $line_count (i32.const 1))
-
+        (local.set $max_i (i32.sub (local.get $in_len) (i32.const 3)))
         (local.set $i (i32.const 0))
-        (local.set $limit (local.get $desc_len))
-        ;; Cap description in card URL to 200 bytes max
-        (if (i32.gt_u (local.get $limit) (i32.const 200))
-          (then (local.set $limit (i32.const 200)))
-        )
+        (block $found
+          (loop $loop
+            (br_if $found (i32.ge_u (local.get $i) (local.get $max_i)))
 
-        (loop $desc_url_loop
-          (if (i32.lt_u (local.get $i) (local.get $limit))
-            (then
-              (local.set $ch (i32.load8_u (i32.add (local.get $desc_ptr) (local.get $i))))
-              ;; Check newline: literal 10 or '\' followed by 'n' (110)
-              (if (i32.or (i32.eq (local.get $ch) (i32.const 10))
-                          (i32.and (i32.eq (local.get $ch) (i32.const 92))
-                                   (i32.and (i32.lt_u (i32.add (local.get $i) (i32.const 1)) (local.get $limit))
-                                            (i32.eq (i32.load8_u (i32.add (i32.add (local.get $desc_ptr) (local.get $i)) (i32.const 1))) (i32.const 110)))))
-                (then
-                  ;; Skip extra 'n' if it was '\n'
-                  (if (i32.eq (local.get $ch) (i32.const 92))
-                    (then (local.set $i (i32.add (local.get $i) (i32.const 1))))
-                  )
-                  ;; Close previous row
-                  (memory.copy (local.get $out_ptr) (i32.const 10800) (i32.const 35))
-                  (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 35)))
-                  (local.set $line_count (i32.add (local.get $line_count) (i32.const 1)))
-
-                  ;; If line_count <= 3, open new row, else stop adding lines to card
-                  (if (i32.le_u (local.get $line_count) (i32.const 3))
-                    (then
-                      (memory.copy (local.get $out_ptr) (i32.const 10600) (i32.const 97))
-                      (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 97)))
-                    )
-                    (else
-                      (local.set $in_row (i32.const 0))
-                      (local.set $limit (i32.const 0)) ;; break
-                    )
-                  )
-                )
-                (else
-                  ;; If space (32) -> %20
-                  (if (i32.eq (local.get $ch) (i32.const 32))
-                    (then
-                      (i32.store8 (local.get $out_ptr) (i32.const 37))
-                      (i32.store8 (i32.add (local.get $out_ptr) (i32.const 1)) (i32.const 50))
-                      (i32.store8 (i32.add (local.get $out_ptr) (i32.const 2)) (i32.const 48))
-                      (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 3)))
-                    )
-                    (else
-                      ;; Safe characters: skip quotes, backslash, <, >, &, #
-                      (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
-                           (i32.and (i32.ne (local.get $ch) (i32.const 92))
-                           (i32.and (i32.ne (local.get $ch) (i32.const 60))
-                           (i32.and (i32.ne (local.get $ch) (i32.const 62))
-                           (i32.and (i32.ne (local.get $ch) (i32.const 38))
-                                    (i32.ne (local.get $ch) (i32.const 35)))))))
-                        (then
-                          (i32.store8 (local.get $out_ptr) (local.get $ch))
-                          (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 1)))
-                        )
-                      )
-                    )
-                  )
-                )
+            ;; 'dino' = 100, 105, 110, 111
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 100) (i32.const 105) (i32.const 110) (i32.const 111))
+              (then
+                (local.set $theme_offset (i32.const 16384))
+                (local.set $theme_len (i32.const 2627))
+                (br $found)
               )
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $desc_url_loop)
             )
+
+            ;; 'fosi' = 102, 111, 115, 105
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 102) (i32.const 111) (i32.const 115) (i32.const 105))
+              (then
+                (local.set $theme_offset (i32.const 16384))
+                (local.set $theme_len (i32.const 2627))
+                (br $found)
+              )
+            )
+
+            ;; 'inte' (inteligencia) = 105, 110, 116, 101
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 105) (i32.const 110) (i32.const 116) (i32.const 101))
+              (then
+                (local.set $theme_offset (i32.const 19075))
+                (local.set $theme_len (i32.const 2628))
+                (br $found)
+              )
+            )
+
+            ;; 'tech' = 116, 101, 99, 104
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 116) (i32.const 101) (i32.const 99) (i32.const 104))
+              (then
+                (local.set $theme_offset (i32.const 19075))
+                (local.set $theme_len (i32.const 2628))
+                (br $found)
+              )
+            )
+
+            ;; 'robo' (robot) = 114, 111, 98, 111
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 114) (i32.const 111) (i32.const 98) (i32.const 111))
+              (then
+                (local.set $theme_offset (i32.const 19075))
+                (local.set $theme_len (i32.const 2628))
+                (br $found)
+              )
+            )
+
+            ;; 'crec' (crecimiento) = 99, 114, 101, 99
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 99) (i32.const 114) (i32.const 101) (i32.const 99))
+              (then
+                (local.set $theme_offset (i32.const 21767))
+                (local.set $theme_len (i32.const 2602))
+                (br $found)
+              )
+            )
+
+            ;; 'nego' (negocio) = 110, 101, 103, 111
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 110) (i32.const 101) (i32.const 103) (i32.const 111))
+              (then
+                (local.set $theme_offset (i32.const 21767))
+                (local.set $theme_len (i32.const 2602))
+                (br $found)
+              )
+            )
+
+            ;; 'vent' (ventas) = 118, 101, 110, 116
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 118) (i32.const 101) (i32.const 110) (i32.const 116))
+              (then
+                (local.set $theme_offset (i32.const 21767))
+                (local.set $theme_len (i32.const 2602))
+                (br $found)
+              )
+            )
+
+            ;; 'salu' (salud) = 115, 97, 108, 117
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 115) (i32.const 97) (i32.const 108) (i32.const 117))
+              (then
+                (local.set $theme_offset (i32.const 24433))
+                (local.set $theme_len (i32.const 2585))
+                (br $found)
+              )
+            )
+
+            ;; 'verd' (verde) = 118, 101, 114, 100
+            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 118) (i32.const 101) (i32.const 114) (i32.const 100))
+              (then
+                (local.set $theme_offset (i32.const 24433))
+                (local.set $theme_len (i32.const 2585))
+                (br $found)
+              )
+            )
+
+            (local.set $i (i32.add (local.get $i) (i32.const 1)))
+            (br $loop)
           )
         )
-        ;; Close final row if still open
-        (if (i32.eq (local.get $in_row) (i32.const 1))
-          (then
-            (memory.copy (local.get $out_ptr) (i32.const 10800) (i32.const 35))
-            (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 35)))
-          )
-        )
-      )
-      (else
-        ;; Default row if no description provided
-        (memory.copy (local.get $out_ptr) (i32.const 11000) (i32.const 198))
-        (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 198)))
       )
     )
 
-    ;; Copy URL Suffix (265 bytes)
-    (memory.copy (local.get $out_ptr) (i32.const 11300) (i32.const 265))
-    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 265)))
-
-    ;; Copy Title verbatim into markdown spec
-    (memory.copy (local.get $out_ptr) (local.get $title_ptr) (local.get $title_len))
-    (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $title_len)))
-
-    ;; Copy Specs (133 bytes)
-    (memory.copy (local.get $out_ptr) (i32.const 11700) (i32.const 133))
-    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 133)))
-
-    ;; Copy Description verbatim into markdown if present
-    (if (i32.gt_u (local.get $desc_len) (i32.const 0))
-      (then
-        (memory.copy (local.get $out_ptr) (i32.const 12000) (i32.const 26))
-        (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 26)))
-
-        (local.set $i (i32.const 0))
-        (loop $desc_md_loop
-          (if (i32.lt_u (local.get $i) (local.get $desc_len))
-            (then
-              (local.set $ch (i32.load8_u (i32.add (local.get $desc_ptr) (local.get $i))))
-              ;; If '\' followed by 'n', emit real newline
-              (if (i32.eq (local.get $ch) (i32.const 92))
-                (then
-                  (if (i32.lt_u (i32.add (local.get $i) (i32.const 1)) (local.get $desc_len))
-                    (then
-                      (if (i32.eq (i32.load8_u (i32.add (i32.add (local.get $desc_ptr) (local.get $i)) (i32.const 1))) (i32.const 110))
-                        (then
-                          (i32.store8 (local.get $out_ptr) (i32.const 10))
-                          (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 1)))
-                          (local.set $i (i32.add (local.get $i) (i32.const 2)))
-                          (br $desc_md_loop)
-                        )
-                      )
-                    )
-                  )
-                )
-              )
-              (i32.store8 (local.get $out_ptr) (local.get $ch))
-              (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 1)))
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $desc_md_loop)
-            )
-          )
-        )
-        ;; Trailing newline
-        (i32.store8 (local.get $out_ptr) (i32.const 10))
-        (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const 1)))
-      )
-    )
-
-    ;; Return total output length
-    (i32.sub (local.get $out_ptr) (i32.const 1024))
+    (call $copy_output (local.get $theme_offset) (local.get $theme_len))
   )
 )
