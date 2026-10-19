@@ -21,6 +21,8 @@
     "scheduler",
     "official"
   ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png",
   "changelog": "1.3.6: Updated icon and banner artwork with balanced margins and padding.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
