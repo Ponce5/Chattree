@@ -220,6 +220,21 @@ export function validatePlugin(targetPath) {
     if (manifest.maxMemoryPages && (manifest.maxMemoryPages <= 0 || manifest.maxMemoryPages > 256)) {
       errors.push(`maxMemoryPages (${manifest.maxMemoryPages}) exceeds allowed maximum of 256 pages (16 MB).`);
     }
+
+    if (Array.isArray(manifest.tools)) {
+      const seenToolCmds = new Set();
+      for (let i = 0; i < manifest.tools.length; i++) {
+        const t = manifest.tools[i];
+        const cmd = t.command ? String(t.command).toLowerCase().trim() : "";
+        if (!cmd) {
+          errors.push(`Tool #${i + 1} (${t.id || "unnamed"}): 'command' cannot be empty.`);
+        } else if (seenToolCmds.has(cmd)) {
+          errors.push(`Tool command '/${cmd}' is duplicated within manifest tools.`);
+        } else {
+          seenToolCmds.add(cmd);
+        }
+      }
+    }
   }
 
   // 4. Validate WASM binary
