@@ -70,27 +70,27 @@
     )
 
     ;; 3. Default: Create event using input text as title
-    (local.set $prefix_len (i32.const 57))
+    (local.set $prefix_len (i32.const 56))
 
     ;; Copy prefix into request buffer at offset 2048
     (memory.copy (i32.const 2048) (i32.const 3000) (local.get $prefix_len))
 
-    ;; Copy user input title after prefix: 2048 + 57
+    ;; Copy user input title after prefix: 2048 + 56
     (memory.copy
       (i32.add (i32.const 2048) (local.get $prefix_len))
       (local.get $in_ptr)
       (local.get $in_len)
     )
 
-    ;; Copy suffix ("}}") after title: 2048 + 57 + in_len
+    ;; Copy suffix ("}}") after title: 2048 + 56 + in_len
     (memory.copy
       (i32.add (i32.add (i32.const 2048) (local.get $prefix_len)) (local.get $in_len))
       (i32.const 3100)
       (i32.const 3)
     )
 
-    ;; Total request length = 57 + in_len + 3 = 60 + in_len
-    (local.set $req_len (i32.add (i32.const 60) (local.get $in_len)))
+    ;; Total request length = 56 + in_len + 3 = 59 + in_len
+    (local.set $req_len (i32.add (i32.const 59) (local.get $in_len)))
 
     ;; Call host_call(reqPtr=2048, reqLen, resPtr=4096, resMaxLen=4096)
     (drop (call $host_call

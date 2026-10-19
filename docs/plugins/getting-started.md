@@ -298,6 +298,17 @@ Chattree will:
 
 ---
 
+## Step 11 — Conversational AI Integration (Zero Configuration)
+
+You don't need to write hardcoded keyword listeners or special routing for the AI to use your plugin:
+
+1. **Automatic Discovery**: When installed, Chattree registers every tool in your `tools` array into `PluginRegistry`.
+2. **Context Injection**: Chattree provides the tool's `command`, `displayName`, and `description` to the on-device AI system prompt.
+3. **Conversational Invocation**: In natural conversation (e.g. *"Greets my friend Alice"*), the AI outputs `{"tool": "hello", "action": "run", "title": "Alice"}`.
+4. **Execution & AI Response**: The WASM runtime executes your plugin, returns the result, and the AI answers the user conversationally with its own voice based on the outcome.
+
+---
+
 ## What next?
 
 - Read [plugin-manifest.md](plugin-manifest.md) for every manifest field.
