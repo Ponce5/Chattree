@@ -132,8 +132,7 @@ export const Slide1: React.FC<SlideProps> = ({ theme, data }) => (
 
     const md = 
 `### 🎨 OpenMark Studio — Slide Canvas (1080×1080)
-
-![OpenMark Slide](https://og-image.vercel.app/**${encodeURIComponent(t.badge)}**.png?theme=dark&md=1&fontSize=65px)
+*Marca de agua*: ${t.bgWord}
 
 ---
 
@@ -173,8 +172,8 @@ ${slideCode}
   }
 
   const helpText = 
-`### 🎨 OpenMark Studio v1.2.0
-*Motor de diseño Code-First con renderizado visual interactivo (canvas.render).*
+`### 🎨 OpenMark Studio v1.2.1
+*Motor de diseño Code-First con renderizado visual interactivo nativo (canvas.render).*
 
 **Uso:**
 \`/openmark <tema o idea>\`
