@@ -73,6 +73,16 @@
       "format": "uri",
       "description": "Official project website or repository documentation URL."
     },
+    "iconUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Public URL or repository raw link to the plugin icon image."
+    },
+    "bannerUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Public URL or repository raw link to the marketplace banner artwork."
+    },
     "primaryCommand": {
       "type": "string",
       "pattern": "^[a-z0-9-]+$",
