@@ -44,8 +44,51 @@ private keyspace. No other plugin or user can read it.
 - Data persists across plugin reinstalls (tied to plugin ID).
 
 **Example:**
+```
+
+---
+
+### 🟢 canvas.render
+
+**Category:** UI / Visual  
+**Status:** ✅ Available (Phase 3G+)  
+**Permission required:** None (granted automatically — core visual sandbox capability)  
+**Host API namespace:** `canvas`
+
+Grants access to Chattree's **native interactive visual canvas engine**. Enables plugins to render high-impact 1080×1080 slide presentations, interactive metric cards, and theme-accented components directly into the conversation feed without external webviews.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `canvas.render_slide` | `{ title, badge?, paletteName?, primaryColor?, backgroundColor?, surfaceColor?, metric?, metricLabel?, code? }` | `{ rendered: true, slideId, title, dimensions: "1080x1080" }` |
+| `canvas.create_slide` | Alias for `canvas.render_slide` | `{ rendered: true, slideId, title, dimensions: "1080x1080" }` |
+| `canvas.render_card` | `{ title, subtitle?, badge?, metrics: [...], codeSnippet? }` | `{ rendered: true, cardId, title }` |
+| `canvas.export_png` | `{ slideId?, targetWidth?: 1080, targetHeight?: 1080 }` | `{ ready: true, exportUrl, width, height }` |
+| `canvas.get_capabilities` | `{}` | `{ supportedFormats: ["1:1", "16:9", "4:5"], hardwareAccelerated: true, maxResolution: "4K" }` |
+
+**Limitations & Features:**
+- Native client-side rendering with Flutter widgets and smooth animations.
+- Preserves clean copyable TSX source code and social media copy.
+- Interactive share sheet integration for instant social sharing.
+
+**Example:**
 ```json
-{ "api": "storage", "operation": "set", "payload": { "key": "counter", "value": "42" } }
+{
+  "api": "canvas",
+  "operation": "render_slide",
+  "payload": {
+    "title": "Arquitectura de IA 2026",
+    "badge": "TECH & ARCHITECTURE",
+    "paletteName": "Cyberpunk Obsidian",
+    "primaryColor": "#00F0FF",
+    "backgroundColor": "#0A0A0F",
+    "surfaceColor": "#12121E",
+    "metric": "99.8%",
+    "metricLabel": "Latencia submilisegundo",
+    "code": "export const Slide1 = () => <div ... />;"
+  }
+}
 ```
 
 ---

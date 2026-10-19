@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.openmark",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "OpenMark Studio",
   "description": "Studio de presentaciones y diapositivas de carrusel basadas en codigo impulsadas por IA.",
   "author": "Chattree Core Team",
@@ -17,7 +17,8 @@
   "capabilities": [
     "network.http",
     "storage.private",
-    "share.text"
+    "share.text",
+    "canvas.render"
   ],
   "tags": [
     "openmark",
@@ -30,11 +31,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/openmark/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/openmark/banner.png",
-  "changelog": "1.1.0: Arquitectura OpenMark Code-First definitiva — la IA genera el diseño estructurado por tema, la diapositiva visual 1080x1080, el código fuente React/TSX del componente y el copy para redes sociales.",
+  "changelog": "1.2.0: Soporte nativo para el Súper Poder canvas.render de Chattree — renderizado interactivo de diapositivas 1080x1080 en el feed de chat, exportación a TSX/código y paletas neon/dark-mode integradas.",
   "runtime": "wasm",
   "entrypoint": "openmark_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "08d5d535aca45cfa5abfa59d2b9bca8b74ad8403dbd5eb44bde2bc06d96dae00",
+  "wasmSha256": "2e5bc09c4c0f74edb147588bfdf94f5feac7ff0cb7aa09864e82bf341d23d389",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
@@ -48,7 +49,8 @@
       "capabilities": [
         "network.http",
         "storage.private",
-        "share.text"
+        "share.text",
+        "canvas.render"
       ]
     }
   ]

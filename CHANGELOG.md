@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.1.0] - 2026-10-19
+
+### Added
+- **`canvas.render` Capability & Host API:** Full technical specifications and schema definitions for Chattree's native visual canvas rendering engine (`canvas.render`), enabling WASM plugins to render interactive 1080×1080 slides and structured visual cards directly in the conversation feed.
+- **OpenMark Studio v1.2.0:** Updated official OpenMark plugin declaring `canvas.render` capability, generating interactive slides, dynamic themes (Dino, Cyber, Gold, Emerald), exportable React/TSX components, and high-conversion social copy.
+- **Host API Operations:** Added documentation for `canvas.render_slide`, `canvas.create_slide`, `canvas.render_card`, `canvas.export_png`, and `canvas.get_capabilities`.
+
+---
+
 ## [1.0.0] - 2026-10-18
 
 ### Added

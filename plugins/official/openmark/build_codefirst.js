@@ -173,8 +173,8 @@ ${slideCode}
   }
 
   const helpText = 
-`### 🎨 OpenMark Studio v1.1.0
-*Motor de diseño Code-First para carruseles y diapositivas de alta conversión.*
+`### 🎨 OpenMark Studio v1.2.0
+*Motor de diseño Code-First con renderizado visual interactivo (canvas.render).*
 
 **Uso:**
 \`/openmark <tema o idea>\`
