@@ -4,6 +4,29 @@ All notable changes to the Chattree official repository will be documented in th
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-10-19
+
+### Changed
+- **OpenMark Studio v1.3.0:** Removed static hardcoded templates. Enabled full dynamic AI Code-First React/TSX generation per prompt topic, dynamic watermark extraction, responsive canvas card UI without overflows, and native on-device 1080×1080 PNG export.
+
+---
+
+## [1.1.1] - 2026-10-19
+
+### Added
+- **Native Canvas-to-PNG On-Device Engine:** Chattree's chat feed now renders visual presentation slides directly using Flutter's native Canvas and `RepaintBoundary` at 1080×1080 retina resolution.
+- **OpenMark Studio v1.2.1:** Removed external image placeholder dependencies (Vercel og-image). Added 1-tap "Guardar PNG" export, direct native image sharing to WhatsApp/social apps, and a collapsible React/TSX syntax-highlighted code drawer.
+- **Clean Chat Bubble Experience:** Upgraded `ChatBubble` with automatic slide detection, displaying the visual canvas card and dedicated social copy card without polluting the chat feed with raw TSX code or markdown markup.
+
+---
+
+## [1.1.0] - 2026-10-19
+
+### Added
+- **`canvas.render` Capability & Host API:** Full technical specifications and schema definitions for Chattree's native visual canvas rendering engine (`canvas.render`), enabling WASM plugins to render interactive 1080×1080 slides and structured visual cards directly in the conversation feed.
+- **OpenMark Studio v1.2.0:** Updated official OpenMark plugin declaring `canvas.render` capability, generating interactive slides, dynamic themes (Dino, Cyber, Gold, Emerald), exportable React/TSX components, and high-conversion social copy.
+- **Host API Operations:** Added documentation for `canvas.render_slide`, `canvas.create_slide`, `canvas.render_card`, `canvas.export_png`, and `canvas.get_capabilities`.
+
 ---
 
 ## [1.0.0] - 2026-10-18

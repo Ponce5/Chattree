@@ -40,6 +40,7 @@ const VALID_CAPABILITIES = new Set([
   "chattree.reminders.delete",
   "chattree.reminders.complete",
   "chattree.context.read",
+  "canvas.render",
   "chat.history.read",
   "ai.context",
   "ai.embeddings",
