@@ -88,7 +88,6 @@ Your WASM module must declare this import to use any Host API:
 | `chattree.notes` | Chattree Notes CRUD | ❌ Async | `chattree.notes.*` |
 | `chattree.reminders` | Chattree Reminders CRUD | ❌ Async | `chattree.reminders.*` |
 | `chattree.context` | Current message context | ❌ Async | `chattree.context.read` |
-| `canvas` | Interactive visual canvas & slide rendering | ✅ Sync | `canvas.render` |
 
 ---
 
@@ -97,7 +96,6 @@ Your WASM module must declare this import to use any Host API:
 **Synchronous** operations complete within the same WASM execution call:
 - `core.get_manifest`, `core.log`
 - All `storage.*` operations
-- All `canvas.*` operations (`render_slide`, `create_slide`, `render_card`, `export_png`, `get_capabilities`)
 
 **Asynchronous** operations require a second execution round-trip:
 1. Your WASM calls `host_call(…)` → receives `0` (async pending).
@@ -284,56 +282,6 @@ The `chattree.context.read` operation allows a plugin to inspect the conversatio
 - **`authorized` (boolean):** Indicates whether the active user has granted the `chattree.context.read` capability to the plugin. If the user revokes or declines this permission, `authorized` is `false`, and `currentMessage` and `explicitContext` return empty strings (`""`).
 - **`restricted` (boolean):** Evaluates to `true` if the conversation is running under restricted privacy mode (e.g., incognito chats, ephemeral trees, or system prompts containing confidential keys). In restricted mode, external plugins cannot inspect surrounding text even if authorized, preventing context leakage.
 - **`timestamp` (number):** Unix epoch timestamp in milliseconds when the message was dispatched by the user.
-
----
-
-### canvas
-
-**Capability required:** `canvas.render`  
-**Execution:** Synchronous (`✅ Sync`)
-
-The `canvas` namespace gives plugins direct access to Chattree's native visual rendering pipeline. Plugins can generate rich, interactive 1080×1080 presentation slides, metric cards, and theme-accented visual components directly inside chat bubbles without requiring external webviews.
-
-| Operation | Sync | Input | Output |
-|-----------|------|-------|--------|
-| `canvas.render_slide` | ✅ | `{ title, badge?, paletteName?, primaryColor?, backgroundColor?, surfaceColor?, metric?, metricLabel?, code? }` | `{ rendered: true, slideId, title, dimensions: "1080x1080" }` |
-| `canvas.create_slide` | ✅ | Alias for `canvas.render_slide` | `{ rendered: true, slideId, title, dimensions: "1080x1080" }` |
-| `canvas.render_card` | ✅ | `{ title, subtitle?, badge?, metrics: [...], codeSnippet? }` | `{ rendered: true, cardId, title }` |
-| `canvas.export_png` | ✅ | `{ slideId?, targetWidth?: 1080, targetHeight?: 1080 }` | `{ ready: true, exportUrl, width, height }` |
-| `canvas.get_capabilities` | ✅ | `{}` | `{ supportedFormats: ["1:1", "16:9", "4:5"], hardwareAccelerated: true, maxResolution: "4K" }` |
-
-#### Slide Rendering Request Example
-
-```json
-{
-  "api": "canvas",
-  "operation": "render_slide",
-  "payload": {
-    "title": "Arquitectura de IA 2026",
-    "badge": "TECH & ARCHITECTURE",
-    "paletteName": "Cyberpunk Obsidian",
-    "primaryColor": "#00F0FF",
-    "backgroundColor": "#0A0A0F",
-    "surfaceColor": "#12121E",
-    "metric": "99.8%",
-    "metricLabel": "Latencia submilisegundo • Pipeline Vectorial",
-    "code": "export const Slide1: React.FC<SlideProps> = ({ theme, data }) => ( ... );"
-  }
-}
-```
-
-##### Response (`success: true`)
-```json
-{
-  "success": true,
-  "data": {
-    "rendered": true,
-    "slideId": "slide_1729352000000",
-    "title": "Arquitectura de IA 2026",
-    "dimensions": "1080x1080"
-  }
-}
-```
 
 ---
 
