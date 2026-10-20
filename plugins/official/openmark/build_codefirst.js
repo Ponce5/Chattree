@@ -1,385 +1,363 @@
 const fs = require('fs');
 const path = require('path');
 
-// ─── THEME METADATA & CODE TEMPLATES ───────────────────────────────────────
-const THEMES = [
-  {
-    id: 'dino',
-    badge: 'CIENCIA & PALEONTOLOGÍA',
-    paletteName: 'Selva Jurásica & Fósil',
-    primary: '#10B981',
-    bg: '#08100C',
-    surface: '#112018',
-    text: '#F5F5FA',
-    accent: '#F59E0B',
-    font: 'Space Grotesk / Inter',
-    bgWord: 'DINO',
-    metric: '100 TON',
-    metricLabel: 'Argentinosaurus • 14 elefantes de peso',
-    hashtags: '#Paleontologia #Dinosaurios #Ciencia #Evolucion #Aves #OpenMark'
-  },
-  {
-    id: 'cyber',
-    badge: 'TECH & AI ARCHITECTURE',
-    paletteName: 'Cyberpunk Obsidian',
-    primary: '#00F0FF',
-    bg: '#0A0A0F',
-    surface: '#12121E',
-    text: '#FFFFFF',
-    accent: '#7928CA',
-    font: 'JetBrains Mono / Outfit',
-    bgWord: 'CYBER',
-    metric: '99.8%',
-    metricLabel: 'Latencia submilisegundo • Pipeline Vectorial',
-    hashtags: '#InteligenciaArtificial #Tech #NextGen #MachineLearning #OpenMark'
-  },
-  {
-    id: 'gold',
-    badge: 'BUSINESS & GROWTH HACKING',
-    paletteName: 'Imperial Gold & Onyx',
-    primary: '#F59E0B',
-    bg: '#0D0D09',
-    surface: '#1A1810',
-    text: '#FDFBF7',
-    accent: '#EAB308',
-    font: 'Outfit / Syne',
-    bgWord: 'SCALE',
-    metric: '10x',
-    metricLabel: 'Retorno sobre Inversión • Escala B2B',
-    hashtags: '#Estrategia #Negocios #Emprendimiento #Growth #Marketing #OpenMark'
-  },
-  {
-    id: 'emerald',
-    badge: 'SOSTENIBILIDAD & SALUD',
-    paletteName: 'Nordic Forest & Mint',
-    primary: '#10B981',
-    bg: '#060F0B',
-    surface: '#0D1D16',
-    text: '#F0FDF4',
-    accent: '#34D399',
-    font: 'Geist / Inter',
-    bgWord: 'NATURE',
-    metric: '100%',
-    metricLabel: 'Orgánico & Renovable • Ciclo Circular',
-    hashtags: '#Sostenibilidad #Salud #Naturaleza #EcoDesign #OpenMark'
-  },
-  {
-    id: 'default',
-    badge: 'CREATIVIDAD & PRODUCTIVIDAD',
-    paletteName: 'Deep Violet & Electric Cyan',
-    primary: '#8B5CF6',
-    bg: '#0B0914',
-    surface: '#151226',
-    text: '#F5F3FF',
-    accent: '#06B6D4',
-    font: 'Inter / Outfit',
-    bgWord: 'FLOW',
-    metric: '3X',
-    metricLabel: 'Eficiencia en Flujo de Trabajo',
-    hashtags: '#Productividad #Diseno #Creatividad #CodeFirst #OpenMark #SocialMedia'
-  }
-];
+// ─── CHUNKS FOR DYNAMIC OPENMARK CODE-FIRST GENERATION ───────────────────────
+const CHUNK1 = `### 🎨 OpenMark Studio — Slide Canvas (1080×1080)
+*Marca de agua*: `;
 
-function buildWatModule() {
-  const themeOutputs = THEMES.map(t => {
-    const slideCode = 
-`// ─── React Slide 1 Component (OpenMark Code-First) ────────────
-export const Slide1: React.FC<SlideProps> = ({ theme, data }) => (
-  <div style={{
-    width: "1080px", height: "1080px",
-    background: "${t.bg}",
-    fontFamily: "${t.font}",
-    display: "flex", flexDirection: "column",
-    justifyContent: "space-between", padding: "80px",
-    position: "relative", overflow: "hidden"
-  }}>
-    {/* Fondo Acentuado Asimétrico */}
-    <span style={{
-      position: "absolute", top: "20px", right: "-10px",
-      fontSize: "240px", fontWeight: 900,
-      color: "${t.primary}", opacity: 0.05, lineHeight: 0.8
-    }}>
-      ${t.bgWord}
-    </span>
-    {/* Badge */}
-    <div style={{
-      background: "${t.primary}", color: "${t.bg}",
-      padding: "10px 28px", borderRadius: "99px",
-      fontSize: "15px", fontWeight: 800, letterSpacing: "2px",
-      alignSelf: "flex-start", textTransform: "uppercase"
-    }}>
-      ${t.badge}
-    </div>
-    {/* Tarjeta Principal */}
-    <div style={{
-      background: "${t.surface}", borderLeft: "8px solid ${t.primary}",
-      borderRadius: "24px", padding: "48px 56px", zIndex: 2
-    }}>
-      <h1 style={{ color: "${t.text}", fontSize: "58px", fontWeight: 900, lineHeight: 1.15, margin: "0 0 20px" }}>
-        {data?.headline}
-      </h1>
-      <p style={{ color: "${t.primary}", fontSize: "24px", margin: 0, fontWeight: 600 }}>
-        Métrica Clave: ${t.metric} — ${t.metricLabel}
-      </p>
-    </div>
-    {/* Pie de Slide */}
-    <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "24px" }}>
-      <span style={{ color: "${t.text}", fontSize: "20px", fontWeight: 700 }}>OPENMARK STUDIO</span>
-      <span style={{ color: "${t.primary}", fontSize: "18px" }}>SLIDE 01 / 05</span>
-    </div>
-  </div>
-);`;
-
-    const md = 
-`### 🎨 OpenMark Studio — Slide Canvas (1080×1080)
-*Marca de agua*: ${t.bgWord}
+const CHUNK2 = `
 
 ---
 
 #### 📐 Especificación de Diseño (Code-First)
 * **Formato**: 1080 × 1080 px (Relación 1:1 Cuadrado)
-* **Paleta**: ${t.paletteName} (\`Primary ${t.primary}\` • \`Surface ${t.surface}\` • \`Background ${t.bg}\`)
-* **Tipografía**: ${t.font}
-* **Métrica Destacada**: **${t.metric}** (${t.metricLabel})
+* **Paleta**: Modern Studio Dark & Violet (\`Primary #8B5CF6\` • \`Surface #151226\` • \`Background #0B0914\`)
+* **Tipografía**: Outfit / Space Grotesk
+* **Métrica Destacada**: **TOP 1** (`;
+
+const CHUNK3 = `)
 
 \`\`\`tsx
-${slideCode}
+// ─── React Slide 1 Component (OpenMark Code-First) ────────────
+export const Slide1: React.FC<SlideProps> = ({ theme, data }) => (
+  <div style={{
+    width: "1080px", height: "1080px",
+    background: "#0B0914",
+    fontFamily: "Outfit",
+    display: "flex", flexDirection: "column",
+    justifyContent: "space-between", padding: "80px",
+    position: "relative", overflow: "hidden"
+  }}>
+    <span style={{
+      position: "absolute", top: "20px", right: "-10px",
+      fontSize: "240px", fontWeight: 900,
+      color: "#8B5CF6", opacity: 0.05, lineHeight: 0.8
+    }}>
+      `;
+
+const CHUNK4 = `
+    </span>
+    <div style={{
+      background: "#8B5CF6", color: "#0B0914",
+      padding: "10px 28px", borderRadius: "99px",
+      fontSize: "15px", fontWeight: 800, letterSpacing: "2px",
+      alignSelf: "flex-start", textTransform: "uppercase"
+    }}>
+      OPENMARK STUDIO
+    </div>
+    <div style={{
+      background: "#151226", borderLeft: "8px solid #8B5CF6",
+      borderRadius: "24px", padding: "48px 56px", zIndex: 2
+    }}>
+      <h1 style={{ color: "#F5F3FF", fontSize: "52px", fontWeight: 900, lineHeight: 1.15, margin: "0 0 20px" }}>
+        `;
+
+const CHUNK5 = `
+      </h1>
+      <p style={{ color: "#8B5CF6", fontSize: "24px", margin: 0, fontWeight: 600 }}>
+        Métrica Clave: TOP 1 — `;
+
+const CHUNK6 = `
+      </p>
+    </div>
+    <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "24px" }}>
+      <span style={{ color: "#F5F3FF", fontSize: "20px", fontWeight: 700 }}>OPENMARK STUDIO</span>
+      <span style={{ color: "#8B5CF6", fontSize: "18px" }}>SLIDE 01 / 05</span>
+    </div>
+  </div>
+);
 \`\`\`
 
 ---
 
 #### 📱 Copy para Redes Sociales
-> 🔥 **${t.badge}**  
-> Desliza para descubrir los puntos clave que transforman tu perspectiva sobre este tema.
+> 🔥 **`;
+
+const CHUNK7 = `**  
+> Desliza para explorar todos los detalles clave y datos sorprendentes sobre este tema.
 > 
-> ${t.hashtags}
+> #OpenMark #CodeFirst #Innovation #Design
 `;
-    return { ...t, md };
-  });
 
-  let currentOffset = 16384;
-  const segments = [];
-
-  for (const t of themeOutputs) {
-    const buf = Buffer.from(t.md, 'utf8');
-    segments.push({
-      id: t.id,
-      offset: currentOffset,
-      len: buf.length,
-      bytes: buf
-    });
-    currentOffset += buf.length + 64;
-  }
-
-  const helpText = 
-`### 🎨 OpenMark Studio v1.2.1
-*Motor de diseño Code-First con renderizado visual interactivo nativo (canvas.render).*
+const HELP_TEXT = `### 🎨 OpenMark Studio v1.3.0
+*Motor de diseño Code-First con renderizado visual nativo a PNG en Chattree.*
 
 **Uso:**
 \`/openmark <tema o idea>\`
 
 **Ejemplos:**
-• \`/openmark 3 Curiosidades de los Dinosaurios\`
+• \`/openmark 3 Curiosidades Fascinantes del Espacio\`
 • \`/openmark Inteligencia Artificial en 2026\`
-• \`/openmark 3 Claves de Crecimiento para Empresas\`
-• \`/openmark Hábitos Diarios de Alta Productividad\`
+• \`/openmark Estrategias de Crecimiento para Startups\`
 `;
-  const helpBuf = Buffer.from(helpText, 'utf8');
-  const helpOffset = currentOffset;
-  const helpLen = helpBuf.length;
 
-  function escapeWatString(buf) {
-    let s = '';
-    for (let i = 0; i < buf.length; i++) {
-      const b = buf[i];
-      if (b === 0x22) s += '\\"';
-      else if (b === 0x5c) s += '\\\\';
-      else if (b >= 0x20 && b <= 0x7e) s += String.fromCharCode(b);
-      else s += '\\' + b.toString(16).padStart(2, '0');
-    }
-    return s;
+function escapeWatString(buf) {
+  let s = '';
+  for (let i = 0; i < buf.length; i++) {
+    const b = buf[i];
+    if (b === 0x22) s += '\\"';
+    else if (b === 0x5c) s += '\\\\';
+    else if (b >= 0x20 && b <= 0x7e) s += String.fromCharCode(b);
+    else s += '\\' + b.toString(16).padStart(2, '0');
   }
+  return s;
+}
 
-  let wat = `;; OpenMark Code-First Presentation Plugin for Chattree
+function buildWat() {
+  const c1 = Buffer.from(CHUNK1, 'utf8');
+  const c2 = Buffer.from(CHUNK2, 'utf8');
+  const c3 = Buffer.from(CHUNK3, 'utf8');
+  const c4 = Buffer.from(CHUNK4, 'utf8');
+  const c5 = Buffer.from(CHUNK5, 'utf8');
+  const c6 = Buffer.from(CHUNK6, 'utf8');
+  const c7 = Buffer.from(CHUNK7, 'utf8');
+  const help = Buffer.from(HELP_TEXT, 'utf8');
+
+  const OFF_HELP = 8192;
+  const OFF_C1 = 10000;
+  const OFF_C2 = OFF_C1 + c1.length + 32;
+  const OFF_C3 = OFF_C2 + c2.length + 32;
+  const OFF_C4 = OFF_C3 + c3.length + 32;
+  const OFF_C5 = OFF_C4 + c4.length + 32;
+  const OFF_C6 = OFF_C5 + c5.length + 32;
+  const OFF_C7 = OFF_C6 + c6.length + 32;
+
+  let wat = `;; Dynamic OpenMark Code-First Plugin for Chattree v1.3.0
 (module
   (memory (export "memory") 8)
 
-`;
+  (data (i32.const ${OFF_HELP}) "${escapeWatString(help)}")
+  (data (i32.const ${OFF_C1}) "${escapeWatString(c1)}")
+  (data (i32.const ${OFF_C2}) "${escapeWatString(c2)}")
+  (data (i32.const ${OFF_C3}) "${escapeWatString(c3)}")
+  (data (i32.const ${OFF_C4}) "${escapeWatString(c4)}")
+  (data (i32.const ${OFF_C5}) "${escapeWatString(c5)}")
+  (data (i32.const ${OFF_C6}) "${escapeWatString(c6)}")
+  (data (i32.const ${OFF_C7}) "${escapeWatString(c7)}")
 
-  for (const seg of segments) {
-    wat += `  ;; Theme: ${seg.id} (len: ${seg.len})\n`;
-    wat += `  (data (i32.const ${seg.offset}) "${escapeWatString(seg.bytes)}")\n\n`;
-  }
-  wat += `  ;; Help Text (len: ${helpLen})\n`;
-  wat += `  (data (i32.const ${helpOffset}) "${escapeWatString(helpBuf)}")\n\n`;
-
-  const dinoSeg = segments.find(s => s.id === 'dino');
-  const cyberSeg = segments.find(s => s.id === 'cyber');
-  const goldSeg = segments.find(s => s.id === 'gold');
-  const emeraldSeg = segments.find(s => s.id === 'emerald');
-  const defaultSeg = segments.find(s => s.id === 'default');
-
-  wat += `  (func $copy_output (param $src_ptr i32) (param $len i32) (result i32)
-    (memory.copy (i32.const 1024) (local.get $src_ptr) (local.get $len))
-    (local.get $len)
-  )
-
-  ;; Check substring of 4 characters at offset $pos
-  (func $match4 (param $ptr i32) (param $pos i32) (param $b0 i32) (param $b1 i32) (param $b2 i32) (param $b3 i32) (result i32)
-    (local $c0 i32) (local $c1 i32) (local $c2 i32) (local $c3 i32)
-    (local.set $c0 (i32.load8_u (i32.add (local.get $ptr) (local.get $pos))))
-    (if (i32.and (i32.ge_u (local.get $c0) (i32.const 65)) (i32.le_u (local.get $c0) (i32.const 90)))
-      (then (local.set $c0 (i32.add (local.get $c0) (i32.const 32)))))
-    (if (i32.ne (local.get $c0) (local.get $b0)) (then (return (i32.const 0))))
-
-    (local.set $c1 (i32.load8_u (i32.add (local.get $ptr) (i32.add (local.get $pos) (i32.const 1)))))
-    (if (i32.and (i32.ge_u (local.get $c1) (i32.const 65)) (i32.le_u (local.get $c1) (i32.const 90)))
-      (then (local.set $c1 (i32.add (local.get $c1) (i32.const 32)))))
-    (if (i32.ne (local.get $c1) (local.get $b1)) (then (return (i32.const 0))))
-
-    (local.set $c2 (i32.load8_u (i32.add (local.get $ptr) (i32.add (local.get $pos) (i32.const 2)))))
-    (if (i32.and (i32.ge_u (local.get $c2) (i32.const 65)) (i32.le_u (local.get $c2) (i32.const 90)))
-      (then (local.set $c2 (i32.add (local.get $c2) (i32.const 32)))))
-    (if (i32.ne (local.get $c2) (local.get $b2)) (then (return (i32.const 0))))
-
-    (local.set $c3 (i32.load8_u (i32.add (local.get $ptr) (i32.add (local.get $pos) (i32.const 3)))))
-    (if (i32.and (i32.ge_u (local.get $c3) (i32.const 65)) (i32.le_u (local.get $c3) (i32.const 90)))
-      (then (local.set $c3 (i32.add (local.get $c3) (i32.const 32)))))
-    (if (i32.ne (local.get $c3) (local.get $b3)) (then (return (i32.const 0))))
-
-    (i32.const 1)
-  )
+  ;; Default watermark "CANVAS" at offset 500
+  (data (i32.const 500) "CANVAS")
 
   (func (export "openmark_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
+    (local $out_ptr i32)
+    (local $title_ptr i32)
+    (local $title_len i32)
+    (local $wm_ptr i32)
+    (local $wm_len i32)
     (local $i i32)
-    (local $max_i i32)
-    (local $theme_offset i32)
-    (local $theme_len i32)
+    (local $ch i32)
+    (local $j i32)
+    (local $match i32)
 
-    ;; 1. Empty input -> help
+    ;; 1. If empty input -> return help
     (if (i32.eqz (local.get $in_len))
       (then
-        (return (call $copy_output (i32.const ${helpOffset}) (i32.const ${helpLen})))
+        (memory.copy (i32.const 1024) (i32.const ${OFF_HELP}) (i32.const ${help.length}))
+        (return (i32.const ${help.length}))
       )
     )
 
-    ;; Default: violet
-    (local.set $theme_offset (i32.const ${defaultSeg.offset}))
-    (local.set $theme_len (i32.const ${defaultSeg.len}))
+    ;; 2. Default: title is the entire input
+    (local.set $title_ptr (local.get $in_ptr))
+    (local.set $title_len (local.get $in_len))
 
-    (if (i32.ge_u (local.get $in_len) (i32.const 4))
+    ;; 3. Check if input is JSON starting with '{' (123)
+    (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123))
       (then
-        (local.set $max_i (i32.sub (local.get $in_len) (i32.const 3)))
+        ;; Search for '"title":' -> 34, 116, 105, 116, 108, 101, 34, 58
         (local.set $i (i32.const 0))
-        (block $found
-          (loop $loop
-            (br_if $found (i32.ge_u (local.get $i) (local.get $max_i)))
-
-            ;; 'dino' = 100, 105, 110, 111
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 100) (i32.const 105) (i32.const 110) (i32.const 111))
-              (then
-                (local.set $theme_offset (i32.const ${dinoSeg.offset}))
-                (local.set $theme_len (i32.const ${dinoSeg.len}))
-                (br $found)
-              )
+        (block $json_search_done
+          (loop $json_loop
+            (if (i32.ge_u (local.get $i) (i32.sub (local.get $in_len) (i32.const 10)))
+              (then (br $json_search_done))
             )
 
-            ;; 'fosi' = 102, 111, 115, 105
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 102) (i32.const 111) (i32.const 115) (i32.const 105))
-              (then
-                (local.set $theme_offset (i32.const ${dinoSeg.offset}))
-                (local.set $theme_len (i32.const ${dinoSeg.len}))
-                (br $found)
-              )
-            )
+            ;; check "title":
+            (local.set $match (i32.const 1))
+            ;; '"'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (local.get $i))) (i32.const 34)) (then (local.set $match (i32.const 0))))
+            ;; 't'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $i) (i32.const 1)))) (i32.const 116)) (then (local.set $match (i32.const 0))))
+            ;; 'i'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $i) (i32.const 2)))) (i32.const 105)) (then (local.set $match (i32.const 0))))
+            ;; 't'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $i) (i32.const 3)))) (i32.const 116)) (then (local.set $match (i32.const 0))))
+            ;; 'l'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $i) (i32.const 4)))) (i32.const 108)) (then (local.set $match (i32.const 0))))
+            ;; 'e'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $i) (i32.const 5)))) (i32.const 101)) (then (local.set $match (i32.const 0))))
+            ;; '"'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $i) (i32.const 6)))) (i32.const 34)) (then (local.set $match (i32.const 0))))
+            ;; ':'
+            (if (i32.ne (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $i) (i32.const 7)))) (i32.const 58)) (then (local.set $match (i32.const 0))))
 
-            ;; 'inte' (inteligencia) = 105, 110, 116, 101
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 105) (i32.const 110) (i32.const 116) (i32.const 101))
+            (if (local.get $match)
               (then
-                (local.set $theme_offset (i32.const ${cyberSeg.offset}))
-                (local.set $theme_len (i32.const ${cyberSeg.len}))
-                (br $found)
-              )
-            )
+                ;; Skip any whitespace and the opening '"'
+                (local.set $j (i32.add (local.get $i) (i32.const 8)))
+                (loop $skip_ws
+                  (if (i32.lt_u (local.get $j) (local.get $in_len))
+                    (then
+                      (if (i32.eq (i32.load8_u (i32.add (local.get $in_ptr) (local.get $j))) (i32.const 34))
+                        (then
+                          (local.set $j (i32.add (local.get $j) (i32.const 1)))
+                        )
+                        (else
+                          (if (i32.eq (i32.load8_u (i32.add (local.get $in_ptr) (local.get $j))) (i32.const 32))
+                            (then
+                              (local.set $j (i32.add (local.get $j) (i32.const 1)))
+                              (br $skip_ws)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
 
-            ;; 'tech' = 116, 101, 99, 104
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 116) (i32.const 101) (i32.const 99) (i32.const 104))
-              (then
-                (local.set $theme_offset (i32.const ${cyberSeg.offset}))
-                (local.set $theme_len (i32.const ${cyberSeg.len}))
-                (br $found)
-              )
-            )
-
-            ;; 'robo' (robot) = 114, 111, 98, 111
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 114) (i32.const 111) (i32.const 98) (i32.const 111))
-              (then
-                (local.set $theme_offset (i32.const ${cyberSeg.offset}))
-                (local.set $theme_len (i32.const ${cyberSeg.len}))
-                (br $found)
-              )
-            )
-
-            ;; 'crec' (crecimiento) = 99, 114, 101, 99
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 99) (i32.const 114) (i32.const 101) (i32.const 99))
-              (then
-                (local.set $theme_offset (i32.const ${goldSeg.offset}))
-                (local.set $theme_len (i32.const ${goldSeg.len}))
-                (br $found)
-              )
-            )
-
-            ;; 'nego' (negocio) = 110, 101, 103, 111
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 110) (i32.const 101) (i32.const 103) (i32.const 111))
-              (then
-                (local.set $theme_offset (i32.const ${goldSeg.offset}))
-                (local.set $theme_len (i32.const ${goldSeg.len}))
-                (br $found)
-              )
-            )
-
-            ;; 'vent' (ventas) = 118, 101, 110, 116
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 118) (i32.const 101) (i32.const 110) (i32.const 116))
-              (then
-                (local.set $theme_offset (i32.const ${goldSeg.offset}))
-                (local.set $theme_len (i32.const ${goldSeg.len}))
-                (br $found)
-              )
-            )
-
-            ;; 'salu' (salud) = 115, 97, 108, 117
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 115) (i32.const 97) (i32.const 108) (i32.const 117))
-              (then
-                (local.set $theme_offset (i32.const ${emeraldSeg.offset}))
-                (local.set $theme_len (i32.const ${emeraldSeg.len}))
-                (br $found)
-              )
-            )
-
-            ;; 'verd' (verde) = 118, 101, 114, 100
-            (if (call $match4 (local.get $in_ptr) (local.get $i) (i32.const 118) (i32.const 101) (i32.const 114) (i32.const 100))
-              (then
-                (local.set $theme_offset (i32.const ${emeraldSeg.offset}))
-                (local.set $theme_len (i32.const ${emeraldSeg.len}))
-                (br $found)
+                (local.set $title_ptr (i32.add (local.get $in_ptr) (local.get $j)))
+                (local.set $title_len (i32.const 0))
+                ;; Count until closing '"'
+                (loop $count_title
+                  (if (i32.lt_u (i32.add (local.get $j) (local.get $title_len)) (local.get $in_len))
+                    (then
+                      (if (i32.ne (i32.load8_u (i32.add (local.get $title_ptr) (local.get $title_len))) (i32.const 34))
+                        (then
+                          (local.set $title_len (i32.add (local.get $title_len) (i32.const 1)))
+                          (br $count_title)
+                        )
+                      )
+                    )
+                  )
+                )
+                (br $json_search_done)
               )
             )
 
             (local.set $i (i32.add (local.get $i) (i32.const 1)))
-            (br $loop)
+            (br $json_loop)
           )
         )
       )
     )
 
-    (call $copy_output (local.get $theme_offset) (local.get $theme_len))
+    ;; 4. Extract dynamic watermark at offset 600 (uppercase first keyword)
+    (local.set $wm_ptr (i32.const 600))
+    (local.set $wm_len (i32.const 0))
+    (local.set $i (i32.const 0))
+
+    ;; Skip leading spaces, numbers or common punctuation
+    (loop $skip_punct
+      (if (i32.lt_u (local.get $i) (local.get $title_len))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $title_ptr) (local.get $i))))
+          (if (i32.or
+                (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 90)))
+                (i32.and (i32.ge_u (local.get $ch) (i32.const 97)) (i32.le_u (local.get $ch) (i32.const 122))))
+            (then
+              ;; Found letter!
+            )
+            (else
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $skip_punct)
+            )
+          )
+        )
+      )
+    )
+
+    ;; Copy up to 8 letters to wm_ptr in uppercase
+    (loop $wm_copy
+      (if (i32.and (i32.lt_u (local.get $i) (local.get $title_len)) (i32.lt_u (local.get $wm_len) (i32.const 8)))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $title_ptr) (local.get $i))))
+          (if (i32.and (i32.ge_u (local.get $ch) (i32.const 97)) (i32.le_u (local.get $ch) (i32.const 122)))
+            (then
+              (local.set $ch (i32.sub (local.get $ch) (i32.const 32)))
+            )
+          )
+          (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 90)))
+            (then
+              (i32.store8 (i32.add (local.get $wm_ptr) (local.get $wm_len)) (local.get $ch))
+              (local.set $wm_len (i32.add (local.get $wm_len) (i32.const 1)))
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $wm_copy)
+            )
+          )
+        )
+      )
+    )
+
+    ;; If watermark is empty, fall back to "CANVAS" (offset 500, len 6)
+    (if (i32.eqz (local.get $wm_len))
+      (then
+        (local.set $wm_ptr (i32.const 500))
+        (local.set $wm_len (i32.const 6))
+      )
+    )
+
+    ;; 5. Assemble dynamic markdown response at offset 1024
+    (local.set $out_ptr (i32.const 1024))
+
+    ;; Chunk 1
+    (memory.copy (local.get $out_ptr) (i32.const ${OFF_C1}) (i32.const ${c1.length}))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const ${c1.length})))
+
+    ;; Watermark
+    (memory.copy (local.get $out_ptr) (local.get $wm_ptr) (local.get $wm_len))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $wm_len)))
+
+    ;; Chunk 2
+    (memory.copy (local.get $out_ptr) (i32.const ${OFF_C2}) (i32.const ${c2.length}))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const ${c2.length})))
+
+    ;; Title
+    (memory.copy (local.get $out_ptr) (local.get $title_ptr) (local.get $title_len))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $title_len)))
+
+    ;; Chunk 3
+    (memory.copy (local.get $out_ptr) (i32.const ${OFF_C3}) (i32.const ${c3.length}))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const ${c3.length})))
+
+    ;; Watermark
+    (memory.copy (local.get $out_ptr) (local.get $wm_ptr) (local.get $wm_len))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $wm_len)))
+
+    ;; Chunk 4
+    (memory.copy (local.get $out_ptr) (i32.const ${OFF_C4}) (i32.const ${c4.length}))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const ${c4.length})))
+
+    ;; Title
+    (memory.copy (local.get $out_ptr) (local.get $title_ptr) (local.get $title_len))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $title_len)))
+
+    ;; Chunk 5
+    (memory.copy (local.get $out_ptr) (i32.const ${OFF_C5}) (i32.const ${c5.length}))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const ${c5.length})))
+
+    ;; Title
+    (memory.copy (local.get $out_ptr) (local.get $title_ptr) (local.get $title_len))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $title_len)))
+
+    ;; Chunk 6
+    (memory.copy (local.get $out_ptr) (i32.const ${OFF_C6}) (i32.const ${c6.length}))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const ${c6.length})))
+
+    ;; Title
+    (memory.copy (local.get $out_ptr) (local.get $title_ptr) (local.get $title_len))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $title_len)))
+
+    ;; Chunk 7
+    (memory.copy (local.get $out_ptr) (i32.const ${OFF_C7}) (i32.const ${c7.length}))
+    (local.set $out_ptr (i32.add (local.get $out_ptr) (i32.const ${c7.length})))
+
+    (i32.sub (local.get $out_ptr) (i32.const 1024))
   )
 )
 `;
-
   return wat;
 }
 
-const wat = buildWatModule();
+const wat = buildWat();
 fs.writeFileSync(path.join(__dirname, 'plugin.wat'), wat, 'utf8');
-console.log('Successfully generated Code-First OpenMark plugin.wat with 4-byte matcher!');
+console.log('Successfully generated dynamic OpenMark plugin.wat without hardcoded static templates!');

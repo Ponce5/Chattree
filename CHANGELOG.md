@@ -4,6 +4,11 @@ All notable changes to the Chattree official repository will be documented in th
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-10-19
+
+### Changed
+- **OpenMark Studio v1.3.0:** Removed static hardcoded templates. Enabled full dynamic AI Code-First React/TSX generation per prompt topic, dynamic watermark extraction, responsive canvas card UI without overflows, and native on-device 1080×1080 PNG export.
+
 ---
 
 ## [1.1.1] - 2026-10-19
