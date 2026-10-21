@@ -102,3 +102,16 @@ Chattree implements a capability-based security model:
 - **Sensitive Capabilities:** Network requests, local file access, and note management require user authorization upon installation or first invocation.
 - **Critical Capabilities:** Hardware sensors (camera, GPS location, contacts) require explicit user consent and standard Android OS runtime permissions.
 - **User Control:** Users can inspect, modify, or revoke permissions at any time from **Settings → Plugins → [Plugin] → Permissions**.
+
+---
+
+## 6. Generative Visual Design Subsystem (`/visual`)
+
+Chattree integrates a specialized vector design pipeline:
+- **Natural Language Vector Generation:** Generates and refines professional SVG vector graphics (advertisements, marketplace cards, infographics, branding) through `/visual`.
+- **Two-Pass Self-Correction:** Resilient multi-pass loop that automatically diagnoses and recovers from unclosed XML tags or model truncation errors.
+- **Strict SVG Sanitizer:** Enforces a secure whitelist of static vector elements and strips scripts, external URLs, and event listeners.
+- **Interactive UI:** Interactive zoom/pan preview, SVG/PNG export, and contextual design modification.
+
+For full architectural details and developer APIs, refer to the [Visual Design Architecture Guide](./visual-design.md).
+

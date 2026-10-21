@@ -130,6 +130,27 @@ Each entry in `tools` declares one slash-command exposed by the plugin.
 | `tools[].displayName` | `string` | ✅ | Label in the slash-menu. |
 | `tools[].description` | `string` | ✅ | One-line description in the slash-menu. |
 | `tools[].capabilities` | `string[]` | ❌ | Per-tool capability subset (merged with top-level). |
+| `tools[].intentContract` | `object` | ❌ | Declarative intent schema for conversational AI invocation without typing `/`. |
+
+#### Natural Language Invocation (`intentContract`)
+
+Plugins can declare an optional `intentContract` inside any tool definition. When declared, Chattree's intent resolution engine allows the model to automatically invoke the tool in conversational natural language without requiring the user to type the explicit `/` slash command:
+
+```json
+"intentContract": {
+  "intent": "check_status",
+  "description": "Triggered when the user asks to check cluster, service, or server health",
+  "fields": [
+    {
+      "name": "target",
+      "type": "string",
+      "description": "Cluster, service name, or endpoint (e.g. 'prod', 'auth')",
+      "required": false
+    }
+  ],
+  "maxResponseTokens": 100
+}
+```
 
 ---
 

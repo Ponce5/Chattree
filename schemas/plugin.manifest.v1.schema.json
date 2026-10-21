@@ -274,6 +274,29 @@
             "$ref": "#/definitions/capabilityIdentifier"
           },
           "description": "Sub-capabilities specifically required by this tool."
+        },
+        "intentContract": {
+          "type": "object",
+          "description": "Declarative intent contract for natural language invocation without slash commands.",
+          "required": ["intent", "description"],
+          "properties": {
+            "intent": { "type": "string" },
+            "description": { "type": "string" },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "type"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "type": { "type": "string" },
+                  "description": { "type": "string" },
+                  "required": { "type": "boolean" }
+                }
+              }
+            },
+            "maxResponseTokens": { "type": "integer" }
+          }
         }
       }
     },
