@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.mail",
+  "version": "1.0.0",
+  "name": "Mail Plugin",
+  "description": "Official on-device email integration for inspecting, reading, searching, and managing emails.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "mail",
+  "aliases": ["correo", "email"],
+  "type": "imported",
+  "category": "productivity",
+  "capabilities": [
+    "storage.private",
+    "network.http"
+  ],
+  "tags": [
+    "mail",
+    "email",
+    "inbox",
+    "correo",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png",
+  "changelog": "1.0.0: Initial release of official Mail Plugin with on-device WASM inbox inspection, message reading, and email management.",
+  "runtime": "wasm",
+  "entrypoint": "mail_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "a505b047cc42f52c7d67d8135cfd73d6fa69f5ace50aa83ae0ae3e54a7035f24",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 4,
+  "timeoutMs": 5000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.mail.manager",
+      "command": "mail",
+      "displayName": "Inbox & Mail Assistant",
+      "description": "Inspecciona y gestiona los correos electrónicos del usuario. Solo se activa mediante el comando /mail o sus alias (/correo, /email). Devuelve los correos en formato estructurado para que la IA los interprete, resuma y responda de forma natural sin frases predefinidas. Subcomandos: /mail (o /mail inbox), /mail read <id>, /mail search <término>, /mail send <destinatario> | <asunto> | <mensaje>.",
+      "capabilities": [
+        "storage.private",
+        "network.http"
+      ]
+    }
+  ]
+}
