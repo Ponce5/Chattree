@@ -47,21 +47,56 @@
       ],
       "intentContract": {
         "intent": "mail_inbox",
-        "validIntents": ["mail_inbox", "mail_read", "mail_send", "unknown"],
+        "validIntents": ["config", "inbox", "read", "send", "disconnect"],
         "description": "Lee correos reales de la bandeja de entrada, consulta mensajes detallados o envia correos.",
         "fields": [
           {
-            "name": "ACTION",
-            "key": "ACTION",
+            "name": "action",
+            "key": "action",
             "type": "string",
-            "description": "Accion a realizar: 'inbox' para leer la bandeja, 'read' para abrir un correo, 'send' para enviar.",
+            "description": "Accion a realizar: 'config' para configurar cuenta, 'inbox' para leer la bandeja, 'read' para abrir un correo, 'send' para enviar, 'disconnect' para desconectar",
             "required": true
           },
           {
-            "name": "ID",
-            "key": "ID",
+            "name": "id",
+            "key": "id",
             "type": "string",
-            "description": "ID del mensaje para leer",
+            "description": "ID del mensaje para leer (solo para action=read)",
+            "required": false
+          },
+          {
+            "name": "email",
+            "key": "email",
+            "type": "string",
+            "description": "Correo electronico del usuario (solo para action=config)",
+            "required": false
+          },
+          {
+            "name": "password",
+            "key": "password",
+            "type": "string",
+            "description": "Contrasena de aplicacion (solo para action=config)",
+            "required": false
+          },
+          {
+            "name": "to",
+            "key": "to",
+            "type": "string",
+            "description": "Destinatario del correo (solo para action=send)",
+            "required": false
+          },
+          {
+            "name": "subject",
+            "key": "subject",
+            "type": "string",
+            "description": "Asunto del correo (solo para action=send)",
+            "required": false
+          },
+          {
+            "name": "body",
+            "key": "body",
+            "type": "string",
+            "description": "Cuerpo del mensaje (solo para action=send)",
             "required": false
           }
         ],
@@ -69,22 +104,24 @@
           {
             "input": "revisa mis correos",
             "output": {
-              "INTENT": "mail_inbox",
-              "ACTION": "inbox"
+              "INTENT": "inbox",
+              "action": "inbox"
             }
           },
           {
             "input": "qué correos tengo?",
             "output": {
-              "INTENT": "mail_inbox",
-              "ACTION": "inbox"
+              "INTENT": "inbox",
+              "action": "inbox"
             }
           },
           {
-            "input": "lee mi bandeja de entrada",
+            "input": "configura mi cuenta poncee.ee088@gmail.com con contraseña abcd efgh ijkl mnop",
             "output": {
-              "INTENT": "mail_inbox",
-              "ACTION": "inbox"
+              "INTENT": "config",
+              "action": "config",
+              "email": "poncee.ee088@gmail.com",
+              "password": "abcd efgh ijkl mnop"
             }
           }
         ]
