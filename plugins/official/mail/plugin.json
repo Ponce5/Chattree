@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.mail",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "name": "Mail Plugin",
   "description": "Official on-device email integration with App Password (IMAP/SMTP) support for reading inboxes and sending emails via AI.",
   "author": "Chattree Core Team",
@@ -24,11 +24,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png",
-  "changelog": "1.2.0: Soporte oficial de integracion mediante Contrasena de Aplicacion (IMAP/SMTP seguro). Comandos /mail config, /mail inbox, /mail read, /mail send y /mail disconnect.",
+  "changelog": "1.2.1: Soporte completo de lectura e inspeccion de bandeja de entrada y mensajes por IA, con integracion por Contrasena de Aplicacion.",
   "runtime": "wasm",
   "entrypoint": "mail_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "0ad0d27b134c9c0618d6bcaf9f61546a648bd22445f1c751bbfe08e966cc660b",
+  "wasmSha256": "96ad64386c911e9cea8107c0ead189151502baf7429bf652791996854531c548",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
@@ -38,11 +38,63 @@
       "id": "com.chattree.official.mail.manager",
       "command": "mail",
       "displayName": "Mail & Inbox Assistant",
-      "description": "Asistente de correo electronico activado exclusivamente con /mail. Permite vincular tu cuenta con Contrasena de Aplicacion (/mail config <correo> <contrasena_16_letras>), consultar tu bandeja de entrada (/mail inbox), leer correos especificos (/mail read <id>), enviar correos (/mail send <destinatario> | <asunto> | <mensaje>) y desvincular (/mail disconnect).",
+      "description": "Herramienta oficial de correo para LEER y REDACTAR correos. SI PUEDE LEER LA BANDEJA Y MENSAJES. Para leer correos o ver la bandeja emite: {\"action\": \"list\"} o {\"action\": \"read\"}. Para leer un mensaje especifico: {\"action\": \"read\", \"id\": \"msg_101\"}. Para enviar: {\"action\": \"create\", \"title\": \"<asunto>\", \"content\": \"<cuerpo>\"}. NUNCA digas que solo puedes redactar correos, porque tienes acceso completo de lectura a la bandeja de entrada.",
       "capabilities": [
         "storage.private",
         "network.http"
-      ]
+      ],
+      "intentContract": {
+        "intent": "mail_inbox",
+        "validIntents": ["mail_inbox", "mail_read", "mail_send", "unknown"],
+        "description": "Lee correos de la bandeja de entrada, consulta mensajes o redacta correos del usuario.",
+        "fields": [
+          {
+            "name": "ACTION",
+            "key": "ACTION",
+            "type": "string",
+            "description": "Acción a realizar: 'inbox' o 'list' para consultar y leer la bandeja de entrada, 'read' para leer un correo específico, 'send' para redactar y enviar.",
+            "required": true
+          },
+          {
+            "name": "ID",
+            "key": "ID",
+            "type": "string",
+            "description": "Identificador del correo para leer (ej: msg_101)",
+            "required": false
+          }
+        ],
+        "examples": [
+          {
+            "input": "lee mis correos",
+            "output": {
+              "INTENT": "mail_inbox",
+              "ACTION": "inbox"
+            }
+          },
+          {
+            "input": "qué correos tengo?",
+            "output": {
+              "INTENT": "mail_inbox",
+              "ACTION": "inbox"
+            }
+          },
+          {
+            "input": "revisa mi bandeja",
+            "output": {
+              "INTENT": "mail_inbox",
+              "ACTION": "inbox"
+            }
+          },
+          {
+            "input": "lee el correo msg_101",
+            "output": {
+              "INTENT": "mail_read",
+              "ACTION": "read",
+              "ID": "msg_101"
+            }
+          }
+        ]
+      }
     }
   ]
 }

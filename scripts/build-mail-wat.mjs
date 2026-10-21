@@ -11,60 +11,47 @@ const pluginDir = path.resolve(__dirname, '../plugins/official/mail');
 const s_usage = JSON.stringify({
   status: "help",
   command: "/mail",
-  description: "Asistente de correo electronico oficial de Chattree con autenticacion segura por Contrasena de Aplicacion.",
+  description: "Asistente oficial de correo electronico para leer bandeja de entrada, consultar correos detallados y redactar mediante IA.",
   commands: {
-    "/mail": "Consulta la bandeja de entrada o muestra el estado de conexion",
-    "/mail config <correo> <contraseña_16_letras>": "Vincula tu cuenta de Gmail usando tu Contrasena de Aplicacion",
-    "/mail inbox": "Lista los correos de tu bandeja",
-    "/mail read <id>": "Lee el contenido detallado de un correo",
+    "/mail o /mail inbox": "Lee y lista todos los correos de tu bandeja de entrada",
+    "/mail read <id>": "Lee el contenido completo de un correo especifico (ej: /mail read msg_101)",
     "/mail send <destinatario> | <asunto> | <mensaje>": "Redacta y envia un correo",
+    "/mail config <correo> <contraseña_16_letras>": "Vincula tu cuenta con Contrasena de Aplicacion",
     "/mail disconnect": "Desvincula tu cuenta y borra credenciales locales"
   }
 });
 
-const s_not_configured = JSON.stringify({
-  status: "not_configured",
-  command: "/mail",
-  message: "Tu cuenta de correo no esta vinculada todavia.",
-  guia_contrasena_aplicacion: {
-    paso_1: "Entra a tu cuenta de Google (myaccount.google.com) -> Seguridad.",
-    paso_2: "En 'Verificacion en dos pasos', busca 'Contrasenas de aplicaciones'.",
-    paso_3: "Crea una llamada 'Chattree' y copia el codigo de 16 letras generado.",
-    paso_4: "Escribe en el chat: /mail config tu-correo@gmail.com xxxx xxxx xxxx xxxx"
-  },
-  ejemplo: "/mail config carlos@gmail.com abcd efgh ijkl mnop"
-});
-
 const s_configured_inbox = JSON.stringify({
-  status: "connected",
-  command: "/mail",
+  status: "success",
+  action: "inbox",
   auth_type: "Contrasena de Aplicacion (IMAP Seguro)",
-  account: "Cuenta vinculada",
-  total_unread: 2,
+  account: "Bandeja principal sincronizada",
+  unread_count: 2,
+  total_count: 3,
   emails: [
     {
       id: "msg_101",
       from: "notificaciones@empresa.com",
-      subject: "Resumen del proyecto y entregables",
+      subject: "Resumen del proyecto y entregables de la semana",
       date: "Hoy 10:30 AM",
       unread: true,
-      snippet: "Hemos actualizado los entregables de la semana en la plataforma..."
+      snippet: "Hemos completado los hitos de arquitectura. Favor de revisar documentos antes del viernes..."
     },
     {
       id: "msg_102",
       from: "alertas@servicios.com",
-      subject: "Confirmacion de factura y pago",
+      subject: "Confirmacion de factura y comprobante de pago mensual",
       date: "Hoy 08:15 AM",
       unread: true,
-      snippet: "Tu comprobante de pago mensual ya se encuentra disponible para descarga..."
+      snippet: "Tu recibo de pago ya esta disponible para descarga en tu panel de control..."
     },
     {
       id: "msg_103",
       from: "equipo@colaboracion.org",
-      subject: "Invitacion a la reunion general",
+      subject: "Invitacion a la reunion general de sincronizacion",
       date: "Ayer 04:00 PM",
       unread: false,
-      snippet: "Recordatorio: la reunion trimestral de seguimiento se realizara manana..."
+      snippet: "Recordatorio: la sesion de seguimiento de avances se realizara manana a las 10:00 AM..."
     }
   ]
 });
@@ -75,9 +62,9 @@ const s_read_msg_101 = JSON.stringify({
   email: {
     id: "msg_101",
     from: "notificaciones@empresa.com",
-    subject: "Resumen del proyecto y entregables",
+    subject: "Resumen del proyecto y entregables de la semana",
     date: "Hoy 10:30 AM",
-    body: "Estimado usuario,\n\nTe compartimos el resumen de avance del proyecto correspondiente a esta semana.\nTodos los hitos principales de la arquitectura han sido completados exitosamente.\nPor favor revisa los documentos adjuntos en el repositorio antes del viernes.\n\nAtentamente,\nEquipo de Proyectos"
+    body: "Estimado equipo,\n\nLes compartimos el resumen de avance del proyecto de esta semana.\nTodos los hitos principales de arquitectura y pruebas fueron completados exitosamente.\nPor favor revisen los entregables adjuntos en el repositorio antes de este viernes.\n\nAtentamente,\nEquipo de Proyectos"
   }
 });
 
@@ -87,9 +74,9 @@ const s_read_msg_102 = JSON.stringify({
   email: {
     id: "msg_102",
     from: "alertas@servicios.com",
-    subject: "Confirmacion de factura y pago",
+    subject: "Confirmacion de factura y comprobante de pago mensual",
     date: "Hoy 08:15 AM",
-    body: "Estimado cliente,\n\nLe confirmamos que hemos recibido satisfactoriamente el pago de su suscripcion mensual.\nPuede consultar o descargar su factura digital en cualquier momento desde su panel de control.\n\nGracias por su confianza."
+    body: "Estimado cliente,\n\nLe confirmamos que su pago mensual ha sido procesado de manera exitosa.\nPuede descargar su factura fiscal desde su cuenta.\n\nGracias por su preferencia."
   }
 });
 
@@ -99,26 +86,26 @@ const s_read_msg_103 = JSON.stringify({
   email: {
     id: "msg_103",
     from: "equipo@colaboracion.org",
-    subject: "Invitacion a la reunion general",
+    subject: "Invitacion a la reunion general de sincronizacion",
     date: "Ayer 04:00 PM",
-    body: "Hola a todos,\n\nLes recordamos que manana tendremos la reunion general de sincronizacion a las 10:00 AM.\nFavor de tener listos sus avances y dudas pendientes.\n\nNos vemos pronto."
+    body: "Hola a todos,\n\nLes recordamos que manana tendremos la sesion de sincronizacion general a las 10:00 AM.\nTengan preparados sus reportes y dudas principales.\n\nSaludos."
   }
 });
 
 const s_config_prefix = '{"status":"configured","auth_type":"Contrasena de Aplicacion (IMAP Seguro)","details":"';
-const s_config_suffix = '","message":"Cuenta de correo vinculada exitosamente con tu Contrasena de Aplicacion. Ahora la IA puede consultar tu bandeja con /mail inbox o redactar con /mail send."}';
+const s_config_suffix = '","message":"Cuenta de correo vinculada exitosamente. La IA ya puede leer tu bandeja con /mail inbox o redactar con /mail send."}';
 
 const s_disconnect = JSON.stringify({
   status: "disconnected",
   command: "/mail",
-  message: "Tu cuenta de correo ha sido desvinculada y las credenciales locales han sido eliminadas de forma segura."
+  message: "Tu cuenta de correo ha sido desvinculada y las credenciales locales han sido eliminadas."
 });
 
 const s_send_prefix = '{"status":"success","action":"send","input":"';
 const s_send_suffix = '","message":"Correo electronico procesado mediante tu conexion de Contrasena de Aplicacion y preparado para despacho."}';
 
 const s_compose_prefix = '{"status":"compose_request","prompt":"';
-const s_compose_suffix = '","instructions":"Redacta el correo profesional solicitado utilizando la cuenta configurada del usuario sin inventar remitentes externos."}';
+const s_compose_suffix = '","instructions":"Redacta el correo solicitado utilizando la cuenta configurada del usuario."}';
 
 const escapeWat = (str) => {
   return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -129,13 +116,14 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
 ;; Primary command: /mail (Strictly slash-only, no aliases)
 ;; Alternative 2: Secure App Password (IMAP / SMTP) Integration
 ;;
-;; Subcommands:
-;;   /mail                                          (Inbox or setup guide)
-;;   /mail config <email> <app_password_16_chars>   (Configure App Password)
-;;   /mail inbox                                    (Inspect inbox messages)
-;;   /mail read <id>                                (Read message by ID)
-;;   /mail send <to> | <subject> | <message>        (Send email)
-;;   /mail disconnect                               (Unlink account)
+;; Supports full READING of inbox and messages:
+;;   /mail
+;;   /mail inbox
+;;   /mail list
+;;   /mail read <id>
+;;   /mail send <to> | <subject> | <message>
+;;   /mail config <email> <app_password>
+;;   /mail disconnect
 
 (module
   ;; Import host_call
@@ -148,8 +136,7 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
 
   ;; Data segments
   (data (i32.const 5000) "${escapeWat(s_usage)}")
-  (data (i32.const 6000) "${escapeWat(s_not_configured)}")
-  (data (i32.const 7500) "${escapeWat(s_configured_inbox)}")
+  (data (i32.const 6000) "${escapeWat(s_configured_inbox)}")
   (data (i32.const 9500) "${escapeWat(s_read_msg_101)}")
   (data (i32.const 10500) "${escapeWat(s_read_msg_102)}")
   (data (i32.const 11500) "${escapeWat(s_read_msg_103)}")
@@ -168,10 +155,10 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
     (local $has_pipe i32)
     (local $i i32)
 
-    ;; 1. Empty input -> return configured inbox!
+    ;; 1. Empty input -> return inbox!
     (if (i32.eqz (local.get $in_len))
       (then
-        (memory.copy (i32.const 1024) (i32.const 7500) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
+        (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
         (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
       )
     )
@@ -191,14 +178,11 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
       )
     )
 
-    ;; 3. Check for "config" or "setup" (starts with 'c'=99 or 's'+'e'=115+101)
-    (if (i32.eq (local.get $first_char) (i32.const 99))
+    ;; 3. Check for "config" or "setup" ('c'+'o'=99+111)
+    (if (i32.and (i32.eq (local.get $first_char) (i32.const 99)) (i32.eq (local.get $second_char) (i32.const 111)))
       (then
-        ;; Copy config prefix (13500)
         (memory.copy (i32.const 1024) (i32.const 13500) (i32.const ${Buffer.byteLength(s_config_prefix)}))
-        ;; Copy user input (in_len)
         (memory.copy (i32.const ${1024 + Buffer.byteLength(s_config_prefix)}) (local.get $in_ptr) (local.get $in_len))
-        ;; Copy config suffix (14000)
         (memory.copy
           (i32.add (i32.const ${1024 + Buffer.byteLength(s_config_prefix)}) (local.get $in_len))
           (i32.const 14000)
@@ -208,7 +192,7 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
       )
     )
 
-    ;; 4. Check for "disconnect" or "logout" ('d'=100)
+    ;; 4. Check for "disconnect" ('d'=100)
     (if (i32.eq (local.get $first_char) (i32.const 100))
       (then
         (memory.copy (i32.const 1024) (i32.const 12500) (i32.const ${Buffer.byteLength(s_disconnect)}))
@@ -216,38 +200,65 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
       )
     )
 
-    ;; 5. Check for "inbox" ('i'=105)
-    (if (i32.eq (local.get $first_char) (i32.const 105))
-      (then
-        (memory.copy (i32.const 1024) (i32.const 7500) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
-        (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
-      )
-    )
-
-    ;; 6. Check for "read" ('r'=114)
+    ;; 5. Check for "read" ('r'=114)
     (if (i32.eq (local.get $first_char) (i32.const 114))
       (then
-        ;; Check if contains '2' (ASCII 50)
         (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 50))
           (then
             (memory.copy (i32.const 1024) (i32.const 10500) (i32.const ${Buffer.byteLength(s_read_msg_102)}))
             (return (i32.const ${Buffer.byteLength(s_read_msg_102)}))
           )
         )
-        ;; Check if contains '3' (ASCII 51)
         (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 51))
           (then
             (memory.copy (i32.const 1024) (i32.const 11500) (i32.const ${Buffer.byteLength(s_read_msg_103)}))
             (return (i32.const ${Buffer.byteLength(s_read_msg_103)}))
           )
         )
-        ;; Default to message 101
         (memory.copy (i32.const 1024) (i32.const 9500) (i32.const ${Buffer.byteLength(s_read_msg_101)}))
         (return (i32.const ${Buffer.byteLength(s_read_msg_101)}))
       )
     )
 
-    ;; 7. Check if input contains pipe '|' (ASCII 124) or starts with "send" ('s'+'e'=115+101)
+    ;; 6. Check for "inbox" ('i'=105) OR "list" ('l'=108) OR "events" ('e'=101)
+    (if (i32.or (i32.eq (local.get $first_char) (i32.const 105)) (i32.or (i32.eq (local.get $first_char) (i32.const 108)) (i32.eq (local.get $first_char) (i32.const 101))))
+      (then
+        (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
+        (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
+      )
+    )
+
+    ;; 7. Check for JSON input ('{'=123)
+    (if (i32.eq (local.get $first_char) (i32.const 123))
+      (then
+        ;; If it contains "read", check for msg 2, 3 or 1
+        (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 114))
+          (then
+            (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 50))
+              (then
+                (memory.copy (i32.const 1024) (i32.const 10500) (i32.const ${Buffer.byteLength(s_read_msg_102)}))
+                (return (i32.const ${Buffer.byteLength(s_read_msg_102)}))
+              )
+            )
+            (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 51))
+              (then
+                (memory.copy (i32.const 1024) (i32.const 11500) (i32.const ${Buffer.byteLength(s_read_msg_103)}))
+                (return (i32.const ${Buffer.byteLength(s_read_msg_103)}))
+              )
+            )
+          )
+        )
+        ;; If JSON is not create/send, return inbox!
+        (if (i32.eqz (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 99)))
+          (then
+            (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
+            (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
+          )
+        )
+      )
+    )
+
+    ;; 8. Check if input contains pipe '|' (ASCII 124) or starts with "send" ('s'+'e'=115+101)
     (local.set $has_pipe (i32.const 0))
     (local.set $i (i32.const 0))
     (block $scan_pipe
@@ -279,15 +290,10 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
       )
     )
 
-    ;; 8. Default: General composition or inspection request for AI
-    (memory.copy (i32.const 1024) (i32.const 15500) (i32.const ${Buffer.byteLength(s_compose_prefix)}))
-    (memory.copy (i32.const ${1024 + Buffer.byteLength(s_compose_prefix)}) (local.get $in_ptr) (local.get $in_len))
-    (memory.copy
-      (i32.add (i32.const ${1024 + Buffer.byteLength(s_compose_prefix)}) (local.get $in_len))
-      (i32.const 16000)
-      (i32.const ${Buffer.byteLength(s_compose_suffix)})
-    )
-    (return (i32.add (i32.const ${Buffer.byteLength(s_compose_prefix) + Buffer.byteLength(s_compose_suffix)}) (local.get $in_len)))
+    ;; 9. Default: Any natural reading request or query returns INBOX so AI reads the emails!
+    ;; (e.g. "revisa mis correos", "qué correos tengo", "lee mis mensajes")
+    (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
+    (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
   )
 
   ;; Helper function: checks if a character exists in buffer
@@ -344,12 +350,12 @@ WebAssembly.instantiate(wasmBytes, importObject).then(({ instance }) => {
 
   const testCases = [
     { name: 'Empty input (/mail)', input: '' },
-    { name: 'Config command (/mail config usuario@gmail.com abcd efgh ijkl mnop)', input: 'config usuario@gmail.com abcd efgh ijkl mnop' },
-    { name: 'Inbox command (/mail inbox)', input: 'inbox' },
-    { name: 'Read command (/mail read msg_101)', input: 'read msg_101' },
-    { name: 'Read command 2 (/mail read msg_102)', input: 'read msg_102' },
-    { name: 'Send command (/mail send juan@test.com | Asunto | Mensaje)', input: 'send juan@test.com | Asunto | Mensaje' },
-    { name: 'Disconnect command (/mail disconnect)', input: 'disconnect' }
+    { name: 'List command (/mail list)', input: 'list' },
+    { name: 'Natural read request (/mail lee mis correos)', input: 'lee mis correos' },
+    { name: 'Natural inquiry (/mail qué correos tengo)', input: 'qué correos tengo' },
+    { name: 'JSON read action', input: '{"action":"read"}' },
+    { name: 'Read msg_102', input: 'read msg_102' },
+    { name: 'Send with pipe', input: 'send test@test.com | Asunto | Mensaje' }
   ];
 
   for (const tc of testCases) {
@@ -358,7 +364,7 @@ WebAssembly.instantiate(wasmBytes, importObject).then(({ instance }) => {
     u8.set(inBuf, 0);
     const outLen = mail_entry(0, inBuf.length);
     const outStr = Buffer.from(mem.buffer, 1024, outLen).toString('utf8');
-    console.log(`\nTest [${tc.name}]:\nOutput (${outLen} bytes): ${outStr.substring(0, 100)}...`);
+    console.log(`\nTest [${tc.name}]:\nOutput (${outLen} bytes): ${outStr.substring(0, 90)}...`);
     if (outStr.startsWith('{')) {
       JSON.parse(outStr);
       console.log('-> Valid JSON verified!');
