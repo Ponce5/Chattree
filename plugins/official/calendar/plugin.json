@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.3.6",
+  "version": "1.4.0",
   "name": "Calendar Plugin",
   "description": "Official on-device calendar integration for scheduling and inspecting calendar events.",
   "author": "Chattree Core Team",
@@ -23,11 +23,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png",
-  "changelog": "1.3.6: Updated icon and banner artwork with balanced margins and padding.",
+  "changelog": "1.4.0: Added declarative intentContract for AI date/time scheduling, direct JSON payload wrapping, and pipe-delimited date/time support for future events.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "66eca378c0a3083a0878a94150e945ebc18191f95384f75dc4fc5389106a1c8d",
+  "wasmSha256": "b3fd317b3aebbbbb5d79141a4feba7324fc90f0e5a794139b4ff40156145d64c",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
@@ -37,11 +37,39 @@
       "id": "com.chattree.official.calendar.manager",
       "command": "calendar",
       "displayName": "Device Calendar",
-      "description": "Schedules a new event in the device calendar: /calendar <event title> or /calendar list",
+      "description": "Schedules and manages calendar events on the device for today or future dates. Usage: /calendar <title> [| YYYY-MM-DDTHH:mm:ss] or /calendar list.",
       "capabilities": [
         "calendar.create",
         "calendar.read"
-      ]
+      ],
+      "intentContract": {
+        "intent": "calendar_create",
+        "description": "Agenda y programa eventos, reuniones o citas en el calendario del dispositivo para hoy o fechas futuras.",
+        "fields": [
+          {
+            "name": "TITLE",
+            "key": "TITLE",
+            "type": "string",
+            "description": "Título o asunto de la reunión o evento (ej: 'Reunión en Teams', 'Cita médica')",
+            "required": true
+          },
+          {
+            "name": "START_DATE",
+            "key": "START_DATE",
+            "type": "string",
+            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss) calculada a partir de expresiones de tiempo presentes o futuras",
+            "required": true
+          },
+          {
+            "name": "DURATION",
+            "key": "DURATION",
+            "type": "integer",
+            "description": "Duración estimada del evento en minutos (por defecto 60)",
+            "required": false
+          }
+        ],
+        "maxResponseTokens": 120
+      }
     }
   ]
 }
