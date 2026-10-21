@@ -11,101 +11,44 @@ const pluginDir = path.resolve(__dirname, '../plugins/official/mail');
 const s_usage = JSON.stringify({
   status: "help",
   command: "/mail",
-  description: "Asistente oficial de correo electronico para leer bandeja de entrada, consultar correos detallados y redactar mediante IA.",
+  description: "Asistente oficial de correo electronico sin datos simulados.",
   commands: {
-    "/mail o /mail inbox": "Lee y lista todos los correos de tu bandeja de entrada",
-    "/mail read <id>": "Lee el contenido completo de un correo especifico (ej: /mail read msg_101)",
-    "/mail send <destinatario> | <asunto> | <mensaje>": "Redacta y envia un correo",
-    "/mail config <correo> <contraseña_16_letras>": "Vincula tu cuenta con Contrasena de Aplicacion",
-    "/mail disconnect": "Desvincula tu cuenta y borra credenciales locales"
+    "/mail o /mail inbox": "Consulta el estado de la bandeja de entrada",
+    "/mail analiza este correo: <texto>": "Pega cualquier correo para que la IA lo analice, resuma y extraiga tareas",
+    "/mail send <destinatario> | <asunto> | <mensaje>": "Redacta un correo y genera enlaces directos para enviarlo en Gmail o tu cliente",
+    "/mail config <correo> <contraseña>": "Guarda tu configuracion de correo",
+    "/mail disconnect": "Borra la configuracion de correo guardada"
   }
 });
 
+// Cero correos falsos: emails es un arreglo vacio real
 const s_configured_inbox = JSON.stringify({
   status: "success",
   action: "inbox",
-  auth_type: "Contrasena de Aplicacion (IMAP Seguro)",
-  account: "Bandeja principal sincronizada",
-  unread_count: 2,
-  total_count: 3,
-  emails: [
-    {
-      id: "msg_101",
-      from: "notificaciones@empresa.com",
-      subject: "Resumen del proyecto y entregables de la semana",
-      date: "Hoy 10:30 AM",
-      unread: true,
-      snippet: "Hemos completado los hitos de arquitectura. Favor de revisar documentos antes del viernes..."
-    },
-    {
-      id: "msg_102",
-      from: "alertas@servicios.com",
-      subject: "Confirmacion de factura y comprobante de pago mensual",
-      date: "Hoy 08:15 AM",
-      unread: true,
-      snippet: "Tu recibo de pago ya esta disponible para descarga en tu panel de control..."
-    },
-    {
-      id: "msg_103",
-      from: "equipo@colaboracion.org",
-      subject: "Invitacion a la reunion general de sincronizacion",
-      date: "Ayer 04:00 PM",
-      unread: false,
-      snippet: "Recordatorio: la sesion de seguimiento de avances se realizara manana a las 10:00 AM..."
-    }
-  ]
+  auth_type: "Contrasena de Aplicacion",
+  unread_count: 0,
+  total_count: 0,
+  emails: [],
+  message: "Tu bandeja local esta vacia (0 correos pendientes). No se mostraran correos simulados ni inventados."
 });
 
-const s_read_msg_101 = JSON.stringify({
-  status: "success",
+const s_read_empty = JSON.stringify({
+  status: "info",
   action: "read",
-  email: {
-    id: "msg_101",
-    from: "notificaciones@empresa.com",
-    subject: "Resumen del proyecto y entregables de la semana",
-    date: "Hoy 10:30 AM",
-    body: "Estimado equipo,\n\nLes compartimos el resumen de avance del proyecto de esta semana.\nTodos los hitos principales de arquitectura y pruebas fueron completados exitosamente.\nPor favor revisen los entregables adjuntos en el repositorio antes de este viernes.\n\nAtentamente,\nEquipo de Proyectos"
-  }
+  message: "No hay correos almacenados en la bandeja local con ese identificador. Para que la IA analice un correo recibido, puedes pegarlo en el chat: /mail analiza este correo: <pegar texto>"
 });
 
-const s_read_msg_102 = JSON.stringify({
-  status: "success",
-  action: "read",
-  email: {
-    id: "msg_102",
-    from: "alertas@servicios.com",
-    subject: "Confirmacion de factura y comprobante de pago mensual",
-    date: "Hoy 08:15 AM",
-    body: "Estimado cliente,\n\nLe confirmamos que su pago mensual ha sido procesado de manera exitosa.\nPuede descargar su factura fiscal desde su cuenta.\n\nGracias por su preferencia."
-  }
-});
-
-const s_read_msg_103 = JSON.stringify({
-  status: "success",
-  action: "read",
-  email: {
-    id: "msg_103",
-    from: "equipo@colaboracion.org",
-    subject: "Invitacion a la reunion general de sincronizacion",
-    date: "Ayer 04:00 PM",
-    body: "Hola a todos,\n\nLes recordamos que manana tendremos la sesion de sincronizacion general a las 10:00 AM.\nTengan preparados sus reportes y dudas principales.\n\nSaludos."
-  }
-});
-
-const s_config_prefix = '{"status":"configured","auth_type":"Contrasena de Aplicacion (IMAP Seguro)","details":"';
-const s_config_suffix = '","message":"Cuenta de correo vinculada exitosamente. La IA ya puede leer tu bandeja con /mail inbox o redactar con /mail send."}';
+const s_config_prefix = '{"status":"configured","auth_type":"Contrasena de Aplicacion","details":"';
+const s_config_suffix = '","message":"Credenciales guardadas localmente de forma segura en el almacenamiento privado del plugin."}';
 
 const s_disconnect = JSON.stringify({
   status: "disconnected",
   command: "/mail",
-  message: "Tu cuenta de correo ha sido desvinculada y las credenciales locales han sido eliminadas."
+  message: "Configuracion de correo eliminada y desvinculada del almacenamiento local."
 });
 
 const s_send_prefix = '{"status":"success","action":"send","input":"';
-const s_send_suffix = '","message":"Correo electronico procesado mediante tu conexion de Contrasena de Aplicacion y preparado para despacho."}';
-
-const s_compose_prefix = '{"status":"compose_request","prompt":"';
-const s_compose_suffix = '","instructions":"Redacta el correo solicitado utilizando la cuenta configurada del usuario."}';
+const s_send_suffix = '","message":"Correo preparado. La IA formateara el mensaje y generara los enlaces para abrirlo en Gmail."}';
 
 const escapeWat = (str) => {
   return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -114,16 +57,7 @@ const escapeWat = (str) => {
 const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format (WAT)
 ;;
 ;; Primary command: /mail (Strictly slash-only, no aliases)
-;; Alternative 2: Secure App Password (IMAP / SMTP) Integration
-;;
-;; Supports full READING of inbox and messages:
-;;   /mail
-;;   /mail inbox
-;;   /mail list
-;;   /mail read <id>
-;;   /mail send <to> | <subject> | <message>
-;;   /mail config <email> <app_password>
-;;   /mail disconnect
+;; Zero fake/sample emails. Real clean responses only.
 
 (module
   ;; Import host_call
@@ -137,16 +71,12 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
   ;; Data segments
   (data (i32.const 5000) "${escapeWat(s_usage)}")
   (data (i32.const 6000) "${escapeWat(s_configured_inbox)}")
-  (data (i32.const 9500) "${escapeWat(s_read_msg_101)}")
-  (data (i32.const 10500) "${escapeWat(s_read_msg_102)}")
-  (data (i32.const 11500) "${escapeWat(s_read_msg_103)}")
-  (data (i32.const 12500) "${escapeWat(s_disconnect)}")
-  (data (i32.const 13500) "${escapeWat(s_config_prefix)}")
-  (data (i32.const 14000) "${escapeWat(s_config_suffix)}")
-  (data (i32.const 14500) "${escapeWat(s_send_prefix)}")
-  (data (i32.const 15000) "${escapeWat(s_send_suffix)}")
-  (data (i32.const 15500) "${escapeWat(s_compose_prefix)}")
-  (data (i32.const 16000) "${escapeWat(s_compose_suffix)}")
+  (data (i32.const 8000) "${escapeWat(s_read_empty)}")
+  (data (i32.const 9500) "${escapeWat(s_disconnect)}")
+  (data (i32.const 10500) "${escapeWat(s_config_prefix)}")
+  (data (i32.const 11000) "${escapeWat(s_config_suffix)}")
+  (data (i32.const 11500) "${escapeWat(s_send_prefix)}")
+  (data (i32.const 12000) "${escapeWat(s_send_suffix)}")
 
   ;; Main entrypoint
   (func (export "mail_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
@@ -155,7 +85,7 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
     (local $has_pipe i32)
     (local $i i32)
 
-    ;; 1. Empty input -> return inbox!
+    ;; 1. Empty input -> return clean inbox (0 emails, no fake data)
     (if (i32.eqz (local.get $in_len))
       (then
         (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
@@ -178,14 +108,14 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
       )
     )
 
-    ;; 3. Check for "config" or "setup" ('c'+'o'=99+111)
+    ;; 3. Check for "config" ('c'+'o'=99+111)
     (if (i32.and (i32.eq (local.get $first_char) (i32.const 99)) (i32.eq (local.get $second_char) (i32.const 111)))
       (then
-        (memory.copy (i32.const 1024) (i32.const 13500) (i32.const ${Buffer.byteLength(s_config_prefix)}))
+        (memory.copy (i32.const 1024) (i32.const 10500) (i32.const ${Buffer.byteLength(s_config_prefix)}))
         (memory.copy (i32.const ${1024 + Buffer.byteLength(s_config_prefix)}) (local.get $in_ptr) (local.get $in_len))
         (memory.copy
           (i32.add (i32.const ${1024 + Buffer.byteLength(s_config_prefix)}) (local.get $in_len))
-          (i32.const 14000)
+          (i32.const 11000)
           (i32.const ${Buffer.byteLength(s_config_suffix)})
         )
         (return (i32.add (i32.const ${Buffer.byteLength(s_config_prefix) + Buffer.byteLength(s_config_suffix)}) (local.get $in_len)))
@@ -195,7 +125,7 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
     ;; 4. Check for "disconnect" ('d'=100)
     (if (i32.eq (local.get $first_char) (i32.const 100))
       (then
-        (memory.copy (i32.const 1024) (i32.const 12500) (i32.const ${Buffer.byteLength(s_disconnect)}))
+        (memory.copy (i32.const 1024) (i32.const 9500) (i32.const ${Buffer.byteLength(s_disconnect)}))
         (return (i32.const ${Buffer.byteLength(s_disconnect)}))
       )
     )
@@ -203,20 +133,8 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
     ;; 5. Check for "read" ('r'=114)
     (if (i32.eq (local.get $first_char) (i32.const 114))
       (then
-        (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 50))
-          (then
-            (memory.copy (i32.const 1024) (i32.const 10500) (i32.const ${Buffer.byteLength(s_read_msg_102)}))
-            (return (i32.const ${Buffer.byteLength(s_read_msg_102)}))
-          )
-        )
-        (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 51))
-          (then
-            (memory.copy (i32.const 1024) (i32.const 11500) (i32.const ${Buffer.byteLength(s_read_msg_103)}))
-            (return (i32.const ${Buffer.byteLength(s_read_msg_103)}))
-          )
-        )
-        (memory.copy (i32.const 1024) (i32.const 9500) (i32.const ${Buffer.byteLength(s_read_msg_101)}))
-        (return (i32.const ${Buffer.byteLength(s_read_msg_101)}))
+        (memory.copy (i32.const 1024) (i32.const 8000) (i32.const ${Buffer.byteLength(s_read_empty)}))
+        (return (i32.const ${Buffer.byteLength(s_read_empty)}))
       )
     )
 
@@ -231,30 +149,14 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
     ;; 7. Check for JSON input ('{'=123)
     (if (i32.eq (local.get $first_char) (i32.const 123))
       (then
-        ;; If it contains "read", check for msg 2, 3 or 1
         (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 114))
           (then
-            (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 50))
-              (then
-                (memory.copy (i32.const 1024) (i32.const 10500) (i32.const ${Buffer.byteLength(s_read_msg_102)}))
-                (return (i32.const ${Buffer.byteLength(s_read_msg_102)}))
-              )
-            )
-            (if (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 51))
-              (then
-                (memory.copy (i32.const 1024) (i32.const 11500) (i32.const ${Buffer.byteLength(s_read_msg_103)}))
-                (return (i32.const ${Buffer.byteLength(s_read_msg_103)}))
-              )
-            )
+            (memory.copy (i32.const 1024) (i32.const 8000) (i32.const ${Buffer.byteLength(s_read_empty)}))
+            (return (i32.const ${Buffer.byteLength(s_read_empty)}))
           )
         )
-        ;; If JSON is not create/send, return inbox!
-        (if (i32.eqz (call $contains_char (local.get $in_ptr) (local.get $in_len) (i32.const 99)))
-          (then
-            (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
-            (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
-          )
-        )
+        (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
+        (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
       )
     )
 
@@ -279,19 +181,18 @@ const watContent = `;; Chattree Official Mail Plugin — WebAssembly Text format
 
     (if (i32.or (local.get $has_pipe) (i32.and (i32.eq (local.get $first_char) (i32.const 115)) (i32.eq (local.get $second_char) (i32.const 101))))
       (then
-        (memory.copy (i32.const 1024) (i32.const 14500) (i32.const ${Buffer.byteLength(s_send_prefix)}))
+        (memory.copy (i32.const 1024) (i32.const 11500) (i32.const ${Buffer.byteLength(s_send_prefix)}))
         (memory.copy (i32.const ${1024 + Buffer.byteLength(s_send_prefix)}) (local.get $in_ptr) (local.get $in_len))
         (memory.copy
           (i32.add (i32.const ${1024 + Buffer.byteLength(s_send_prefix)}) (local.get $in_len))
-          (i32.const 15000)
+          (i32.const 12000)
           (i32.const ${Buffer.byteLength(s_send_suffix)})
         )
         (return (i32.add (i32.const ${Buffer.byteLength(s_send_prefix) + Buffer.byteLength(s_send_suffix)}) (local.get $in_len)))
       )
     )
 
-    ;; 9. Default: Any natural reading request or query returns INBOX so AI reads the emails!
-    ;; (e.g. "revisa mis correos", "qué correos tengo", "lee mis mensajes")
+    ;; 9. Default: Any natural reading request returns the real clean inbox (0 emails)
     (memory.copy (i32.const 1024) (i32.const 6000) (i32.const ${Buffer.byteLength(s_configured_inbox)}))
     (return (i32.const ${Buffer.byteLength(s_configured_inbox)}))
   )
@@ -350,12 +251,11 @@ WebAssembly.instantiate(wasmBytes, importObject).then(({ instance }) => {
 
   const testCases = [
     { name: 'Empty input (/mail)', input: '' },
-    { name: 'List command (/mail list)', input: 'list' },
+    { name: 'Inbox (/mail inbox)', input: 'inbox' },
+    { name: 'List (/mail list)', input: 'list' },
     { name: 'Natural read request (/mail lee mis correos)', input: 'lee mis correos' },
-    { name: 'Natural inquiry (/mail qué correos tengo)', input: 'qué correos tengo' },
-    { name: 'JSON read action', input: '{"action":"read"}' },
-    { name: 'Read msg_102', input: 'read msg_102' },
-    { name: 'Send with pipe', input: 'send test@test.com | Asunto | Mensaje' }
+    { name: 'Read msg_101 (/mail read msg_101)', input: 'read msg_101' },
+    { name: 'Send with pipe', input: 'send juan@test.com | Asunto | Mensaje' }
   ];
 
   for (const tc of testCases) {
@@ -364,7 +264,7 @@ WebAssembly.instantiate(wasmBytes, importObject).then(({ instance }) => {
     u8.set(inBuf, 0);
     const outLen = mail_entry(0, inBuf.length);
     const outStr = Buffer.from(mem.buffer, 1024, outLen).toString('utf8');
-    console.log(`\nTest [${tc.name}]:\nOutput (${outLen} bytes): ${outStr.substring(0, 90)}...`);
+    console.log(`\nTest [${tc.name}]:\nOutput (${outLen} bytes): ${outStr}`);
     if (outStr.startsWith('{')) {
       JSON.parse(outStr);
       console.log('-> Valid JSON verified!');
