@@ -567,6 +567,41 @@ This is strictly limited — it does NOT expose full chat history or all previou
 
 ---
 
+### 🟡 email.read
+
+**Category:** Communication & Personal Data  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `email`
+
+Allows the plugin to read email accounts, inspect inbox messages, and fetch message bodies via secure IMAP.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `email.inbox` | `{}` | `{ status, account, unread_count, total_count, emails: [...] }` |
+| `email.read` | `{ id: string }` | `{ id, from, to, subject, date, body }` |
+
+---
+
+### 🟡 email.send
+
+**Category:** Communication  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `email`
+
+Allows the plugin to dispatch outgoing emails via secure SMTP.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `email.send` | `{ to: string, subject: string, body: string }` | `{ sent: true, to, subject, response }` |
+
+---
+
 ## Not yet available from WASM
 
 These capabilities are registered in the system but not yet routed through the WASM runtime:

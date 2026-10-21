@@ -83,6 +83,7 @@ Your WASM module must declare this import to use any Host API:
 | `camera` | Photo capture | ❌ Async | `camera.capture` |
 | `contacts` | Address book | ❌ Async | `contacts.read`/`.create`/`.update` |
 | `calendar` | Device calendar | ❌ Async | `calendar.read`/`.create`/`.update`/`.delete` |
+| `email` | Native IMAP/SMTP email & inbox | ❌ Async | `email.read`/`email.send` |
 | `share` | Share sheet | ❌ Async | `share.text`/`share.file` |
 | `open` | Launch URLs and apps | ❌ Async | `open.url`/`open.app` |
 | `chattree.notes` | Chattree Notes CRUD | ❌ Async | `chattree.notes.*` |
@@ -197,6 +198,20 @@ Your WASM module must declare this import to use any Host API:
 | `calendar.create` | ❌ | `{ calendarId, title, startDate, endDate, description? }` | `{ eventId, created }` |
 | `calendar.update` | ❌ | `{ calendarId, eventId, ...fields }` | `{ updated }` |
 | `calendar.delete` | ❌ | `{ calendarId, eventId }` | `{ deleted }` |
+
+---
+
+### email.*
+
+The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL encryption for reading inboxes, inspecting message content, and sending emails.
+
+| Operation | Sync | Input | Output |
+|-----------|------|-------|--------|
+| `email.config` | ❌ | `{ email, password, imapHost?, imapPort? }` | `{ configured: true, email, provider, message }` |
+| `email.inbox` | ❌ | `{}` | `{ status: "success", account, unread_count, total_count, emails: [...] }` |
+| `email.read` | ❌ | `{ id }` | `{ id, from, to, subject, date, body }` |
+| `email.send` | ❌ | `{ to, subject, body }` | `{ sent: true, to, subject, response }` |
+| `email.disconnect` | ❌ | `{}` | `{ disconnected: true, message }` |
 
 ---
 
