@@ -1,37 +1,39 @@
-# Chattree Mail Plugin
+# Chattree Mail Plugin (v1.2.0)
 
-The **Official Mail Plugin** provides sandboxed, on-device email drafting and dispatch integration for Chattree. It assists users in composing, preparing, and launching emails directly into **Gmail**, **Outlook**, or their default email client via strict `/mail` slash commands.
-
----
-
-## Features
-
-- **Exclusive Slash Command Activation:**
-  - Strictly triggered only by `/mail`.
-  - No aliases (`/correo`, `/email` removed) and no accidental conversational triggers.
-- **Real Integration (Gmail & Outlook):**
-  - Connects to **Gmail** (`mail.google.com`) and **Outlook** (`outlook.office.com`) via deep links pre-filled with recipient, subject, and body.
-  - Zero mock or fake emails: the AI will never invent non-existent previous emails.
-- **Conversational AI Assistance:**
-  - Ask Chattree to draft professional emails, follow-ups, or meeting responses.
-  - Generates ready-to-send action links for Gmail and Outlook.
+The **Official Mail Plugin** provides sandboxed, on-device email integration with **Contraseña de Aplicación (App Password)** support for reading inboxes, inspecting message details, and composing/sending emails through Chattree's conversational AI.
 
 ---
 
-## Commands
+## 🚀 Guía Rápida: Cómo Obtener tu Contraseña de Aplicación de Gmail (16 Letras)
 
-| Command | Description |
+1. Ve a tu cuenta de Google: [myaccount.google.com/security](https://myaccount.google.com/security).
+2. Asegúrate de tener activada la **Verificación en 2 pasos**.
+3. En la barra de búsqueda de la cuenta escribe **Contraseñas de aplicaciones** (o en Seguridad -> Verificación en 2 pasos -> Contraseñas de aplicaciones).
+4. Escribe un nombre para la app (por ejemplo: `Chattree`) y presiona **Crear**.
+5. Google te mostrará un código de **16 letras amarillas** (ejemplo: `abcd efgh ijkl mnop`).
+6. En Chattree, escribe:
+   ```text
+   /mail config tu-correo@gmail.com abcd efgh ijkl mnop
+   ```
+   ¡Listo! Tu cuenta quedará conectada de forma segura sin requerir auditorías ni verificaciones de Google.
+
+---
+
+## ⚡ Comandos Disponibles
+
+| Comando | Descripción |
 | :--- | :--- |
-| `/mail` | Checks local status and displays options to compose for Gmail or Outlook. |
-| `/mail send <destinatario> \| <asunto> \| <mensaje>` | Prepares an email and generates direct launch links for Gmail and Outlook. |
-| `/mail gmail` | Displays instructions and direct URL to compose in Gmail. |
-| `/mail outlook` | Displays instructions and direct URL to compose in Outlook. |
-| `/mail <indicaciones>` | Asks the AI to compose a professional email without inventing prior correspondence. |
+| `/mail` o `/mail inbox` | Consulta la bandeja de entrada para que la IA la analice y resuma. |
+| `/mail config <correo> <contraseña_16_letras>` | Vincula tu cuenta de correo de forma segura. |
+| `/mail read <id>` | Abre el contenido completo de un correo específico para que la IA extraiga puntos clave o responda. |
+| `/mail send <destinatario> \| <asunto> \| <mensaje>` | Redacta y despacha un correo electrónico. |
+| `/mail disconnect` | Desvincula tu cuenta y elimina las credenciales locales de forma segura. |
+| `/mail help` | Muestra la guía de comandos. |
 
 ---
 
-## Privacy & Security
+## 🛡️ Seguridad y Privacidad
 
-- Runs in WebAssembly sandbox.
-- Does not require accessing private inbox credentials without user authorization.
-- Composed emails are opened directly in your trusted browser or email client.
+- Se activa **estrictamente con `/mail`** (sin alias ni interferencias en chats ordinarios).
+- Las credenciales se almacenan exclusivamente en el espacio aislado del plugin (`storage.private`).
+- Todas las respuestas se entregan como datos estructurados JSON para que la IA converse con naturalidad sin frases predefinidas.
