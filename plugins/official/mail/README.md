@@ -1,65 +1,37 @@
 # Chattree Mail Plugin
 
-The **Official Mail Plugin** provides sandboxed, on-device email integration for Chattree. It allows the conversational AI to inspect, read, search, and draft emails through direct slash commands.
+The **Official Mail Plugin** provides sandboxed, on-device email drafting and dispatch integration for Chattree. It assists users in composing, preparing, and launching emails directly into **Gmail**, **Outlook**, or their default email client via strict `/mail` slash commands.
 
 ---
 
 ## Features
 
 - **Exclusive Slash Command Activation:**
-  - In accordance with privacy and security principles, the Mail plugin is strictly triggered by slash commands: `/mail`, `/correo`, or `/email`.
-  - It does not intercept general chat messages without an explicit slash command.
-- **Conversational AI Analysis:**
-  - Returns structured inbox and message data directly to Chattree's conversational engine.
-  - The AI analyzes the email content dynamically and responds conversationally without rigid pre-defined phrases.
-- **Subcommands:**
-  - `/mail` or `/mail inbox`: Lists recent messages, senders, dates, and unread count.
-  - `/mail read <id>`: Inspects the full body and metadata of a specific message (e.g. `/mail read msg_01`).
-  - `/mail search <query>`: Filters messages matching a keyword, sender, or subject.
-  - `/mail send <to> | <subject> | <body>`: Drafts and dispatches a message.
-- **Privacy & Sandboxing:**
-  - Operates inside the WebAssembly linear-memory sandbox.
-  - Requires explicit user authorization for `storage.private` and `network.http` capabilities.
-  - Zero telemetry or third-party tracking.
+  - Strictly triggered only by `/mail`.
+  - No aliases (`/correo`, `/email` removed) and no accidental conversational triggers.
+- **Real Integration (Gmail & Outlook):**
+  - Connects to **Gmail** (`mail.google.com`) and **Outlook** (`outlook.office.com`) via deep links pre-filled with recipient, subject, and body.
+  - Zero mock or fake emails: the AI will never invent non-existent previous emails.
+- **Conversational AI Assistance:**
+  - Ask Chattree to draft professional emails, follow-ups, or meeting responses.
+  - Generates ready-to-send action links for Gmail and Outlook.
 
 ---
 
-## Required Capabilities
+## Commands
 
-| Capability | Tier | Reason |
-|---|---|---|
-| `storage.private` | Standard | Allows isolated local caching of user email metadata and accounts. |
-| `network.http` | Sensitive | Allows communicating with email servers or webhooks. |
-
----
-
-## Package Structure
-
-```text
-plugins/official/mail/
-├── icon.png           # 512x512 Pure black icon with white envelope glyph
-├── banner.png         # 1200x630 Pure black cover banner with white typography
-├── plugin.json        # Schema-validated manifest (v1.0.0)
-├── plugin.wat         # WebAssembly Text format source
-├── plugin.wasm        # Compiled WebAssembly binary
-└── README.md          # Plugin documentation
-```
+| Command | Description |
+| :--- | :--- |
+| `/mail` | Checks local status and displays options to compose for Gmail or Outlook. |
+| `/mail send <destinatario> \| <asunto> \| <mensaje>` | Prepares an email and generates direct launch links for Gmail and Outlook. |
+| `/mail gmail` | Displays instructions and direct URL to compose in Gmail. |
+| `/mail outlook` | Displays instructions and direct URL to compose in Outlook. |
+| `/mail <indicaciones>` | Asks the AI to compose a professional email without inventing prior correspondence. |
 
 ---
 
-## How to Package & Install
+## Privacy & Security
 
-### 1. Validate the Plugin
-```bash
-node tools/validate-plugin.mjs plugins/official/mail/
-```
-
-### 2. Package into `.chattree-plugin`
-```bash
-node tools/package-plugin.mjs plugins/official/mail/
-```
-
-### 3. Install in the Chattree App
-1. Transfer `mail-v1.0.0.chattree-plugin` to your device.
-2. In Chattree, navigate to **Settings → Plugins → Import plugin**.
-3. Select the file, review the capabilities, and confirm installation.
+- Runs in WebAssembly sandbox.
+- Does not require accessing private inbox credentials without user authorization.
+- Composed emails are opened directly in your trusted browser or email client.

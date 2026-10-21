@@ -2,12 +2,12 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.mail",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Mail Plugin",
-  "description": "Official on-device email integration for inspecting, reading, searching, and managing emails.",
+  "description": "Official on-device email integration for drafting and sending emails via Gmail, Outlook, or default mail client.",
   "author": "Chattree Core Team",
   "primaryCommand": "mail",
-  "aliases": ["correo", "email"],
+  "aliases": [],
   "type": "imported",
   "category": "productivity",
   "capabilities": [
@@ -17,17 +17,17 @@
   "tags": [
     "mail",
     "email",
-    "inbox",
-    "correo",
+    "gmail",
+    "outlook",
     "official"
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png",
-  "changelog": "1.0.0: Initial release of official Mail Plugin with on-device WASM inbox inspection, message reading, and email management.",
+  "changelog": "1.0.1: Activación exclusiva con /mail (sin alias). Eliminados datos mock/ficticios. Integración directa para redactar y abrir en Gmail y Outlook.",
   "runtime": "wasm",
   "entrypoint": "mail_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "a505b047cc42f52c7d67d8135cfd73d6fa69f5ace50aa83ae0ae3e54a7035f24",
+  "wasmSha256": "aef375e25b4041b0301f0440d2bb23dc076f9c393cde08affdbc786806303d36",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
@@ -36,8 +36,8 @@
     {
       "id": "com.chattree.official.mail.manager",
       "command": "mail",
-      "displayName": "Inbox & Mail Assistant",
-      "description": "Inspecciona y gestiona los correos electrónicos del usuario. Solo se activa mediante el comando /mail o sus alias (/correo, /email). Devuelve los correos en formato estructurado para que la IA los interprete, resuma y responda de forma natural sin frases predefinidas. Subcomandos: /mail (o /mail inbox), /mail read <id>, /mail search <término>, /mail send <destinatario> | <asunto> | <mensaje>.",
+      "displayName": "Mail Assistant",
+      "description": "Asistente de correo electrónico activado exclusivamente con el comando /mail (sin alias). Permite redactar con IA, generar enlaces de envío directo para Gmail y Outlook, y gestionar borradores sin inventar correos ficticios. Subcomandos: /mail, /mail send <destinatario> | <asunto> | <mensaje>, /mail gmail, /mail outlook.",
       "capabilities": [
         "storage.private",
         "network.http"
