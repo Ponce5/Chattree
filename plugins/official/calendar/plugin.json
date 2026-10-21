@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "name": "Calendar Plugin",
   "description": "Official on-device calendar integration for scheduling and inspecting calendar events.",
   "author": "Chattree Core Team",
@@ -23,11 +23,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png",
-  "changelog": "1.4.0: Added declarative intentContract for AI date/time scheduling, direct JSON payload wrapping, and pipe-delimited date/time support for future events.",
+  "changelog": "1.4.1: Fixed byte alignments in WASM memory copy, enriched AI intent context with few-shot examples for future dates and exact hours.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "b3fd317b3aebbbbb5d79141a4feba7324fc90f0e5a794139b4ff40156145d64c",
+  "wasmSha256": "be9431418eda2cbe4d212bef882ccf9666c21f65ef41ed20a1bee4f943734f15",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
   "timeoutMs": 5000,
@@ -37,38 +37,81 @@
       "id": "com.chattree.official.calendar.manager",
       "command": "calendar",
       "displayName": "Device Calendar",
-      "description": "Schedules and manages calendar events on the device for today or future dates. Usage: /calendar <title> [| YYYY-MM-DDTHH:mm:ss] or /calendar list.",
+      "description": "Gestiona eventos del calendario local del dispositivo. Para crear un evento hoy o en fecha futura, emite JSON con {\"action\": \"create\", \"title\": \"<título limpio>\", \"startDate\": \"YYYY-MM-DDTHH:mm:ss\"} o usa /calendar <título limpio> | <YYYY-MM-DDTHH:mm:ss>. Nunca incluyas 'hoy' o 'mañana' en el título. Para consultar eventos: /calendar list.",
       "capabilities": [
         "calendar.create",
         "calendar.read"
       ],
       "intentContract": {
         "intent": "calendar_create",
-        "description": "Agenda y programa eventos, reuniones o citas en el calendario del dispositivo para hoy o fechas futuras.",
+        "validIntents": ["calendar_create", "calendar_list", "unknown"],
+        "description": "Agenda eventos, reuniones o citas en el calendario del dispositivo para hoy o fechas futuras.",
         "fields": [
           {
             "name": "TITLE",
             "key": "TITLE",
             "type": "string",
-            "description": "Título o asunto de la reunión o evento (ej: 'Reunión en Teams', 'Cita médica')",
+            "description": "Título limpio del evento o reunión sin fechas ni horas (ej: 'Reunión', 'Reunión en Teams', 'Dentista')",
             "required": true
           },
           {
             "name": "START_DATE",
             "key": "START_DATE",
             "type": "string",
-            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss) calculada a partir de expresiones de tiempo presentes o futuras",
+            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss) calculada a partir de 'hoy', 'mañana' o fecha especificada con la hora solicitada",
             "required": true
           },
           {
             "name": "DURATION",
             "key": "DURATION",
             "type": "integer",
-            "description": "Duración estimada del evento en minutos (por defecto 60)",
+            "description": "Duración estimada en minutos (por defecto 60)",
             "required": false
           }
         ],
-        "maxResponseTokens": 120
+        "examples": [
+          {
+            "input": "reunión hoy a las 9:40",
+            "output": {
+              "INTENT": "calendar_create",
+              "TITLE": "Reunión",
+              "START_DATE": "2026-10-21T09:40:00",
+              "DURATION": "60",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "reunion en teams mañana a las 10am",
+            "output": {
+              "INTENT": "calendar_create",
+              "TITLE": "Reunión en Teams",
+              "START_DATE": "2026-10-22T10:00:00",
+              "DURATION": "60",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "reunion en teams el dia 25 a las 4pm",
+            "output": {
+              "INTENT": "calendar_create",
+              "TITLE": "Reunión en Teams",
+              "START_DATE": "2026-10-25T16:00:00",
+              "DURATION": "60",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "qué tengo en el calendario?",
+            "output": {
+              "INTENT": "calendar_list",
+              "TITLE": "",
+              "START_DATE": "",
+              "DURATION": "",
+              "CONFIDENCE": "high"
+            }
+          }
+        ],
+        "maxResponseTokens": 150
       }
     }
   ]
