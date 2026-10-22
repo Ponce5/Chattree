@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.pdf",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "name": "PDF Generator",
   "description": "Official AI-powered PDF generator. Describe the content you need and receive a formatted, downloadable PDF directly in the chat.",
   "author": "Chattree Core Team",
@@ -25,7 +25,7 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png",
-  "changelog": "2.3.1: Clarifies that PDF requests must invoke the tool and pass structured fields as arguments; the JSON is tool input, never the user-facing answer. | 2.3.0: Rewrote the JSON content parser to preserve quoted text and added subtitle and footer fields. | 2.2.0: Rewrote PDF text renderer from relative-Td to absolute-Td architecture. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title.",
+  "changelog": "2.3.2: Requires valid, complete JSON tool arguments and avoids unescaped double quotes and oversized document bodies that caused calls to be displayed as plain text. | 2.3.1: Clarifies that PDF requests must invoke the tool and pass structured fields as arguments; the JSON is tool input, never the user-facing answer. | 2.3.0: Rewrote the JSON content parser to preserve escaped quoted text and added subtitle and footer fields. | 2.2.0: Rewrote PDF text renderer from relative-Td to absolute-Td architecture. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title.",
   "runtime": "wasm",
   "entrypoint": "pdf_entry",
   "wasmPath": "plugin.wasm",
@@ -39,7 +39,7 @@
       "id": "com.chattree.official.pdf.generator",
       "command": "pdf",
       "displayName": "PDF Generator",
-      "description": "Crea y entrega un archivo PDF descargable en el chat. Cuando el usuario pide un PDF o documento, invoca esta herramienta y pasa title, subtitle, content y footer como argumentos JSON; nunca muestres el JSON como respuesta. El contenido debe ser el documento completo. También acepta /pdf <instrucciones del documento>.",
+      "description": "Crea y entrega un archivo PDF descargable en el chat. Cuando el usuario pide un PDF o documento, invoca esta herramienta con una llamada JSON completa y válida; nunca muestres el objeto como respuesta. Mantén content en unas 600-800 palabras y no uses comillas dobles literales dentro del contenido (usa comillas simples). También acepta /pdf <instrucciones del documento>.",
       "capabilities": [
         "files.write"
       ],
@@ -49,7 +49,7 @@
           "pdf_generate",
           "unknown"
         ],
-        "description": "Ante una solicitud de crear un PDF, invoca la herramienta pdf con los campos solicitados. No respondas con el objeto JSON ni pegues el contenido en el chat: el resultado esperado es el archivo PDF descargable que devuelve la herramienta. Escribe el documento completo en content.",
+        "description": "Ante una solicitud de PDF, genera una única llamada JSON sintácticamente válida a la herramienta pdf con title, subtitle, content y footer. No devuelvas el objeto como texto al usuario. La llamada debe estar completa, sin bloques Markdown ni texto antes o después. Mantén content entre 600 y 800 palabras como máximo y no uses comillas dobles literales dentro de content; usa comillas simples para que el JSON pueda analizarse y ejecutarse.",
         "fields": [
           {
             "name": "title",
@@ -69,7 +69,7 @@
             "name": "content",
             "key": "content",
             "type": "string",
-            "description": "Cuerpo completo del documento en Markdown. Incluye secciones, párrafos y listas según corresponda. Puedes usar comillas normales; no limites ni reemplaces el texto por un resumen.",
+            "description": "Cuerpo del documento en Markdown, de 600 a 800 palabras como máximo. Incluye secciones, párrafos y listas. No uses comillas dobles literales dentro del contenido; usa comillas simples. No envuelvas la llamada en bloques Markdown ni añadas texto fuera del JSON.",
             "required": true
           },
           {
