@@ -28,9 +28,9 @@
 ;;   1700000  base64-encoded PDF
 ;;   3000000  NUL-terminated PDF fragment strings (data section)
 ;;
-;; Architecture: Each page is a single BT...ET block using absolute Td positioning.
-;;   We track Y position per-line and emit "X Y Td (text) Tj\n" sequences.
-;;   This avoids the stacking bug caused by mixing BT/ET with relative Td.
+;; Architecture: Each page is a single BT...ET block using absolute Tm positioning.
+;;   We track Y position per-line and emit "1 0 0 1 X Y Tm (text) Tj\n" sequences.
+;;   Tm resets the text matrix for every line so positions do not accumulate.
 ;;
 ;; v2.3.0 changes:
 ;;   • Fixed JSON parser: now correctly skips \" escape sequences in string values,
@@ -907,7 +907,7 @@
 
   ;; ── emit_abs_line ─────────────────────────────────────────────────────────
   ;; Emits a single text line at absolute position (X=50, Y=cur_y).
-  ;; Uses "50 Y Td (text) Tj\n" within an already-open BT block.
+  ;; Uses "1 0 0 1 50 Y Tm (text) Tj\n" within an already-open BT block.
   ;; For headings: switches font to F1 14pt, emits, then switches back to F2 11pt.
   ;; For body: uses current font (F2 11pt assumed open).
   (func $emit_abs_line
@@ -921,15 +921,11 @@
 
     (if (i32.eqz (local.get $len)) (then (return (local.get $p))))
 
-    ;; Emit position: "50 Y Td\n"
-    (i32.store8 (local.get $p) (i32.const 53))  ;; '5'
-    (i32.store8 (i32.add (local.get $p) (i32.const 1)) (i32.const 48))  ;; '0'
-    (i32.store8 (i32.add (local.get $p) (i32.const 2)) (i32.const 32))  ;; ' '
-    (local.set $p (i32.add (local.get $p) (i32.const 3)))
-    ;; Write Y value
+    ;; Reset the text matrix to absolute X=50, Y=cur_y. Td is relative and
+    ;; would accumulate an X offset on every line, pushing body text off-page.
+    (local.set $p (call $zwrite (local.get $p) (i32.const 3004256)))
     (local.set $p (call $write_int (local.get $p) (local.get $cur_y)))
-    ;; Write " Td\n"
-    (local.set $p (call $zwrite (local.get $p) (i32.const 3004000)))
+    (local.set $p (call $zwrite (local.get $p) (i32.const 3004320)))
 
     ;; For headings: switch to F1 Bold temporarily
     (if (local.get $is_heading)
@@ -1323,7 +1319,8 @@
   (data (i32.const 3003840) ") Tj\nET\n\00")
 
   ;; emit_abs_line helpers
-  (data (i32.const 3004000) " Td\n\00")
+  (data (i32.const 3004256) "1 0 0 1 50 \00")
+  (data (i32.const 3004320) " Tm\n\00")
   (data (i32.const 3004064) "/F1 14 Tf\n\00")
   (data (i32.const 3004128) ") Tj\n\00")
   (data (i32.const 3004192) "/F2 11 Tf\n\00")
