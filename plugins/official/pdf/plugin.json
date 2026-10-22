@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.pdf",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "name": "PDF Generator",
   "description": "Official AI-powered PDF generator. Describe the content you need and receive a formatted, downloadable PDF directly in the chat.",
   "author": "Chattree Core Team",
@@ -25,11 +25,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png",
-  "changelog": "2.2.0: CRITICAL FIX — Rewrote PDF text renderer from relative-Td to absolute-Td architecture. Previously each line opened and closed its own BT/ET block with relative '0 -15 Td' positioning; when a BT block closed the coordinate system reset so all text stacked at the bottom of the page. Now every page uses a single BT...ET block with explicit Y coordinates (50 Y Td) decremented per line — text is always correctly placed top-to-bottom. Also: body buffer expanded to 80KB, word-wrap at 80 chars, heading/body font switching inline within the BT block. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title, continuation page watermarks.",
+  "changelog": "2.3.0: CRITICAL FIX — Rewrote the JSON content parser: previously the scanner stopped at any '\"' character, silently truncating all body content that contained quoted text or any escaped character sequence. Now uses a proper JSON string parser that correctly skips \\\" escape sequences and emits the real character — content is now delivered complete to the PDF renderer. NEW: Added 'subtitle' field rendered below the title in 12pt Helvetica with a visual separator line. NEW: Added 'footer' field rendered at the bottom of every page in grey 9pt text. The AI prompt (intentContract) now explicitly instructs the model to fill all four template slots (title, subtitle, content, footer) so each generated PDF has a professional document structure. | 2.2.0: Rewrote PDF text renderer from relative-Td to absolute-Td architecture. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title.",
   "runtime": "wasm",
   "entrypoint": "pdf_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "0a8c9554f9fabef8094c5bf8ec40c2c4a23cbd36f1b1d1ca7e03ffa989086ec6",
+  "wasmSha256": "f9864c01ac2ea51406af265f4d8b2781faaaa7d322d7ced6273686f1d8dc52a3",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 10000,
@@ -39,7 +39,7 @@
       "id": "com.chattree.official.pdf.generator",
       "command": "pdf",
       "displayName": "PDF Generator",
-      "description": "Genera un PDF estructurado, con longitud y páginas determinadas por el contenido. La IA redacta el documento y el plugin compone automáticamente el flujo de texto en páginas A4. Usa /pdf <instrucciones del documento>.",
+      "description": "Genera un PDF estructurado con titulo, subtitulo, cuerpo y pie de pagina. La IA redacta el documento completo usando la plantilla de cuatro campos y el plugin compone el flujo de texto en paginas A4. Usa /pdf <instrucciones del documento>.",
       "capabilities": [
         "files.write"
       ],
@@ -49,21 +49,35 @@
           "pdf_generate",
           "unknown"
         ],
-        "description": "Genera documentos PDF sobre cualquier tema usando IA. El usuario puede pedir un PDF sobre fotosíntesis, inteligencia artificial, historia, o cualquier otro tópico.",
+        "description": "Genera documentos PDF sobre cualquier tema usando IA. IMPORTANTE: siempre debes devolver los cuatro campos: title (titulo breve), subtitle (subtitulo descriptivo), content (cuerpo completo en Markdown) y footer (texto para el pie de cada pagina). El campo content es el mas importante: escribe el documento completo con subtitulos (##), parrafos, listas y tablas segun corresponda. NO omitas el contenido.",
         "fields": [
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Título breve en español que refleje el tema exacto solicitado por el usuario.",
+            "description": "Titulo breve y descriptivo del documento (maximo 60 caracteres). Ejemplo: 'La fotosintesis' o 'Inteligencia Artificial en la medicina'.",
             "required": true
+          },
+          {
+            "name": "subtitle",
+            "key": "subtitle",
+            "type": "string",
+            "description": "Subtitulo o descripcion corta del documento (maximo 80 caracteres). Complementa al titulo con el alcance o enfoque. Ejemplo: 'Guia completa para principiantes' o 'Analisis de tendencias 2024-2025'.",
+            "required": false
           },
           {
             "name": "content",
             "key": "content",
             "type": "string",
-            "description": "Devuelve el documento completo en español como Markdown. Organiza la información con subtítulos, párrafos, listas numeradas o con viñetas y tablas cuando sean útiles. Ajusta la longitud a lo solicitado, sin limitar páginas ni incluir [PAGE]. No uses comillas dobles literales. Devuelve solo el contenido del documento.",
+            "description": "Cuerpo COMPLETO del documento en Markdown. USA ## para subtitulos de sección, - para listas, parrafos separados por linea en blanco. Escribe tanto texto como el tema requiera (no hay limite de paginas). NO uses comillas dobles literales dentro del texto (usa comilla simple ' si las necesitas). NUNCA dejes este campo vacio o con solo un parrafo.",
             "required": true
+          },
+          {
+            "name": "footer",
+            "key": "footer",
+            "type": "string",
+            "description": "Texto para el pie de pagina de cada hoja (maximo 80 caracteres). Puede incluir la fuente, autor, fecha o aviso legal. Ejemplo: 'Generado por Chattree AI - 2025' o 'Fuente: Wikipedia / Uso educativo'.",
+            "required": false
           }
         ],
         "examples": [
@@ -72,35 +86,33 @@
             "output": {
               "tool": "pdf",
               "title": "La fotosíntesis",
-              "content": "## Qué es\nLa fotosíntesis...\n\n## Etapas\n- Captura de luz...\n- Producción de azúcares..."
+              "subtitle": "Proceso biologico fundamental de las plantas",
+              "content": "## Que es la fotosintesis\nLa fotosintesis es el proceso mediante el cual las plantas, algas y algunas bacterias convierten la energia luminica en energia quimica almacenada en forma de glucosa.\n\n## Etapas principales\n- Captura de luz solar por la clorofila\n- Reacciones luminosas en los tilacoides\n- Ciclo de Calvin en el estroma\n\n## Ecuacion general\nDioxido de carbono + Agua + Luz → Glucosa + Oxigeno\n\n## Importancia ecologica\nLa fotosintesis es la base de casi todas las cadenas alimentarias en la Tierra. Produce el oxigeno que respiramos y fija el carbono atmosferico.\n\n## Factores que la afectan\n- Intensidad de la luz\n- Concentracion de CO2\n- Temperatura\n- Disponibilidad de agua\n\n## Conclusion\nSin la fotosintesis, la vida tal como la conocemos no seria posible en nuestro planeta.",
+              "footer": "Chattree AI - Biologia basica - Uso educativo"
             }
           },
           {
             "input": "/pdf crea un informe detallado sobre inteligencia artificial",
             "output": {
               "tool": "pdf",
-              "title": "Inteligencia artificial",
-              "content": "## Aplicaciones\n- Salud...\n\n## Retos\n| Área | Consideración |\n|---|---|\n| Datos | Privacidad... |"
+              "title": "Inteligencia Artificial",
+              "subtitle": "Estado actual, aplicaciones y retos eticos",
+              "content": "## Definicion\nLa inteligencia artificial (IA) es la simulacion de procesos cognitivos humanos por parte de maquinas.\n\n## Aplicaciones actuales\n- Salud: diagnostico por imagen, descubrimiento de farmacos\n- Educacion: tutores adaptativos, correccion automatica\n- Industria: mantenimiento predictivo, control de calidad\n- Entretenimiento: recomendaciones, generacion de contenido\n\n## Tipos de IA\n| Tipo | Descripcion | Ejemplo |\n|---|---|---|\n| IA estrecha | Especializada en una tarea | GPT, AlphaGo |\n| IA general | Razonamiento amplio | Investigacion activa |\n| IA superinteligente | Superior al humano | Hipotetica |\n\n## Retos eticos\n1. Privacidad y vigilancia masiva\n2. Sesgos en los modelos\n3. Desplazamiento laboral\n4. Responsabilidad legal\n\n## Perspectivas futuras\nLa IA continuara transformando la sociedad. Es crucial desarrollar marcos regulatorios solidos y promover una IA responsable.\n\n## Conclusion\nLa IA representa una de las mayores oportunidades y desafios tecnologicos de nuestra era.",
+              "footer": "Chattree AI - Informe sobre IA - 2025"
             }
           },
           {
-            "input": "genera un documento pdf sobre el cambio climático",
+            "input": "genera un documento pdf sobre el cambio climatico",
             "output": {
               "tool": "pdf",
-              "title": "Cambio climático",
-              "content": "## Causas\n...\n\n## Impactos\n...\n\n## Respuestas\n1. ..."
-            }
-          },
-          {
-            "input": "quiero un pdf sobre la historia de México",
-            "output": {
-              "tool": "pdf",
-              "title": "Historia de México",
-              "content": "## Antecedentes\n...\n\n## Etapas\n...\n\n## Legado\n..."
+              "title": "Cambio Climatico",
+              "subtitle": "Causas, consecuencias y soluciones globales",
+              "content": "## Que es el cambio climatico\nEl cambio climatico se refiere a las alteraciones a largo plazo en las temperaturas y los patrones climaticos globales.\n\n## Causas principales\n- Emision de gases de efecto invernadero\n- Deforestacion masiva\n- Combustibles fosiles en industria y transporte\n\n## Impactos observados\n1. Aumento del nivel del mar\n2. Eventos climaticos extremos mas frecuentes\n3. Perdida de biodiversidad\n4. Inseguridad alimentaria en zonas vulnerables\n\n## Respuestas y soluciones\n- Transicion a energias renovables\n- Reforestacion y conservacion de bosques\n- Acuerdos internacionales (Acuerdo de Paris)\n- Economia circular y reduccion de residuos\n\n## Conclusion\nActuar ahora es esencial. Cada fraccion de grado de calentamiento evitado marca una diferencia significativa para los ecosistemas y las comunidades humanas.",
+              "footer": "Fuente: IPCC 2023 - Uso educativo - Chattree AI"
             }
           }
         ],
-        "maxResponseTokens": 5000
+        "maxResponseTokens": 6000
       }
     }
   ]

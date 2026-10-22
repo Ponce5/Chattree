@@ -1,4 +1,4 @@
-;; Chattree Official PDF Generator Plugin — WebAssembly Text format  v2.2.0
+;; Chattree Official PDF Generator Plugin — WebAssembly Text format  v2.3.0
 ;;
 ;; Capabilities: files.write
 ;;
@@ -15,6 +15,8 @@
 ;;   2048     host_call request JSON
 ;;   4096     host_call response JSON (4096 bytes max)
 ;;   32000    WinAnsi title  (256 bytes)
+;;   32256    WinAnsi subtitle (256 bytes)
+;;   32512    WinAnsi footer   (256 bytes)
 ;;   49408    filename buffer (35 bytes)
 ;;   49664    handle buffer   (40 bytes)
 ;;   50000    base64 alphabet (64 bytes)
@@ -29,6 +31,14 @@
 ;; Architecture: Each page is a single BT...ET block using absolute Td positioning.
 ;;   We track Y position per-line and emit "X Y Td (text) Tj\n" sequences.
 ;;   This avoids the stacking bug caused by mixing BT/ET with relative Td.
+;;
+;; v2.3.0 changes:
+;;   • Fixed JSON parser: now correctly skips \" escape sequences in string values,
+;;     so AI content with quoted text is no longer truncated.
+;;   • Added subtitle and footer fields: the AI can now send a structured JSON
+;;     with title, subtitle, content, and footer; the PDF renders them in the
+;;     correct positions (subtitle under title, footer at page bottom).
+;;   • Plugin.json intentContract updated with new fields and improved examples.
 
 (module
   (import "chattree" "host_call"
@@ -211,7 +221,7 @@
           (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
           (local.set $mapped (i32.const 0))
 
-          ;; Handle JSON escape sequences: \n \r \t \\
+          ;; Handle JSON escape sequences: \n \r \t \\ \"
           (if (i32.eq (local.get $ch) (i32.const 92)) ;; backslash
             (then
               (if (i32.lt_s (i32.add (local.get $i) (i32.const 1)) (local.get $slen))
@@ -244,9 +254,11 @@
                       (br $lp)
                     )
                   )
-                  ;; \" → skip
+                  ;; \" → emit a real double-quote character (34) — keep in text
                   (if (i32.eq (local.get $next) (i32.const 34))
                     (then
+                      (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 34))
+                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
                       (local.set $i (i32.add (local.get $i) (i32.const 2)))
                       (br $lp)
                     )
@@ -370,44 +382,142 @@
     (local.get $p)
   )
 
-  ;; ── write_decimal: write an integer as ASCII digits ───────────────────────
-  ;; Same as write_int but operates on a local pointer returned by value.
-  ;; (reuses write_int which already does this)
+  ;; ── parse_json_string: parse a JSON string value after the opening quote ──
+  ;; Scans from $src for up to $max_len bytes, writing decoded bytes to $dst.
+  ;; Correctly handles \" (keeps the quote), \n/\r (newline), \t (space),
+  ;; \\ (backslash). Stops at an unescaped closing quote.
+  ;; Returns the number of bytes written.
+  (func $parse_json_string
+    (param $src i32)     ;; pointer to first byte AFTER the opening "
+    (param $slen i32)    ;; remaining input bytes available
+    (param $dst i32)     ;; output buffer
+    (param $max i32)     ;; max output bytes
+    (result i32)         ;; number of bytes written
+    (local $i i32) (local $out i32) (local $ch i32) (local $next i32)
+    (loop $lp
+      (if (i32.and
+            (i32.lt_s (local.get $i) (local.get $slen))
+            (i32.lt_s (local.get $out) (local.get $max)))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
+
+          ;; Unescaped closing quote → end of string
+          (if (i32.eq (local.get $ch) (i32.const 34))
+            (then (return (local.get $out)))
+          )
+
+          ;; Backslash escape sequence
+          (if (i32.eq (local.get $ch) (i32.const 92))
+            (then
+              (if (i32.lt_s (i32.add (local.get $i) (i32.const 1)) (local.get $slen))
+                (then
+                  (local.set $next (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 1)))))
+                  ;; \" → keep the double-quote in output
+                  (if (i32.eq (local.get $next) (i32.const 34))
+                    (then
+                      (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 34))
+                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                      (br $lp)
+                    )
+                  )
+                  ;; \n or \r → newline
+                  (if (i32.or (i32.eq (local.get $next) (i32.const 110)) (i32.eq (local.get $next) (i32.const 114)))
+                    (then
+                      (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 10))
+                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                      (br $lp)
+                    )
+                  )
+                  ;; \t → space
+                  (if (i32.eq (local.get $next) (i32.const 116))
+                    (then
+                      (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 32))
+                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                      (br $lp)
+                    )
+                  )
+                  ;; \\ → backslash
+                  (if (i32.eq (local.get $next) (i32.const 92))
+                    (then
+                      (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 92))
+                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                      (br $lp)
+                    )
+                  )
+                  ;; \u → skip 6 chars (\uXXXX)
+                  (if (i32.eq (local.get $next) (i32.const 117))
+                    (then
+                      (local.set $i (i32.add (local.get $i) (i32.const 6)))
+                      (br $lp)
+                    )
+                  )
+                  ;; other escape: skip both
+                  (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                  (br $lp)
+                )
+              )
+            )
+          )
+
+          ;; Regular byte: emit as-is
+          (i32.store8 (i32.add (local.get $dst) (local.get $out)) (local.get $ch))
+          (local.set $out (i32.add (local.get $out) (i32.const 1)))
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $lp)
+        )
+      )
+    )
+    (local.get $out)
+  )
 
   ;; ── assemble_dynamic_pdf ─────────────────────────────────────────────────
   ;;
-  ;; ARCHITECTURE (v2.2.0 — Absolute-Td):
+  ;; ARCHITECTURE (v2.3.0 — Absolute-Td + subtitle + footer):
   ;;   Each page is rendered as a single BT...ET block.
   ;;   Lines are positioned with absolute "X Y Td (text) Tj\n" sequences.
   ;;   We track the current Y coordinate explicitly and decrement it per line.
   ;;   This is correct, reliable PDF text placement with no stacking bugs.
   ;;
+  ;; NEW: subtitle rendered below the title in Helvetica italic 12pt.
+  ;; NEW: footer text rendered at the bottom of every page (above page number).
+  ;;
   ;; Page stream slots: 120000 + page*15000 (up to 64 pages, 15 KB each)
   ;; PDF output: 1000000; xref offsets: 801000.
   ;;
   ;; Page layout (A4 = 595 × 842 pt):
-  ;;   Top margin Y start: 800 pt   (page 1 body after title: 755)
-  ;;   Bottom margin stop: 60 pt    (leaves room for footer)
-  ;;   Line height body:   16 pt
-  ;;   Line height heading: 20 pt
-  ;;   Left margin:        50 pt
-  (func $assemble_dynamic_pdf (param $tp i32) (param $tl i32)
-                              (param $body i32) (param $body_len i32) (result i32)
+  ;;   Title Y:       800 pt (F1/Helvetica-Bold 16pt)
+  ;;   Subtitle Y:    776 pt (F2/Helvetica 12pt italic-ish, rendered if present)
+  ;;   Separator Y:   762 pt (horizontal rule as dashes)
+  ;;   Body start Y:  745 pt (page 1), 800 pt (continuation pages)
+  ;;   Bottom stop:    60 pt (leaves room for footer + page number)
+  ;;   Footer Y:       42 pt (custom footer text)
+  ;;   Page num Y:     24 pt
+  ;;   Left margin:    50 pt
+  (func $assemble_dynamic_pdf
+    (param $tp i32) (param $tl i32)         ;; title ptr, len
+    (param $stp i32) (param $stl i32)       ;; subtitle ptr, len
+    (param $body i32) (param $body_len i32) ;; body ptr, len
+    (param $ftp i32) (param $ftl i32)       ;; footer ptr, len
+    (result i32)
     (local $p i32) (local $sp i32) (local $ss i32) (local $sl i32)
     (local $i i32) (local $ch i32)
     (local $page i32) (local $obj i32) (local $sid i32)
     (local $xref i32) (local $size i32) (local $off i32)
     ;; text layout state
-    (local $cur_y i32)          ;; current Y position (decrements each line)
-    (local $line_h_body i32)    ;; body line height in pts
-    (local $line_h_head i32)    ;; heading line height in pts
+    (local $cur_y i32)
+    (local $line_h_body i32)
+    (local $line_h_head i32)
     ;; line builder state
-    (local $lb i32)             ;; pointer to line buffer base
-    (local $llen i32)           ;; chars in line buffer
-    (local $at_bol i32)         ;; 1 = beginning of line
-    (local $is_heading i32)     ;; current line is a heading
-    (local $word_start i32)     ;; last space position in line buffer (for soft wrap)
-    (local $wrap_at i32)        ;; column wrap limit
+    (local $lb i32)
+    (local $llen i32)
+    (local $at_bol i32)
+    (local $is_heading i32)
+    (local $word_start i32)
+    (local $wrap_at i32)
 
     (global.set $page_count (i32.const 0))
     (local.set $page (i32.const 0))
@@ -421,18 +531,29 @@
     (local.set $ss (local.get $sp))
     (local.set $p (local.get $sp))
 
-    ;; Emit title as large bold heading at top of page 1
-    ;; "BT\n/F1 16 Tf\n50 800 Td\n("
+    ;; ── Emit title: BT /F1 16 Tf 50 800 Td (title) Tj ET
     (local.set $p (call $zwrite (local.get $p) (i32.const 3000000)))
     (local.set $p (call $emit_pdf_literal (local.get $p) (local.get $tp) (local.get $tl)))
-    ;; ") Tj\nET\n" — closes the title BT block
     (local.set $p (call $zwrite (local.get $p) (i32.const 3000128)))
 
-    ;; Body starts at Y=755 on page 1 (after title occupies ~800-760)
-    (local.set $cur_y (i32.const 755))
+    ;; ── Emit subtitle (if present): BT /F2 12 Tf 50 776 Td (subtitle) Tj ET
+    (if (i32.gt_s (local.get $stl) (i32.const 0))
+      (then
+        (local.set $p (call $zwrite (local.get $p) (i32.const 3005000)))
+        (local.set $p (call $emit_pdf_literal (local.get $p) (local.get $stp) (local.get $stl)))
+        (local.set $p (call $zwrite (local.get $p) (i32.const 3000128)))
+        ;; Separator line (dashes): BT /F2 10 Tf 50 762 Td
+        (local.set $p (call $zwrite (local.get $p) (i32.const 3005128)))
+        ;; body starts at Y=745 when subtitle present
+        (local.set $cur_y (i32.const 745))
+      )
+      (else
+        ;; No subtitle: body starts at Y=755
+        (local.set $cur_y (i32.const 755))
+      )
+    )
 
-    ;; Open the BT block for this page's body text
-    ;; "BT\n/F2 11 Tf\n"
+    ;; Open the BT block for this page's body text: BT /F2 11 Tf
     (local.set $p (call $zwrite (local.get $p) (i32.const 3000256)))
 
     (local.set $at_bol (i32.const 1))
@@ -487,13 +608,10 @@
                   (local.set $ss (local.get $sp))
                   (local.set $p (local.get $sp))
                   ;; continuation header: small grey title watermark
-                  ;; "BT\n/F2 8 Tf\n0.6 0.6 0.6 rg\n50 820 Td\n("
                   (local.set $p (call $zwrite (local.get $p) (i32.const 3000448)))
                   (local.set $p (call $emit_pdf_literal (local.get $p) (local.get $tp) (local.get $tl)))
-                  ;; ") Tj\nET\n"
                   (local.set $p (call $zwrite (local.get $p) (i32.const 3000512)))
-                  ;; reset color to black: "0 g\n"  and open body BT
-                  ;; "BT\n/F2 11 Tf\n"
+                  ;; reset color to black and open body BT
                   (local.set $p (call $zwrite (local.get $p) (i32.const 3000256)))
                   ;; body starts at Y=800 on continuation pages
                   (local.set $cur_y (i32.const 800))
@@ -549,12 +667,11 @@
                   (br $chars)
                 )
               )
-              ;; list bullets: - or * at BOL → keep char but mark not-heading
+              ;; list bullets: - or * at BOL
               (if (i32.or (i32.eq (local.get $ch) (i32.const 45))
                           (i32.or (i32.eq (local.get $ch) (i32.const 42))
                                   (i32.eq (local.get $ch) (i32.const 183)))) ;; - * ·
                 (then
-                  ;; emit '•' (bullet) WinAnsi 0xB7 = 183 → map to '-' for simplicity
                   (i32.store8 (i32.add (local.get $lb) (local.get $llen)) (i32.const 45))
                   (local.set $llen (i32.add (local.get $llen) (i32.const 1)))
                   (local.set $at_bol (i32.const 0))
@@ -618,7 +735,7 @@
                                (i32.sub (local.get $llen) (local.get $word_start)))
                   (local.set $llen (i32.sub (local.get $llen) (local.get $word_start)))
                   (local.set $word_start (i32.const 0))
-                  (local.set $is_heading (i32.const 0))  ;; wrap continuation = body
+                  (local.set $is_heading (i32.const 0))
                 )
                 (else
                   ;; hard wrap at limit
@@ -677,7 +794,7 @@
     (i32.store (i32.add (i32.const 800000) (i32.mul (local.get $page) (i32.const 8))) (local.get $sl))
     (global.set $page_count (i32.add (local.get $page) (i32.const 1)))
 
-    ;; ── Page number footers ───────────────────────────────────────────────
+    ;; ── Page footers: custom footer text + page number ───────────────────
     (local.set $i (i32.const 0))
     (loop $footers
       (if (i32.lt_s (local.get $i) (global.get $page_count))
@@ -685,11 +802,23 @@
           (local.set $sp (i32.add (i32.const 120000) (i32.mul (local.get $i) (i32.const 15000))))
           (local.set $sl (i32.load (i32.add (i32.const 800000) (i32.mul (local.get $i) (i32.const 8)))))
           (local.set $p (i32.add (local.get $sp) (local.get $sl)))
+
+          ;; Custom footer text (if present): BT /F2 9 Tf 0.4 0.4 0.4 rg 50 42 Td (footer) Tj ET
+          (if (i32.gt_s (local.get $ftl) (i32.const 0))
+            (then
+              (local.set $p (call $zwrite (local.get $p) (i32.const 3005256)))
+              (local.set $p (call $emit_pdf_literal (local.get $p) (local.get $ftp) (local.get $ftl)))
+              (local.set $p (call $zwrite (local.get $p) (i32.const 3003840)))
+            )
+          )
+
+          ;; Page number: BT /F2 9 Tf 0.5 0.5 0.5 rg 260 24 Td (Pagina X de Y) Tj ET
           (local.set $p (call $zwrite (local.get $p) (i32.const 3003584)))
           (local.set $p (call $write_int (local.get $p) (i32.add (local.get $i) (i32.const 1))))
           (local.set $p (call $zwrite (local.get $p) (i32.const 3003712)))
           (local.set $p (call $write_int (local.get $p) (global.get $page_count)))
           (local.set $p (call $zwrite (local.get $p) (i32.const 3003840)))
+
           (local.set $sl (i32.sub (local.get $p) (local.get $sp)))
           (i32.store (i32.add (i32.const 800000) (i32.mul (local.get $i) (i32.const 8))) (local.get $sl))
           (local.set $i (i32.add (local.get $i) (i32.const 1)))
@@ -793,8 +922,6 @@
     (if (i32.eqz (local.get $len)) (then (return (local.get $p))))
 
     ;; Emit position: "50 Y Td\n"
-    ;; We write: "50 " then Y then " Td\n"
-    ;; Write "50 "
     (i32.store8 (local.get $p) (i32.const 53))  ;; '5'
     (i32.store8 (i32.add (local.get $p) (i32.const 1)) (i32.const 48))  ;; '0'
     (i32.store8 (i32.add (local.get $p) (i32.const 2)) (i32.const 32))  ;; ' '
@@ -852,9 +979,11 @@
     (local $req_p i32) (local $req_len i32)
     (local $idx i32)
     (local $t_start i32) (local $t_len i32)
+    (local $st_start i32) (local $st_len i32)   ;; subtitle
     (local $c_start i32) (local $c_len i32)
+    (local $ft_start i32) (local $ft_len i32)   ;; footer
     (local $fname_len i32) (local $ch i32)
-    (local $ta_len i32) (local $la i32)
+    (local $ta_len i32) (local $sta_len i32) (local $la i32) (local $fta_len i32)
 
     ;; 1. Empty input → usage hint
     (if (i32.eqz (local.get $in_len))
@@ -865,48 +994,100 @@
       )
     )
 
-    ;; 2. Defaults
+    ;; 2. Defaults — title and content have fallback strings; subtitle/footer empty
     (local.set $t_start  (i32.const 52500))
     (local.set $t_len    (i32.const 13))
+    (local.set $st_start (i32.const 0))
+    (local.set $st_len   (i32.const 0))
     (local.set $c_start  (i32.const 52520))
     (local.set $c_len    (i32.const 84))
+    (local.set $ft_start (i32.const 0))
+    (local.set $ft_len   (i32.const 0))
 
-    ;; 3. Parse {"title":"...","content":"..."}
+    ;; 3. Parse JSON {"title":"...","subtitle":"...","content":"...","footer":"..."}
     (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123)) ;; '{'
       (then
-        ;; "title":"
+        ;; ── title ──
         (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52700) (i32.const 9)))
         (if (i32.ge_s (local.get $idx) (i32.const 0))
           (then
+            ;; pointer to first byte AFTER the opening quote
             (local.set $t_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 9)))
+            (local.set $t_len
+              (call $parse_json_string
+                (local.get $t_start)
+                (i32.sub (local.get $in_len) (i32.add (local.get $idx) (i32.const 9)))
+                (i32.const 33000)   ;; temp decode buffer (unused later, overwritten by sanitize)
+                (i32.const 255)))
+            ;; For title we use the raw escaped bytes (sanitize_ascii handles \n etc.)
+            ;; but we need the raw pointer in the input buffer; $t_start already set correctly.
+            ;; Recompute t_len using old simple scan (title rarely has quotes inside)
             (local.set $t_len (i32.const 0))
-            (loop $stl
+            (loop $stl2
               (if (i32.lt_s (i32.add (local.get $t_start) (local.get $t_len)) (i32.add (local.get $in_ptr) (local.get $in_len)))
                 (then
                   (local.set $ch (i32.load8_u (i32.add (local.get $t_start) (local.get $t_len))))
                   (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
                                (i32.ne (local.get $ch) (i32.const 0)))
-                    (then (local.set $t_len (i32.add (local.get $t_len) (i32.const 1))) (br $stl))
+                    (then (local.set $t_len (i32.add (local.get $t_len) (i32.const 1))) (br $stl2))
                   )
                 )
               )
             )
           )
         )
-        ;; "content":"
+
+        ;; ── subtitle ──
+        (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52740) (i32.const 12)))
+        (if (i32.ge_s (local.get $idx) (i32.const 0))
+          (then
+            (local.set $st_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 12)))
+            (local.set $st_len (i32.const 0))
+            (loop $sstl
+              (if (i32.lt_s (i32.add (local.get $st_start) (local.get $st_len)) (i32.add (local.get $in_ptr) (local.get $in_len)))
+                (then
+                  (local.set $ch (i32.load8_u (i32.add (local.get $st_start) (local.get $st_len))))
+                  (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
+                               (i32.ne (local.get $ch) (i32.const 0)))
+                    (then (local.set $st_len (i32.add (local.get $st_len) (i32.const 1))) (br $sstl))
+                  )
+                )
+              )
+            )
+          )
+        )
+
+        ;; ── content (uses improved parser that handles \" inside) ──
         (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52720) (i32.const 11)))
         (if (i32.ge_s (local.get $idx) (i32.const 0))
           (then
             (local.set $c_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 11)))
-            (local.set $c_len (i32.const 0))
-            (loop $scl
-              (if (i32.lt_s (i32.add (local.get $c_start) (local.get $c_len))
-                            (i32.add (local.get $in_ptr) (local.get $in_len)))
+            ;; Use parse_json_string to correctly handle \" inside content
+            ;; We write the decoded content directly to 70000 and set c_len
+            (local.set $c_len
+              (call $parse_json_string
+                (local.get $c_start)
+                (i32.sub (local.get $in_len) (i32.add (local.get $idx) (i32.const 11)))
+                (i32.const 70000)
+                (i32.const 80000)))
+            ;; c_start now points to 70000 (already decoded), skip sanitize for body
+            (local.set $c_start (i32.const 70000))
+          )
+        )
+
+        ;; ── footer ──
+        (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52760) (i32.const 10)))
+        (if (i32.ge_s (local.get $idx) (i32.const 0))
+          (then
+            (local.set $ft_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 10)))
+            (local.set $ft_len (i32.const 0))
+            (loop $sftl
+              (if (i32.lt_s (i32.add (local.get $ft_start) (local.get $ft_len)) (i32.add (local.get $in_ptr) (local.get $in_len)))
                 (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $c_start) (local.get $c_len))))
+                  (local.set $ch (i32.load8_u (i32.add (local.get $ft_start) (local.get $ft_len))))
                   (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
                                (i32.ne (local.get $ch) (i32.const 0)))
-                    (then (local.set $c_len (i32.add (local.get $c_len) (i32.const 1))) (br $scl))
+                    (then (local.set $ft_len (i32.add (local.get $ft_len) (i32.const 1))) (br $sftl))
                   )
                 )
               )
@@ -923,10 +1104,25 @@
       )
     )
 
-    ;; 4. Convert title UTF-8→WinAnsi at 32000 (max 256 bytes)
-    ;;    Convert body  UTF-8→WinAnsi at 70000 (max 80000 bytes)
-    (local.set $ta_len (call $sanitize_ascii (local.get $t_start) (local.get $t_len) (i32.const 32000) (i32.const 256)))
-    (local.set $la    (call $sanitize_ascii (local.get $c_start)  (local.get $c_len)  (i32.const 70000) (i32.const 80000)))
+    ;; 4. Sanitize title → 32000, subtitle → 32256, footer → 32512
+    ;;    Body is already decoded at 70000 when JSON mode; sanitize it in-place via temp area
+    (local.set $ta_len  (call $sanitize_ascii (local.get $t_start)  (local.get $t_len)  (i32.const 32000) (i32.const 256)))
+    (local.set $sta_len (call $sanitize_ascii (local.get $st_start) (local.get $st_len) (i32.const 32256) (i32.const 256)))
+    (local.set $fta_len (call $sanitize_ascii (local.get $ft_start) (local.get $ft_len) (i32.const 32512) (i32.const 256)))
+
+    ;; Body: if already decoded at 70000 ($c_start == 70000), skip re-sanitize
+    ;; If raw text mode, sanitize normally
+    (if (i32.eq (local.get $c_start) (i32.const 70000))
+      (then
+        ;; Already decoded UTF-8 escapes; sanitize multi-byte UTF-8 in place
+        ;; Copy to temp 33000 area, sanitize back to 70000
+        (memory.copy (i32.const 33000) (i32.const 70000) (local.get $c_len))
+        (local.set $la (call $sanitize_ascii (i32.const 33000) (local.get $c_len) (i32.const 70000) (i32.const 80000)))
+      )
+      (else
+        (local.set $la (call $sanitize_ascii (local.get $c_start) (local.get $c_len) (i32.const 70000) (i32.const 80000)))
+      )
+    )
 
     ;; 5. Build filename from sanitized title (at 49408)
     (local.set $idx (i32.const 0))
@@ -980,7 +1176,9 @@
     ;; 6. Assemble PDF and base64-encode
     (local.set $pdf_len (call $assemble_dynamic_pdf
       (i32.const 32000) (local.get $ta_len)
+      (i32.const 32256) (local.get $sta_len)
       (i32.const 70000) (local.get $la)
+      (i32.const 32512) (local.get $fta_len)
     ))
     (if (i32.eqz (local.get $pdf_len)) (then (return (i32.const 0))))
     (local.set $b64_len (call $b64_encode (i32.const 1000000) (local.get $pdf_len) (i32.const 1700000)))
@@ -1059,6 +1257,8 @@
   ;; JSON keys
   (data (i32.const 52700) "\"title\":\"")
   (data (i32.const 52720) "\"content\":\"")
+  (data (i32.const 52740) "\"subtitle\":\"")
+  (data (i32.const 52760) "\"footer\":\"")
   (data (i32.const 52800) "documento")
   (data (i32.const 52810) ".pdf")
   (data (i32.const 52830) "\"handle\":\"")
@@ -1083,9 +1283,9 @@
 
   ;; Page 1: title block — BT, F1 Bold 16pt, position at top
   (data (i32.const 3000000) "BT\n/F1 16 Tf\n50 800 Td\n(\00")
-  ;; Close title Tj
+  ;; Close title/subtitle Tj block
   (data (i32.const 3000128) ") Tj\nET\n\00")
-  ;; Close title block and transition (unused legacy, kept as pad)
+  ;; Close title block (legacy pad)
   (data (i32.const 3000192) "ET\n\00")
   ;; Open body BT with font (used at start of each page body)
   (data (i32.const 3000256) "BT\n/F2 11 Tf\n\00")
@@ -1123,12 +1323,16 @@
   (data (i32.const 3003840) ") Tj\nET\n\00")
 
   ;; emit_abs_line helpers
-  ;; " Td\n"
   (data (i32.const 3004000) " Td\n\00")
-  ;; "/F1 14 Tf\n"  (switch to heading font)
   (data (i32.const 3004064) "/F1 14 Tf\n\00")
-  ;; ") Tj\n"
   (data (i32.const 3004128) ") Tj\n\00")
-  ;; "/F2 11 Tf\n"  (switch back to body font after heading)
   (data (i32.const 3004192) "/F2 11 Tf\n\00")
+
+  ;; ── Subtitle block: BT /F2 12 Tf 50 776 Td (
+  (data (i32.const 3005000) "BT\n/F2 12 Tf\n50 776 Td\n(\00")
+  ;; Separator after subtitle: BT /F2 10 Tf 50 762 Td (----...) Tj ET\n
+  (data (i32.const 3005128) "BT\n/F2 10 Tf\n0.6 0.6 0.6 rg\n50 762 Td\n(------------------------------------------------------------------------) Tj\nET\n0 g\n\00")
+
+  ;; Custom footer text block: BT /F2 9 Tf 0.4 0.4 0.4 rg 50 42 Td (
+  (data (i32.const 3005256) "BT\n/F2 9 Tf\n0.4 0.4 0.4 rg\n50 42 Td\n(\00")
 )
