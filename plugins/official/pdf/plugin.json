@@ -29,7 +29,7 @@
   "runtime": "wasm",
   "entrypoint": "pdf_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "2852f1b678927f624b3d23b3f8db07a53d517ef2bf12b091c3d71c3a8a569898",
+  "wasmSha256": "d1ce6520e7dc00863de4754a47fb40f09b595a1449d10f92244d7d3e8a42c927",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 10000,
