@@ -1,0 +1,111 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.pdf",
+  "version": "1.2.1",
+  "name": "PDF Generator",
+  "description": "Official AI-powered PDF generator. Describe the content you need and receive a formatted, downloadable PDF directly in the chat.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "pdf",
+  "aliases": [
+    "doc",
+    "documento"
+  ],
+  "type": "imported",
+  "category": "productivity",
+  "capabilities": [
+    "files.write"
+  ],
+  "tags": [
+    "pdf",
+    "document",
+    "generator",
+    "export",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png",
+  "changelog": "1.2.1: Removed automatic sharing and share.file permission; the app presents the saved PDF through the generic native file bubble. Spanish UTF-8 characters are encoded with WinAnsi glyphs.",
+  "runtime": "wasm",
+  "entrypoint": "pdf_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "00bb8cd210630380fcf472de0587e85fcb91236f2793e8df9870d5dd657e8b54",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 4,
+  "timeoutMs": 10000,
+  "fuelLimit": 100000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.pdf.generator",
+      "command": "pdf",
+      "displayName": "PDF Generator",
+      "description": "Genera un documento PDF de dos páginas a partir de una descripción o tema. Emite JSON con {\"topic\": \"<tema>\", \"pages\": 2} o usa /pdf <tema>. El archivo aparece en el chat y puedes guardarlo o compartirlo cuando quieras.",
+      "capabilities": [
+        "files.write"
+      ],
+      "intentContract": {
+        "intent": "pdf_generate",
+        "validIntents": [
+          "pdf_generate",
+          "unknown"
+        ],
+        "description": "Genera documentos PDF sobre cualquier tema usando IA. El usuario puede pedir un PDF sobre fotosíntesis, inteligencia artificial, historia, o cualquier otro tópico.",
+        "fields": [
+          {
+            "name": "TOPIC",
+            "key": "TOPIC",
+            "type": "string",
+            "description": "Tema o descripción del contenido del PDF (ej: 'fotosíntesis', 'inteligencia artificial', 'historia de México'). No abrevies ni parafrasees; usa las palabras exactas del usuario.",
+            "required": true
+          },
+          {
+            "name": "PAGES",
+            "key": "PAGES",
+            "type": "integer",
+            "description": "Número de páginas del documento (por defecto 2)",
+            "required": false
+          }
+        ],
+        "examples": [
+          {
+            "input": "crea un pdf sobre la fotosíntesis",
+            "output": {
+              "INTENT": "pdf_generate",
+              "TOPIC": "fotosíntesis",
+              "PAGES": "2",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "/pdf un archivo de dos páginas que hable sobre la inteligencia artificial",
+            "output": {
+              "INTENT": "pdf_generate",
+              "TOPIC": "inteligencia artificial",
+              "PAGES": "2",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "genera un documento pdf sobre el cambio climático",
+            "output": {
+              "INTENT": "pdf_generate",
+              "TOPIC": "cambio climático",
+              "PAGES": "2",
+              "CONFIDENCE": "high"
+            }
+          },
+          {
+            "input": "quiero un pdf sobre la historia de México",
+            "output": {
+              "INTENT": "pdf_generate",
+              "TOPIC": "historia de México",
+              "PAGES": "2",
+              "CONFIDENCE": "high"
+            }
+          }
+        ],
+        "maxResponseTokens": 100
+      }
+    }
+  ]
+}
