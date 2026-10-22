@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.pdf",
-  "version": "1.2.3",
+  "version": "2.0.0",
   "name": "PDF Generator",
   "description": "Official AI-powered PDF generator. Describe the content you need and receive a formatted, downloadable PDF directly in the chat.",
   "author": "Chattree Core Team",
@@ -25,13 +25,13 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png",
-  "changelog": "1.2.3: Fixes PDF structure by correcting PDF segment lengths and escaping literal-string metacharacters so saved files open correctly. 1.2.2: Requests the document title and full Spanish content from the AI so the generated PDF contains the requested material. 1.2.1: Removed automatic sharing and share.file permission; the app presents the saved PDF through the generic native file bubble. Spanish UTF-8 characters are encoded with WinAnsi glyphs.",
+  "changelog": "2.0.0: Replaces the fixed two-page renderer with automatic multi-page flow for structured Markdown documents, including styled headings, wrapped paragraphs and lists, table rows, Spanish characters, and page numbering. Preserves the existing files.write and file bubble contract.",
   "runtime": "wasm",
   "entrypoint": "pdf_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "d7974673f2f9166b513d0a25b4061d0f71be2668209611fa6a7cbf24302660a1",
+  "wasmSha256": "2852f1b678927f624b3d23b3f8db07a53d517ef2bf12b091c3d71c3a8a569898",
   "runtimeApiVersion": "1.0.0",
-  "maxMemoryPages": 4,
+  "maxMemoryPages": 64,
   "timeoutMs": 10000,
   "fuelLimit": 100000000,
   "tools": [
@@ -39,7 +39,7 @@
       "id": "com.chattree.official.pdf.generator",
       "command": "pdf",
       "displayName": "PDF Generator",
-      "description": "Genera un documento PDF de dos páginas a partir de una descripción o tema. Emite JSON con {\"topic\": \"<tema>\", \"pages\": 2} o usa /pdf <tema>. El archivo aparece en el chat y puedes guardarlo o compartirlo cuando quieras.",
+      "description": "Genera un PDF estructurado, con longitud y páginas determinadas por el contenido. La IA redacta el documento y el plugin compone automáticamente el flujo de texto en páginas A4. Usa /pdf <instrucciones del documento>.",
       "capabilities": [
         "files.write"
       ],
@@ -62,7 +62,7 @@
             "name": "content",
             "key": "content",
             "type": "string",
-            "description": "Redacta contenido sustancial y correcto en español para dos páginas. Escribe entre 600 y 750 caracteres por página y separa ambas partes exactamente con [PAGE]. No incluyas comillas dobles dentro del texto. No respondas que el PDF está listo; escribe el contenido que aparecerá dentro del documento.",
+            "description": "Devuelve el documento completo en español como Markdown. Organiza la información con subtítulos, párrafos, listas numeradas o con viñetas y tablas cuando sean útiles. Ajusta la longitud a lo solicitado, sin limitar páginas ni incluir [PAGE]. No uses comillas dobles literales. Devuelve solo el contenido del documento.",
             "required": true
           }
         ],
@@ -72,15 +72,15 @@
             "output": {
               "tool": "pdf",
               "title": "La fotosíntesis",
-              "content": "Primera parte: explicación detallada... [PAGE] Segunda parte: importancia y conclusiones..."
+              "content": "## Qué es\nLa fotosíntesis...\n\n## Etapas\n- Captura de luz...\n- Producción de azúcares..."
             }
           },
           {
-            "input": "/pdf un archivo de dos páginas que hable sobre la inteligencia artificial",
+            "input": "/pdf crea un informe detallado sobre inteligencia artificial",
             "output": {
               "tool": "pdf",
               "title": "Inteligencia artificial",
-              "content": "Primera parte: explicación detallada... [PAGE] Segunda parte: usos, retos y conclusiones..."
+              "content": "## Aplicaciones\n- Salud...\n\n## Retos\n| Área | Consideración |\n|---|---|\n| Datos | Privacidad... |"
             }
           },
           {
@@ -88,7 +88,7 @@
             "output": {
               "tool": "pdf",
               "title": "Cambio climático",
-              "content": "Primera parte: causas y evidencia... [PAGE] Segunda parte: impactos y respuestas..."
+              "content": "## Causas\n...\n\n## Impactos\n...\n\n## Respuestas\n1. ..."
             }
           },
           {
@@ -96,11 +96,11 @@
             "output": {
               "tool": "pdf",
               "title": "Historia de México",
-              "content": "Primera parte: contexto y etapas... [PAGE] Segunda parte: transformaciones y legado..."
+              "content": "## Antecedentes\n...\n\n## Etapas\n...\n\n## Legado\n..."
             }
           }
         ],
-        "maxResponseTokens": 1200
+        "maxResponseTokens": 5000
       }
     }
   ]
