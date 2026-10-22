@@ -271,6 +271,58 @@ return ToolResult.needsLlm(
 );
 ```
 
+---
+
+## 8. Export & Mobile Gallery Storage Pipeline
+
+Chattree includes a dedicated export pipeline (`VisualExportService`) that enables users and plugins to save vector creations as high-resolution raster images (PNG) or scalable vectors (SVG), tailored for mobile OS media storage and file managers.
+
+### Supported Export Formats & Behaviors
+
+| Format | Target Destination | OS Integration | Description |
+| :--- | :--- | :--- | :--- |
+| **PNG (Raster Image)** | Device **Photos / Gallery** | Android MediaStore & iOS Photos via `gal` | High-resolution rasterization (1080×1080 at 2.0x pixel ratio). Automatically indexed in the native photo library under the **"Chattree"** album. |
+| **SVG (Vector File)** | Public **Downloads / Files** | Public `Downloads/Chattree` (Android) & Files app (iOS) | Clean, sanitized SVG source file accessible through standard mobile file managers (e.g., Files by Google, Samsung My Files, Apple Files). |
+
+### Export Architecture & Permissions
+
+1. **Native Gallery Indexing (`gal`):**
+   - On Android (API 29+), exports write directly to `MediaStore.Images.Media` in the `Pictures/Chattree` album, requiring zero intrusive storage permissions. Android 9 and below are supported with `WRITE_EXTERNAL_STORAGE`.
+   - On iOS, `NSPhotoLibraryAddUsageDescription` and `NSPhotoLibraryUsageDescription` permit writing rendered designs directly into Apple Photos under the **Chattree** collection.
+
+2. **File Manager Visibility:**
+   - On Android, vector files are stored in the public user-facing download directory (`/storage/emulated/0/Download/Chattree`) rather than isolated app sandboxes.
+   - On iOS, `UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace` expose the export directory within the native **Files** app ("On My iPhone > Chattree").
+
+3. **In-Chat Quick Sharing:**
+   - Both PNG and SVG exports feature an immediate **"Compartir" (Share)** action in the completion notification, enabling instant dispatch to messaging apps (WhatsApp, Telegram), cloud storage (Google Drive, iCloud), or email via `share_plus`.
+
+### Developer API: `VisualExportService`
+
+```dart
+import 'package:chattree/features/visual_design/services/visual_export_service.dart';
+
+// 1. Export high-resolution PNG to native Photos / Gallery:
+final VisualExportResult pngResult = await VisualExportService.instance.exportPngDefault(
+  svgContent: mySanitizedSvg,
+  overlayContext: context,
+  albumName: 'Chattree', // Defaults to 'Chattree' album in Photos
+);
+
+if (pngResult.isSuccess) {
+  print('Saved to: ${pngResult.filePath}');
+  print('Indexed in Photos gallery: ${pngResult.savedToGallery}');
+}
+
+// 2. Export scalable SVG to user-accessible Downloads:
+final VisualExportResult svgResult = await VisualExportService.instance.exportSvgDefault(
+  svgContent: mySanitizedSvg,
+);
+
+if (svgResult.isSuccess) {
+  print('Vector file saved at: ${svgResult.filePath}');
+}
+```
 
 ---
 

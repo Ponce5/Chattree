@@ -19,9 +19,7 @@ From the repository root:
 
 ```bash
 wat2wasm plugins/official/pdf/plugin.wat -o plugins/official/pdf/plugin.wasm
-node --test plugins/official/pdf/tests/render.test.mjs
 node tools/validate-plugin.mjs plugins/official/pdf/
 node tools/package-plugin.mjs plugins/official/pdf/
 ```
 
-The renderer integration tests exercise a one-page Spanish document, a longer document that flows across multiple pages, PDF literal escaping, and the file handle response contract.

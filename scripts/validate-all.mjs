@@ -12,6 +12,7 @@ const targets = [
   "plugins/official/echo",
   "plugins/official/calendar",
   "plugins/official/mail",
+  "plugins/official/pdf",
 ];
 
 console.log("Running comprehensive validation on all repository plugins...\n");
