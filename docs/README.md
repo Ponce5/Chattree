@@ -7,6 +7,7 @@ Welcome to the technical documentation library for the **Chattree** ecosystem â€
 ## Documentation Directory Index
 
 ### 1. Core Architecture & System Concepts
+- **[Chattree App Features](./app-features.md)**: User-facing onboarding, local model management, chat history, settings, embeddings/RAG, and external AI provider workflows.
 - **[Core Concepts & Architecture](./core-concepts.md)**: High-level architectural overview covering on-device LLMs, local Vector RAG embeddings, and the WebAssembly isolation boundary.
 - **[Installation & Toolchain Setup](./installation.md)**: Device prerequisites for Android and developer toolchain setup for compiling WebAssembly plugins.
 - **[Authentication & Configuration](./authentication-configuration.md)**: Zero-telemetry hardware keystore security, API keys for remote models, and plugin permission controls.
@@ -40,4 +41,4 @@ Welcome to the technical documentation library for the **Chattree** ecosystem â€
 
 ## Synchronization with Chattree Web
 
-Technical documentation in this directory serves as the **Single Source of Truth** for the public website. The web application synchronizes these guides directly using `Web/scripts/sync-docs.mjs` into its localized documentation interface at `https://chattree.chat/docs`.
+English technical documentation in this directory is the source for the website's canonical English reference pages. The web application synchronizes Markdown and examples using `Web/scripts/sync-docs.mjs`. Some localized pages are maintained separately in `Web/lib/docs.ts`; update those translations when their English source behavior changes.

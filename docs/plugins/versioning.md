@@ -66,8 +66,7 @@ set `minAppVersion` in `plugin.json`:
 
 Chattree will refuse to install the plugin if the app version is lower.
 
-> Currently Chattree does not check `minAppVersion` at import time —
-> this field is reserved for future enforcement. Set it anyway as documentation.
+> The package manager evaluates `minAppVersion` during compatibility checks. Provide a valid semantic version when your plugin depends on a minimum app release; verify target app behavior before publishing.
 
 ---
 
@@ -101,15 +100,15 @@ If an operation's input/output changes in a backward-incompatible way:
 5. Rebuild the `.chattree-plugin` archive.
 6. Distribute the new archive.
 
-Users can import the new `.chattree-plugin` manually, or receive seamless in-app update notifications if the plugin is registered in the Chattree Marketplace.
+Users can import the new `.chattree-plugin` manually. Marketplace updates depend on the deployed catalog and app update flow; test the actual release path before promising automatic updates.
 
 ---
 
 ## Distributing updates
 
 Plugin updates can be distributed through two channels:
-1. **Chattree Marketplace:** When published to GitHub Releases and registered via `POST /api/plugins/submit`, Chattree automatically checks for newer SemVer versions and presents an "Update" button to installed users.
-2. **Direct Manual Distribution:** Users download and import the updated `.chattree-plugin` directly in **Settings → Plugins → Import plugin**.
+1. **Marketplace:** Publish a new unique version record using the portal/API in the publishing guide. The submit endpoint rejects an already registered `(plugin id, version)` pair; it does not itself guarantee the new version is semantically greater. Verify in-app update discovery in the target app release.
+2. **Direct distribution:** Share the updated `.chattree-plugin`; users import it through the app plugin import flow. Update/reinstall UX depends on current app version.
 
 
 ---

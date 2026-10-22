@@ -40,7 +40,7 @@ Plugins must declare the corresponding capability (e.g., `camera.capture`, `loca
 ## External AI Providers
 
 ### Which external providers can I use with Chattree?
-Chattree supports external cloud providers including OpenAI (GPT-4o, etc.), Google Gemini, and Anthropic Claude as alternatives to local models.
+Chattree includes integrations for OpenAI, Google Gemini, Anthropic Claude, and OpenRouter as alternatives to local models. Remote requests require network access and send the request context to the selected provider.
 
 ### Where are my API keys stored?
 API keys are saved in hardware-backed secure storage on the operating system (`EncryptedSharedPreferences` backed by AES-256 Android Keystore on Android, and Keychain on iOS). They are never written to unencrypted preferences, logs, or backups.

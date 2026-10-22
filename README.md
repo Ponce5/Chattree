@@ -53,10 +53,10 @@ chattree-repo/
 
 Chattree features an extensible WebAssembly (WASM) plugin ecosystem. Official plugins are maintained within this repository under `plugins/official/`.
 
-Plugins are packaged as cryptographically verified `.chattree-plugin` archives and published through the **Chattree Marketplace**:
+Plugins are distributed as `.chattree-plugin` ZIP archives. The package includes a SHA-256 digest for the WASM binary; this detects package changes, but is not a publisher signature or proof of publisher identity. Marketplace submission is available through the **Chattree Marketplace**:
 - **Distribution:** Hosted as public binary assets on GitHub Releases.
 - **Publication & Updates:** Submitted via the [Chattree Plugin Submission Portal](https://chattree.chat/submit-plugin) or the automated REST API (`POST /api/plugins/submit`).
-- **In-App Delivery:** Instantly discoverable in the Chattree mobile app with automatic update notifications.
+- **In-App Delivery:** Marketplace listings can be installed from the Chattree app. Availability and update behavior depend on the configured marketplace service and app version; submission is not an approval or signing process.
 
 For step-by-step instructions on packaging, publishing, and updating plugins, refer to the [Marketplace Publishing Guide](./docs/plugins/marketplace_publishing_guide.md).
 

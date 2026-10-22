@@ -173,7 +173,7 @@ El módulo WASM no exporta la memoria ("memory").
 
 **How to fix:**
 - Add bounds to all loops.
-- Increase `timeoutMs` in `plugin.json` (max 5000 ms).
+- Reduce the work per call first. The runtime defaults to 5000 ms; current validators accept a configured maximum of 60000 ms, but longer calls may be unsuitable for interactive use.
 - Reduce computation complexity.
 - Split work into smaller calls if needed.
 

@@ -67,8 +67,8 @@ The `pluginId` is **always injected by the runtime** — the plugin cannot forge
 
 | Resource | Default | Configurable? |
 |----------|---------|---------------|
-| WASM linear memory | 16 MB | Yes — `maxMemoryPages` in manifest |
-| Execution timeout | 5 seconds | Yes — `timeoutMs` (max 5000) |
+| WASM linear memory | 16 MB default | Yes — `maxMemoryPages`; runtime rejects memory above the configured byte ceiling |
+| Execution timeout | 5 seconds by default | Current manifest validators accept up to 60000 ms; enforced per invocation by runtime |
 | CPU fuel | 50 000 000 instructions | Yes — `fuelLimit` |
 | Async iterations | 10 round-trips | No |
 | Max concurrent HTTP per plugin | 2 | No |
@@ -169,9 +169,7 @@ in its `AndroidManifest.xml` or iOS `Info.plist`. These are pre-configured:
 A plugin cannot access these features if the OS-level permission is denied.
 Chattree will report the OS denial clearly in the Host API error response.
 
-> iOS Note: Camera, location, calendar, and contacts capabilities have NOT been
-> tested on a physical iOS device. Android (tested on Motorola Edge 30) is the
-> primary supported platform.
+> Platform support and OS permission behavior must be checked against the specific Chattree release and target device. Host API registration does not guarantee every operation is available on every platform.
 
 ---
 

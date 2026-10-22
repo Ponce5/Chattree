@@ -16,7 +16,7 @@ my-plugin.chattree-plugin  (ZIP archive)
 
 ### Rules
 
-- All entries must be at the **root level** of the archive (no subdirectories).
+- Package files must be at the archive root. The app rejects unsafe paths and unexpected root files; the repository CLI and Marketplace validator enforce their own accepted file lists. Keep the archive to documented root files and do not include subdirectories.
 - `plugin.json` must be present and parseable.
 - `plugin.wasm` must match `plugin.json → wasmPath` (always `"plugin.wasm"`).
 - The `wasmSha256` field in `plugin.json` must match the actual SHA-256 of `plugin.wasm`.
@@ -103,9 +103,13 @@ Compare the SHA-256 with the `wasmSha256` field in `plugin.json`.
 
 ## Size limits
 
+Limits differ between the mobile importer, repository CLI, and web submission service. A package accepted by the web service may still exceed the app’s 10 MB compressed import limit. Keep packages below 10 MB for broad compatibility.
+
 | Resource | Limit |
 |----------|-------|
-| Total archive size | No hard limit (limited by device storage) |
-| `plugin.wasm` size | No hard limit (loaded entirely into memory) |
-| WASM linear memory at runtime | `maxMemoryPages × 64 KB` (default 16 MB) |
-| icon.png (recommended) | ≤ 512 KB |
+| Compressed archive for in-app import | 10 MB maximum |
+| Total uncompressed archive contents | 25 MB maximum in app import |
+| Archive entries | 50 maximum in app import |
+| Marketplace submission package | 25 MB maximum |
+| WASM linear memory | 16 MB default; bounded by runtime configuration |
+| `icon.png` | Optional; web validator warns above 1 MB (512×512 recommended) |

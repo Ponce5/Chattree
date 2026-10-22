@@ -99,8 +99,7 @@ A developer can distribute:
 
 Users can inspect `plugin.json` before granting any permissions.
 
-> **Marketplace**: A future official Marketplace will let you publish packages
-> for discovery by all Chattree users. The format is identical — no changes needed.
+> **Marketplace:** Community packages can be submitted through the web portal or API described in the [publishing guide](marketplace_publishing_guide.md). Submission validates package structure and records a listing; it does not cryptographically sign the publisher or independently audit source code.
 
 ---
 
@@ -111,7 +110,7 @@ Users can inspect `plugin.json` before granting any permissions.
 | WASM spec | WebAssembly 1.0 MVP + `memory.copy` (bulk-memory proposal) |
 | Memory (default) | 16 MB max (`maxMemoryPages` × 64 KB) |
 | Fuel limit | 50 000 000 instructions |
-| Execution timeout | 5 seconds per call |
+| Execution timeout | 5 seconds by default; manifest values are accepted up to 60 seconds by current validators |
 | Async iterations | 10 max (for Host API round-trips) |
 | Min `schemaVersion` | 1 |
 | Min `runtimeApiVersion` | 1.0.0 |

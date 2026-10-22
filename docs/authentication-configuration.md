@@ -37,77 +37,11 @@ When users configure cloud providers (OpenAI, Google Gemini, Anthropic Claude), 
 
 ---
 
-## 2. Plugin Configuration & User Settings
+## 2. Plugin Manifest Settings Support
 
-Plugins can declare configurable parameters in their `plugin.json` manifest:
+The plugin manifest schema accepts an optional `settings` array with declarative fields such as `key`, `label`, `type`, `defaultValue`, `options`, and `isSecret`. In the current app implementation, the plugin details screen does not render a settings editor, and the plugin Host API does not expose these values. Treat `settings` as parsed metadata only; plugin developers must not rely on the app to collect or provide these values. See the [manifest reference](./plugins/plugin-manifest.md) for the current boundary.
 
-```json
-"settings": [
-  {
-    "key": "api_endpoint",
-    "label": "Custom API Endpoint",
-    "type": "string",
-    "defaultValue": "https://api.example.com/v1",
-    "description": "The base URL for custom remote services."
-  },
-  {
-    "key": "auth_token",
-    "label": "API Token",
-    "type": "string",
-    "isSecret": true,
-    "description": "Personal access token for remote authentication."
-  },
-  {
-    "key": "timeout_seconds",
-    "label": "Request Timeout",
-    "type": "number",
-    "defaultValue": 10,
-    "description": "Timeout in seconds for external requests."
-  },
-  {
-    "key": "theme_preference",
-    "label": "Result Style",
-    "type": "select",
-    "defaultValue": "compact",
-    "options": ["compact", "detailed", "json"],
-    "description": "Format for displayed results."
-  }
-]
-```
-
-### Supported Setting Field Types
-
-| Type | UI Presentation | Stored Value |
-|---|---|---|
-| `string` | Single-line text input | String |
-| `number` | Numeric keyboard input | Number |
-| `boolean`| Switch / Toggle | Boolean |
-| `select` | Dropdown picker (`options` required) | String |
-
-### Handling Secrets (`isSecret: true`)
-When `isSecret: true` is configured:
-- The UI masks the value using a password field (`••••••••`).
-- The value is stored inside the plugin's isolated sandbox storage.
-- It can be read programmatically by the plugin at runtime via `storage.get`.
-
-### Reading Settings from WebAssembly
-Settings values are stored in the plugin's private key-value namespace. The plugin reads them synchronously:
-
-```json
-{
-  "api": "storage",
-  "operation": "get",
-  "payload": { "key": "auth_token" }
-}
-```
-
-Response:
-```json
-{
-  "success": true,
-  "data": { "key": "auth_token", "value": "secret_token_12345", "exists": true }
-}
-```
+Chattree's own user preferences (theme, language, inference parameters, local model optimization, RAG controls, provider credentials, and history deletion) are managed in the app's Settings screens. See [Chattree App Features](./app-features.md).
 
 ---
 

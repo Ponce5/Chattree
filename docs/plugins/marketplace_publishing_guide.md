@@ -1,8 +1,8 @@
 # Publishing and Updating Plugins in the Chattree Marketplace
 
-This guide covers the complete, end-to-end process for packaging, hosting, publishing, and updating official and community plugins in the **Chattree Marketplace**. 
+This guide describes how to package a community plugin, host it on GitHub Releases, and submit its listing to the Chattree Marketplace. Official plugins follow a separate maintainer workflow. Portal/API behavior and app update discovery can change; verify against the deployed service before announcing a release.
 
-Plugins are distributed as cryptographically verified `.chattree-plugin` packages hosted on **GitHub Releases** and registered with the **Chattree Marketplace Registry** via the web submission portal or automated REST API.
+Plugins are distributed as `.chattree-plugin` ZIP packages, commonly attached to GitHub Releases, and registered through the web portal or REST API. The WASM SHA-256 is an integrity check, not a digital signature; submission does not authenticate the package author or independently audit source code.
 
 ---
 
@@ -40,7 +40,7 @@ Plugins are distributed as cryptographically verified `.chattree-plugin` package
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. Instant Availability & In-App Updates                    │
+│ 6. Catalog listing and in-app discovery (verify deployment) │
 │    Available in Chattree app: One-tap install or update     │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -161,14 +161,14 @@ You can publish your plugin through either the web interface or the REST API.
 1. Open the [Chattree Plugin Submission Portal](https://chattree.chat/submit-plugin).
 2. Paste the **GitHub Release direct download URL** for your `.chattree-plugin` file.
 3. Click **Inspect & Validate Package**.
-   - The validation engine downloads the package, checks the ZIP structure, extracts `plugin.json` and `plugin.wasm`, calculates cryptographic SHA-256 checksums, and verifies capability declarations.
+   - The validation engine downloads the package, checks ZIP structure, parses `plugin.json`, validates the WASM header and SHA-256, and checks declared capabilities against its catalog. This is structural validation, not a code security audit.
 4. Review the auto-detected metadata (Plugin ID, Name, Description, Commands, Capabilities).
 5. Provide a raw GitHub URL for your plugin's icon:
    ```text
    https://raw.githubusercontent.com/<owner>/<repo>/main/icon.png
    ```
 6. Click **Publish to Marketplace**.
-   - Your plugin is verified and instantly published to the global catalog.
+   - The service validates the package and, when database credentials are configured, records the listing/version. A successful response is not a manual security review or source-code audit.
 
 ---
 
@@ -254,9 +254,9 @@ curl -X POST https://chattree.chat/api/plugins/submit \
 | **`400 Bad Request`** | `INVALID_ICON_HOST` | The icon URL is not hosted on an allowed GitHub domain. |
 | **`400 Bad Request`** | `GITHUB_FETCH_FAILED` | Failed to download package from GitHub Release (verify asset is public). |
 | **`400 Bad Request`** | `PACKAGE_TOO_LARGE` | The package exceeds the maximum limit of 25 MB. |
-| **`400 / 422 Unprocessable`** | `VALIDATION_FAILED` | Package failed schema or integrity verification (see `details` array). |
-| **`409 Conflict`** | `VERSION_ALREADY_EXISTS` | The specified plugin version is already registered in the marketplace. |
-| **`429 Too Many Requests`** | `RATE_LIMIT_EXCEEDED` | Exceeded limit of 5 submissions per hour per IP. |
+| **`400 Bad Request`** | `VALIDATION_FAILED` | Package failed structural or integrity validation (see `details` array). |
+| **`409 Conflict`** | `VERSION_ALREADY_EXISTS` | The exact plugin ID and version are already registered. |
+| **`429 Too Many Requests`** | `RATE_LIMIT_EXCEEDED` | Production process-local limiter observed more than 5 submissions in an hour for the IP; multi-instance deployments may not share this counter. |
 | **`500 Internal Error`** | `SERVER_ERROR` | Internal database or registry failure. |
 
 ##### Successful Response (`200 OK`)
@@ -349,9 +349,9 @@ Submit the new download URL through the [Web Submission Portal](https://chattree
 $body = @{
   download_url      = "https://github.com/<owner>/<repo>/releases/download/v1.0.1/weather-v1.0.1.chattree-plugin"
   icon_url          = "https://raw.githubusercontent.com/<owner>/<repo>/main/icon.png"
-  repository_url    = "https://github.com/<owner>/<repo>"
-  publisher_name    = "Acme Developer"
-  publisher_email   = "developer@example.com"
+  source_url        = "https://github.com/<owner>/<repo>"
+  author_url        = "https://github.com/<owner>"
+  organization      = "Acme"
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "https://chattree.chat/api/plugins/submit" `
@@ -365,12 +365,18 @@ Invoke-RestMethod -Uri "https://chattree.chat/api/plugins/submit" `
 ## 7. How Users Receive Updates
 
 When an update is submitted:
-1. **Automated Version Registration:** The marketplace registry automatically verifies that the new version is strictly greater than the previous version, registers the release, and marks it as the latest active version.
-2. **In-App Notification:** When users open Chattree, the app checks the marketplace registry. Users who have an older version installed will see an **"Update"** badge and button in both the Marketplace and Plugin Details screens.
-3. **Atomic Installation:** Tapping "Update" downloads the new `.chattree-plugin`, verifies its SHA-256 checksum, and atomically replaces the previous sandbox files without corrupting private plugin storage.
-4. **Permission Delta Enforcement:** 
-   - If the update requires **the same capabilities** as before, it updates seamlessly without disturbing the user.
-   - If the update introduces **new capabilities** (e.g. `notifications.send`), Chattree's `PermissionGateway` will prompt the user with a permission dialog specifically for the new capability before allowing it to run.
+1. **Version registration:** The submit API rejects an exact duplicate plugin ID/version. It does not compare SemVer ordering in the route; publish monotonically increasing versions yourself and verify catalog latest-version behavior.
+2. **Update discovery:** Whether installed users see an update depends on marketplace catalog state and app version. Verify the flow on a test device before promising a badge or notification.
+3. **Installation:** Follow the update action in the target app and verify the downloaded package and preserved plugin data. Do not assume atomic replacement or storage migration unless confirmed for that app release.
+4. **Permission changes:** The app permission gateway controls Host API calls. Test newly requested capabilities and denied permissions in the target release.
+
+### Submission behavior notes
+
+- `POST /api/plugins/submit` requires `download_url` and `icon_url`; the icon must use HTTPS and an allowed GitHub host. `banner_url`, `source_url`, `author_url`, `homepage_url`, `organization`, `license`, `category`, listing text, and changelog are optional.
+- The request uses `source_url`; fields such as `repository_url`, `publisher_name`, and `publisher_email` in older examples are not consumed by the current route.
+- The API returns HTTP 200 with `status: "draft"` when Supabase is not configured (validation-only dry run), and `status: "published"` after successful database registration. Do not interpret dry-run success as a live listing.
+- The route currently limits packages to 25 MiB. The mobile importer accepts compressed archives up to 10 MiB, so keep packages below 10 MiB to support direct in-app import.
+- The rate limit is stored in process memory and may not be globally consistent across multiple server instances.
 
 ---
 
@@ -380,7 +386,7 @@ When an update is submitted:
 |-------|-------------|--------|
 | ✅ **No Subfolders** | `plugin.json` and `plugin.wasm` at ZIP root | Chattree extractor looks at root entries only. |
 | ✅ **Version Sync** | Manifest `version` matches GitHub Release tag | Prevents version mismatch errors during validation. |
-| ✅ **WASM Hash Sync** | `wasmSha256` in manifest matches `plugin.wasm` | Cryptographic integrity verification fails otherwise. |
-| ✅ **SemVer Integrity** | Updates must have a strictly higher version | The marketplace rejects downgrades and duplicate versions. |
+| ✅ **WASM Hash Sync** | `wasmSha256` in manifest matches `plugin.wasm` | Detects mismatched binary contents; it is not publisher authentication. |
+| ✅ **Version discipline** | Publish a strictly higher SemVer for each update | The API only rejects exact duplicate plugin ID/version pairs; publishers must enforce ordering. |
 | ✅ **Raw Image URLs** | Use `raw.githubusercontent.com` for icons | Ensures public accessibility without HTML page wrappers. |
 | ✅ **Minimal Capabilities** | Only declare capabilities actually used | Excessive permissions lower community adoption and trust. |

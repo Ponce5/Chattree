@@ -152,6 +152,34 @@ Your WASM module must declare this import to use any Host API:
 
 ---
 
+### Returning a generated file to the chat
+
+A plugin can generate a file with `files.write` and return its opaque `handle` as part of the WASM tool result. Chattree then renders a file card in the chat with **Save** and **Share** actions.
+
+1. Declare `files.write` in the plugin or tool capabilities and request/grant it as required by the app.
+2. Call `files.write` with a safe filename and content. Use `encoding: "utf8"` for text formats such as Markdown, or `encoding: "base64"` for binary data.
+3. Read the returned `data.handle` and `data.name`.
+4. Return a direct result from the WASM entrypoint in this shape:
+
+```json
+{
+  "type": "direct",
+  "displayText": "Generated report is ready.",
+  "fileHandle": "f_<handle returned by files.write>",
+  "fileName": "report.md"
+}
+```
+
+The Host API response from `files.write` has the form `{"success":true,"data":{"name":"report.md","size":123,"written":true,"handle":"f_…"}}`. In the final tool result, Chattree verifies that the handle exists and belongs to the calling plugin; the handle registry is authoritative for the actual filename and file path.
+
+The chat file card shows the filename/type, the `displayText`, and **Save** and **Share** buttons. Save opens the native save flow; Share opens the platform share sheet. These are user-triggered actions. They do not require the plugin to call `share.file`, because the app performs them from the card. The file itself still requires the `files.write` capability to create.
+
+For a `.md` file, `files.write` stores Markdown text and the card identifies it as a Markdown/text file. The card’s `displayText` is currently shown as plain text rather than rendered Markdown; the generated file can be saved or shared and then opened in a Markdown viewer/editor.
+
+If you return an unknown, unavailable, or another plugin’s handle, Chattree drops the file attachment. Do not invent or persist handles between sessions; create the file and return its handle in the same execution flow.
+
+---
+
 ### notifications.*
 
 | Operation | Sync | Input | Output |

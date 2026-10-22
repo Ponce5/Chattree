@@ -1,6 +1,6 @@
 # External AI Providers Architecture
 
-Chattree provides a flexible, modular architecture allowing users to connect external cloud AI providers (such as OpenAI, Google Gemini, and Anthropic Claude) alongside or as an alternative to on-device models—without compromising the security of their credentials.
+Chattree provides working client integrations for OpenAI, Google Gemini, Anthropic Claude, and OpenRouter alongside on-device models. Remote inference requires an internet connection and a user-provided API key. Requests are sent from the app to the selected provider; remote prompts are subject to that provider’s data handling and retention policies.
 
 ---
 
@@ -25,7 +25,7 @@ RemoteInferenceEngine          ← depends on: AiProvider (interface), AiProvide
       │
       │ delegates to
       ▼
-AiProvider (interface)          ← OpenAiProvider / GeminiProvider / AnthropicProvider
+AiProvider (interface)          ← OpenAiProvider / GeminiProvider / ClaudeProvider / OpenRouterProvider
       │
       │ secure credentials via
       ▼
@@ -71,7 +71,7 @@ Every external provider implements the abstract `AiProvider` contract:
 
 ```dart
 abstract class AiProvider {
-  /// Unique identifier (e.g., 'openai', 'gemini', 'anthropic')
+  /// Unique identifier (e.g., 'openai', 'gemini', 'claude', 'openrouter')
   String get id;
 
   /// Visible display name in UI
@@ -194,9 +194,8 @@ ChatController.sendMessage()
         ├── SecureCredentialStore.retrieve(providerId)
         └── AiProvider.generateStream()  ← Direct HTTPS stream to provider
 ```
-- Requires internet access.
-- Requires user-configured API key.
-- End-to-end HTTPS direct connection to the model provider.
+- Requires internet access and a user-configured API key.
+- Sends the request context to the selected provider over HTTPS; the provider’s policies govern its processing and retention.
 
 ### Switching Modes
 

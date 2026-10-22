@@ -83,7 +83,7 @@ Chattree reads it before executing any WASM code.
 | `author` | `string` | ✅ | Author name. |
 | `authorEmail` | `string` | ❌ | Contact email. |
 | `homepageUrl` | `string` | ❌ | Plugin homepage or repository URL. |
-| `tags` | `string[]` | ❌ | Keyword tags for future Marketplace search. |
+| `tags` | `string[]` | ❌ | Keywords used for discovery metadata. |
 | `changelog` | `string` | ❌ | Human-readable release notes. |
 
 ---
@@ -163,8 +163,8 @@ Plugins can declare an optional `intentContract` inside any tool definition. Whe
 | `wasmPath` | `string` | ✅ | Path to the WASM binary inside the archive. Always `"plugin.wasm"`. |
 | `wasmSha256` | `string` | ✅ | SHA-256 hex digest of `plugin.wasm` (64 hex chars). |
 | `runtimeApiVersion` | `string` | ✅ | Must be `"1.0.0"`. |
-| `maxMemoryPages` | `integer` | ❌ | Maximum WASM memory pages (1 page = 64 KB). Default: 256 pages (16 MB). |
-| `timeoutMs` | `integer` | ❌ | Execution timeout in milliseconds. Default: 5000 (5 s). Max: 5000. |
+| `maxMemoryPages` | `integer` | ❌ | WASM memory ceiling in 64 KiB pages. Runtime default: 256 pages (16 MiB); current schema/web validator maximum: 256 pages. |
+| `timeoutMs` | `integer` | ❌ | Per-call timeout in milliseconds. Runtime default: 5000; current validators accept up to 60000. Keep calls short and test on device. |
 | `fuelLimit` | `integer` | ❌ | Instruction fuel budget. Default: 50 000 000. |
 
 **Memory sizing guide:**
@@ -181,8 +181,7 @@ Plugins can declare an optional `intentContract` inside any tool definition. Whe
 
 ### Settings (optional)
 
-Plugins can declare user-configurable settings. These appear in  
-**Settings → Plugins → [Plugin] → Configuración**.
+The manifest parser accepts a `settings` array with declarative field metadata, but the current app does not display these fields in plugin details and provides no Host API for reading their values. Do not rely on this field for user configuration until the app implements that behavior.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -192,9 +191,9 @@ Plugins can declare user-configurable settings. These appear in
 | `settings[].defaultValue` | `string` | ❌ | Default value string. |
 | `settings[].description` | `string` | ❌ | Help text shown under the field. |
 | `settings[].options` | `string[]` | ❌ | Required when `type == "select"`. |
-| `settings[].isSecret` | `boolean` | ❌ | If `true`, the value is obscured in UI (for API keys). |
+| `settings[].isSecret` | `boolean` | ❌ | Metadata flag only in the current app; it does not provide a secret-input UI or secure storage for plugin settings. |
 
-Settings values are stored in the plugin's private sandbox storage and readable via `storage.get`.
+Settings are currently parsed metadata only; no plugin settings UI or value-reading API is implemented. Do not place credentials in these fields.
 
 ---
 

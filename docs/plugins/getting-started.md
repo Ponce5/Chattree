@@ -13,8 +13,7 @@ No prior Chattree knowledge required.
   - **C/C++** via Emscripten or `wasi-sdk`
   - **Go** via `tinygo build -target wasm`
 - Standard archive utility (`zip`, PowerShell `Compress-Archive`, or Node.js)
-- A way to transfer the `.chattree-plugin` file to your Android/iOS device
-  (ADB, Google Drive, email, USB, etc.)
+- Chattree installed on a supported device. Import UI and OS capability support vary by platform and release; check current release information before targeting platform-specific APIs.
 
 > **No Chattree source code required.**  
 > You only need the public SDK documentation and a WASM compiler.
@@ -160,7 +159,7 @@ For a single `/hello` command:
 ]
 ```
 
-The `command` value **must match** the `primaryCommand` and the `entrypoint` (or be declared as a separate tool with its own WASM function).
+`tools[].command` is the user-facing slash command. `entrypoint` is the WASM export invoked by the current runtime; the runtime uses this manifest-level entrypoint when executing plugin tools. For a simple plugin, use one command and one export. Multiple commands do not currently select distinct WASM exports; verify dispatch behavior before shipping a multi-command plugin.
 
 ---
 
@@ -269,15 +268,7 @@ Transfer `my-plugin.chattree-plugin` to your Android device, then:
 
 ## Step 9 — Grant permissions
 
-After installation, Chattree shows a permission dialog listing every capability
-the plugin declared.
-
-- **Normal** capabilities (e.g., `storage.private`) are granted automatically.
-- **Sensitive** capabilities (e.g., `network.http`, `notes.read`) require user confirmation.
-- **Critical** capabilities (e.g., `camera.capture`, `location.current`) require user authorization
-  and may also trigger OS-level permission dialogs.
-
-You can review and change permissions at any time in **Settings → Plugins → [Your Plugin] → Permisos**.
+Capabilities are enforced by Chattree’s permission gateway when the plugin calls the Host API. Consent prompts and OS permission flows depend on the capability, grant state, platform, and app version. Keep the declared set minimal and handle denied or unavailable operations. Confirm the current settings UI in the app release you target; labels and navigation can change.
 
 ---
 
@@ -298,14 +289,9 @@ Chattree will:
 
 ---
 
-## Step 11 — Conversational AI Integration (Zero Configuration)
+## Optional — Natural-language invocation
 
-You don't need to write hardcoded keyword listeners or special routing for the AI to use your plugin:
-
-1. **Automatic Discovery**: When installed, Chattree registers every tool in your `tools` array into `PluginRegistry`.
-2. **Context Injection**: Chattree provides the tool's `command`, `displayName`, and `description` to the on-device AI system prompt.
-3. **Conversational Invocation**: In natural conversation (e.g. *"Greets my friend Alice"*), the AI outputs `{"tool": "hello", "action": "run", "title": "Alice"}`.
-4. **Execution & AI Response**: The WASM runtime executes your plugin, returns the result, and the AI answers the user conversationally with its own voice based on the outcome.
+Chattree registers declared tool metadata, but natural-language invocation is mediated by the app’s intent interpreter and is not guaranteed for every provider or command. An `intentContract` can describe valid actions and fields (see [plugin-manifest.md](plugin-manifest.md)); test each supported provider and retain a usable slash-command path. Do not rely on a specific model JSON shape as a public runtime ABI.
 
 ---
 
@@ -315,4 +301,5 @@ You don't need to write hardcoded keyword listeners or special routing for the A
 - Study [capabilities.md](capabilities.md) to learn what APIs you can access.
 - See [examples/hello/](../../examples/hello) for the complete Hello example.
 - See [examples/notes-demo/](../../examples/notes-demo) for a plugin that reads and creates Notes.
+- Run the validator and packager from the cloned `chattree-repo` directory; examples assume that repository is your current working directory.
 - Read [security.md](security.md) to understand the sandbox boundaries.

@@ -1,6 +1,6 @@
 # Core Concepts & System Architecture
 
-Chattree is a privacy-first AI platform for Android designed to run neural language models directly on-device and execute extensible slash-command tools inside a secure WebAssembly sandbox.
+Chattree is an AI chat app with on-device model support, remote provider integrations, built-in Notes and Reminders, and slash-command tools inside a WebAssembly sandbox. With local inference selected, prompts are processed on-device; remote provider use sends request context to the selected provider.
 
 ---
 
@@ -52,7 +52,7 @@ Chattree is structured into decoupled, modular layers:
 
 At the core of Chattree is its local inference engine:
 - **Quantized GGUF Model Execution:** Runs lightweight LLMs directly on the smartphone's CPU, GPU, or NPU with no network connectivity required.
-- **Zero Telemetry:** User conversations, prompt tokens, and system messages are stored only in the application's local sandbox database.
+- **Local inference:** When an on-device model is selected, inference runs locally. Conversation history is stored in app-local storage. Remote inference sends request context to the selected provider.
 - **Streaming Response:** Generates tokens in real time, dispatched through an asynchronous stream with a 33ms throttle (~30 FPS) for smooth visual rendering.
 
 ---
@@ -99,8 +99,8 @@ Plugins communicate with Chattree through a single imported function:
 
 Chattree implements a capability-based security model:
 - **Normal Capabilities:** Low-risk sandbox privileges (such as `storage.private` or `share.text`) granted automatically.
-- **Sensitive Capabilities:** Network requests, local file access, and note management require user authorization upon installation or first invocation.
-- **Critical Capabilities:** Hardware sensors (camera, GPS location, contacts) require explicit user consent and standard Android OS runtime permissions.
+- **Sensitive Capabilities:** Network requests, file access, and note management are controlled through the app permission gateway; consent timing depends on the operation and current grant state.
+- **Critical Capabilities:** Device capabilities can require explicit user consent and operating-system permission, depending on platform and operation.
 - **User Control:** Users can inspect, modify, or revoke permissions at any time from **Settings → Plugins → [Plugin] → Permissions**.
 
 ---
