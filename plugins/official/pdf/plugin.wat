@@ -525,8 +525,8 @@
     (local.set $line_h_head (i32.const 22))
     (local.set $lb (i32.const 62000))
     ;; A4 content area is 495 pt wide with balanced 50 pt side margins.
-    ;; 92 characters uses more of that width than the old 80-char cutoff.
-    (local.set $wrap_at (i32.const 92))
+    ;; 96 characters uses slightly more of that width than the 92-char cutoff.
+    (local.set $wrap_at (i32.const 96))
 
     ;; ─ Start page 1 ─
     (local.set $sp (i32.add (i32.const 120000) (i32.mul (local.get $page) (i32.const 15000))))

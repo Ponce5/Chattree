@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.pdf",
-  "version": "2.3.4",
+  "version": "2.3.5",
   "name": "PDF Generator",
   "description": "Official AI-powered PDF generator. Describe the content you need and receive a formatted, downloadable PDF directly in the chat.",
   "author": "Chattree Core Team",
@@ -25,11 +25,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png",
-  "changelog": "2.3.4: Widens body text composition from 80 to 92 characters to use more of the A4 content width with balanced side margins. | 2.3.3: Fixes invisible body text by resetting each rendered line to an absolute PDF text matrix instead of accumulating relative Td offsets. | 2.3.2: Requires valid, complete JSON tool arguments and avoids unescaped double quotes and oversized document bodies that caused calls to be displayed as plain text. | 2.3.1: Clarifies that PDF requests must invoke the tool and pass structured fields as arguments; the JSON is tool input, never the user-facing answer. | 2.3.0: Rewrote the JSON content parser to preserve escaped quoted text and added subtitle and footer fields. | 2.2.0: Rewrote PDF text renderer from relative-Td to absolute-Td architecture. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title.",
+  "changelog": "2.3.5: Slightly widens body text composition from 92 to 96 characters and removes automatic Chattree branding from document footers. | 2.3.4: Widens body text composition from 80 to 92 characters to use more of the A4 content width with balanced side margins. | 2.3.3: Fixes invisible body text by resetting each rendered line to an absolute PDF text matrix instead of accumulating relative Td offsets. | 2.3.2: Requires valid, complete JSON tool arguments and avoids unescaped double quotes and oversized document bodies that caused calls to be displayed as plain text. | 2.3.1: Clarifies that PDF requests must invoke the tool and pass structured fields as arguments; the JSON is tool input, never the user-facing answer. | 2.3.0: Rewrote the JSON content parser to preserve escaped quoted text and added subtitle and footer fields. | 2.2.0: Rewrote PDF text renderer from relative-Td to absolute-Td architecture. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title.",
   "runtime": "wasm",
   "entrypoint": "pdf_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "6e1639ef3eccca076fd6102ebdc5a7f8bbe8c852075b69567ae9687ba564b736",
+  "wasmSha256": "3eb5f93acabe38103ab26853e8f05fd2ad0b6eae3647faa3836ab850ff2b6baf",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 10000,
@@ -76,7 +76,7 @@
             "name": "footer",
             "key": "footer",
             "type": "string",
-            "description": "Texto opcional para el pie de página de cada hoja, máximo 80 caracteres.",
+            "description": "Pie opcional de hasta 80 caracteres. Déjalo vacío salvo que haya una fuente, autor o nota útil para el documento. No añadas créditos de generación ni menciones a Chattree o al plugin.",
             "required": false
           }
         ],
@@ -88,7 +88,7 @@
               "title": "La fotosíntesis",
               "subtitle": "Proceso biologico fundamental de las plantas",
               "content": "## Que es la fotosintesis\nLa fotosintesis es el proceso mediante el cual las plantas, algas y algunas bacterias convierten la energia luminica en energia quimica almacenada en forma de glucosa.\n\n## Etapas principales\n- Captura de luz solar por la clorofila\n- Reacciones luminosas en los tilacoides\n- Ciclo de Calvin en el estroma\n\n## Ecuacion general\nDioxido de carbono + Agua + Luz → Glucosa + Oxigeno\n\n## Importancia ecologica\nLa fotosintesis es la base de casi todas las cadenas alimentarias en la Tierra. Produce el oxigeno que respiramos y fija el carbono atmosferico.\n\n## Factores que la afectan\n- Intensidad de la luz\n- Concentracion de CO2\n- Temperatura\n- Disponibilidad de agua\n\n## Conclusion\nSin la fotosintesis, la vida tal como la conocemos no seria posible en nuestro planeta.",
-              "footer": "Chattree AI - Biologia basica - Uso educativo"
+              "footer": "Uso educativo"
             }
           },
           {
@@ -98,7 +98,7 @@
               "title": "Inteligencia Artificial",
               "subtitle": "Estado actual, aplicaciones y retos eticos",
               "content": "## Definicion\nLa inteligencia artificial (IA) es la simulacion de procesos cognitivos humanos por parte de maquinas.\n\n## Aplicaciones actuales\n- Salud: diagnostico por imagen, descubrimiento de farmacos\n- Educacion: tutores adaptativos, correccion automatica\n- Industria: mantenimiento predictivo, control de calidad\n- Entretenimiento: recomendaciones, generacion de contenido\n\n## Tipos de IA\n| Tipo | Descripcion | Ejemplo |\n|---|---|---|\n| IA estrecha | Especializada en una tarea | GPT, AlphaGo |\n| IA general | Razonamiento amplio | Investigacion activa |\n| IA superinteligente | Superior al humano | Hipotetica |\n\n## Retos eticos\n1. Privacidad y vigilancia masiva\n2. Sesgos en los modelos\n3. Desplazamiento laboral\n4. Responsabilidad legal\n\n## Perspectivas futuras\nLa IA continuara transformando la sociedad. Es crucial desarrollar marcos regulatorios solidos y promover una IA responsable.\n\n## Conclusion\nLa IA representa una de las mayores oportunidades y desafios tecnologicos de nuestra era.",
-              "footer": "Chattree AI - Informe sobre IA - 2025"
+              "footer": "Informe educativo - 2025"
             }
           },
           {
@@ -108,7 +108,7 @@
               "title": "Cambio Climatico",
               "subtitle": "Causas, consecuencias y soluciones globales",
               "content": "## Que es el cambio climatico\nEl cambio climatico se refiere a las alteraciones a largo plazo en las temperaturas y los patrones climaticos globales.\n\n## Causas principales\n- Emision de gases de efecto invernadero\n- Deforestacion masiva\n- Combustibles fosiles en industria y transporte\n\n## Impactos observados\n1. Aumento del nivel del mar\n2. Eventos climaticos extremos mas frecuentes\n3. Perdida de biodiversidad\n4. Inseguridad alimentaria en zonas vulnerables\n\n## Respuestas y soluciones\n- Transicion a energias renovables\n- Reforestacion y conservacion de bosques\n- Acuerdos internacionales (Acuerdo de Paris)\n- Economia circular y reduccion de residuos\n\n## Conclusion\nActuar ahora es esencial. Cada fraccion de grado de calentamiento evitado marca una diferencia significativa para los ecosistemas y las comunidades humanas.",
-              "footer": "Fuente: IPCC 2023 - Uso educativo - Chattree AI"
+              "footer": "Fuente: IPCC 2023 - Uso educativo"
             }
           }
         ],
