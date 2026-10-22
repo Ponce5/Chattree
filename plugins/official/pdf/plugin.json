@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.pdf",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "name": "PDF Generator",
   "description": "Official AI-powered PDF generator. Describe the content you need and receive a formatted, downloadable PDF directly in the chat.",
   "author": "Chattree Core Team",
@@ -25,7 +25,7 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png",
-  "changelog": "2.3.0: CRITICAL FIX — Rewrote the JSON content parser: previously the scanner stopped at any '\"' character, silently truncating all body content that contained quoted text or any escaped character sequence. Now uses a proper JSON string parser that correctly skips \\\" escape sequences and emits the real character — content is now delivered complete to the PDF renderer. NEW: Added 'subtitle' field rendered below the title in 12pt Helvetica with a visual separator line. NEW: Added 'footer' field rendered at the bottom of every page in grey 9pt text. The AI prompt (intentContract) now explicitly instructs the model to fill all four template slots (title, subtitle, content, footer) so each generated PDF has a professional document structure. | 2.2.0: Rewrote PDF text renderer from relative-Td to absolute-Td architecture. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title.",
+  "changelog": "2.3.1: Clarifies that PDF requests must invoke the tool and pass structured fields as arguments; the JSON is tool input, never the user-facing answer. | 2.3.0: Rewrote the JSON content parser to preserve quoted text and added subtitle and footer fields. | 2.2.0: Rewrote PDF text renderer from relative-Td to absolute-Td architecture. | 2.1.0: Strips Markdown syntax, fixes content truncation, removes duplicate title.",
   "runtime": "wasm",
   "entrypoint": "pdf_entry",
   "wasmPath": "plugin.wasm",
@@ -39,7 +39,7 @@
       "id": "com.chattree.official.pdf.generator",
       "command": "pdf",
       "displayName": "PDF Generator",
-      "description": "Genera un PDF estructurado con titulo, subtitulo, cuerpo y pie de pagina. La IA redacta el documento completo usando la plantilla de cuatro campos y el plugin compone el flujo de texto en paginas A4. Usa /pdf <instrucciones del documento>.",
+      "description": "Crea y entrega un archivo PDF descargable en el chat. Cuando el usuario pide un PDF o documento, invoca esta herramienta y pasa title, subtitle, content y footer como argumentos JSON; nunca muestres el JSON como respuesta. El contenido debe ser el documento completo. También acepta /pdf <instrucciones del documento>.",
       "capabilities": [
         "files.write"
       ],
@@ -49,34 +49,34 @@
           "pdf_generate",
           "unknown"
         ],
-        "description": "Genera documentos PDF sobre cualquier tema usando IA. IMPORTANTE: siempre debes devolver los cuatro campos: title (titulo breve), subtitle (subtitulo descriptivo), content (cuerpo completo en Markdown) y footer (texto para el pie de cada pagina). El campo content es el mas importante: escribe el documento completo con subtitulos (##), parrafos, listas y tablas segun corresponda. NO omitas el contenido.",
+        "description": "Ante una solicitud de crear un PDF, invoca la herramienta pdf con los campos solicitados. No respondas con el objeto JSON ni pegues el contenido en el chat: el resultado esperado es el archivo PDF descargable que devuelve la herramienta. Escribe el documento completo en content.",
         "fields": [
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Titulo breve y descriptivo del documento (maximo 60 caracteres). Ejemplo: 'La fotosintesis' o 'Inteligencia Artificial en la medicina'.",
+            "description": "Título breve y descriptivo del documento, máximo 60 caracteres.",
             "required": true
           },
           {
             "name": "subtitle",
             "key": "subtitle",
             "type": "string",
-            "description": "Subtitulo o descripcion corta del documento (maximo 80 caracteres). Complementa al titulo con el alcance o enfoque. Ejemplo: 'Guia completa para principiantes' o 'Analisis de tendencias 2024-2025'.",
+            "description": "Subtítulo descriptivo, máximo 80 caracteres.",
             "required": false
           },
           {
             "name": "content",
             "key": "content",
             "type": "string",
-            "description": "Cuerpo COMPLETO del documento en Markdown. USA ## para subtitulos de sección, - para listas, parrafos separados por linea en blanco. Escribe tanto texto como el tema requiera (no hay limite de paginas). NO uses comillas dobles literales dentro del texto (usa comilla simple ' si las necesitas). NUNCA dejes este campo vacio o con solo un parrafo.",
+            "description": "Cuerpo completo del documento en Markdown. Incluye secciones, párrafos y listas según corresponda. Puedes usar comillas normales; no limites ni reemplaces el texto por un resumen.",
             "required": true
           },
           {
             "name": "footer",
             "key": "footer",
             "type": "string",
-            "description": "Texto para el pie de pagina de cada hoja (maximo 80 caracteres). Puede incluir la fuente, autor, fecha o aviso legal. Ejemplo: 'Generado por Chattree AI - 2025' o 'Fuente: Wikipedia / Uso educativo'.",
+            "description": "Texto opcional para el pie de página de cada hoja, máximo 80 caracteres.",
             "required": false
           }
         ],
@@ -112,7 +112,7 @@
             }
           }
         ],
-        "maxResponseTokens": 6000
+        "maxResponseTokens": 3000
       }
     }
   ]
