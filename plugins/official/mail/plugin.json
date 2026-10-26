@@ -116,11 +116,11 @@
             }
           },
           {
-            "input": "configura mi cuenta poncee.ee088@gmail.com con contraseña abcd efgh ijkl mnop",
+            "input": "configura mi cuenta usuario@ejemplo.com con contraseña abcd efgh ijkl mnop",
             "output": {
               "INTENT": "config",
               "action": "config",
-              "email": "poncee.ee088@gmail.com",
+              "email": "usuario@ejemplo.com",
               "password": "abcd efgh ijkl mnop"
             }
           }
