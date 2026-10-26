@@ -115,3 +115,24 @@ Chattree integrates a specialized vector design pipeline:
 
 For full architectural details and developer APIs, refer to the [Visual Design Architecture Guide](./visual-design.md).
 
+---
+
+## 7. Inbound Webhooks & Local Event Pipeline
+
+Chattree incorporates a secure, loopback-only event pipeline for integrating local workflows, terminal tools, and external automation:
+- **Foreground Loopback HTTP Listener:** Binds strictly to `127.0.0.1` (`InboundHttpServer`) with configurable port and persistent user preferences.
+- **HMAC-SHA256 Signatures & SSRF Guard:** Payload integrity and authenticity verified with timing-safe HMAC checks; SSRF protection prevents network loopback abuse.
+- **Persistent Event Journal:** Events and delivery receipts are committed to SQLite (`EventJournal`) with deduplication by idempotency keys, guaranteeing delivery even across app restarts.
+- **Decoupled Consumer Dispatch:** Events are published via `HostEventBus` and routed to registered WebAssembly plugin handlers without blocking the UI.
+
+For comprehensive protocol and integration details, see the [Inbound Webhooks Guide](./inbound-webhooks.md).
+
+---
+
+## 8. Android Background Execution & Safety Model
+
+Chattree adheres to strict Android battery and resource guidelines:
+- **Exact Alarms via AlarmManager:** Reminders schedule OS-level exact alarms through `flutter_local_notifications`. When a reminder fires, the Android OS delivers the notification immediately without requiring Chattree to run a persistent background service.
+- **Foreground Listener with Auto-Resume:** Network server sockets on mobile platforms cannot remain active when apps are suspended in the background without high-drain Foreground Services. Chattree cleanly suspends the webhook listener when minimized and **automatically resumes it** when returned to the foreground.
+- **Explicit Command Routing:** To guarantee user safety and predictable AI behavior, tools are invoked deterministically through explicit slash commands (`/note`, `/reminder`, `/visual`, and third-party plugins). The AI model does not covertly trigger side-effects during conversational text generation.
+

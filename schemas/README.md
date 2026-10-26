@@ -16,7 +16,7 @@ This directory houses the authoritative JSON Schemas and structural validation c
 #### Key Validations Enforced:
 - **Identifier (`id`):** Reverse-domain notation (`com.developer.plugin-name`) containing lowercase letters, numbers, hyphens, and dots.
 - **Semantic Versioning (`version`):** Strict SemVer specification (`MAJOR.MINOR.PATCH`).
-- **Primary Command (`primaryCommand`):** Lowercase alphanumeric and hyphens without slashes (e.g. `weather`).
+- **Primary Command (`primaryCommand`):** Lowercase alphanumeric and hyphens without slashes (e.g. `echo`).
 - **Runtime Environment:** Mandatory `"runtime": "wasm"`, `"wasmPath": "plugin.wasm"`, and `"runtimeApiVersion": "1.0.0"`.
 - **Integrity Checksum (`wasmSha256`):** Exactly 64 lowercase hexadecimal characters matching the SHA-256 digest of `plugin.wasm`.
 - **Capabilities (`capabilities`):** Validated against the official Chattree Host API capability catalogue (e.g. `storage.private`, `network.http`, `chattree.notes.*`).

@@ -1,13 +1,13 @@
 {
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
-  "id": "com.chattree.official.mail",
-  "version": "2.0.1",
-  "name": "Mail Plugin",
-  "description": "Official on-device email integration powered by Chattree's native Email Host API with real IMAP and SMTP support.",
+  "id": "com.chattree.official.gmail",
+  "version": "2.1.0",
+  "name": "Gmail Plugin",
+  "description": "Official on-device Gmail integration powered by Chattree's native Email Host API with real IMAP and SMTP support.",
   "author": "Chattree Core Team",
-  "primaryCommand": "mail",
-  "aliases": [],
+  "primaryCommand": "gmail",
+  "aliases": ["mail", "email"],
   "type": "imported",
   "category": "productivity",
   "capabilities": [
@@ -16,16 +16,16 @@
     "email.send"
   ],
   "tags": [
+    "gmail",
     "mail",
     "email",
-    "gmail",
     "outlook",
     "imap",
     "official"
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png",
-  "changelog": "2.0.1: Fix intentContract - campos en minusculas, validIntents correctos (config/inbox/read/send/disconnect). 2.0.0: Integracion nativa completa con el Host API de Correo ('email') de Chattree con IMAP/SMTP real para Gmail, Outlook y proveedores estandar.",
+  "changelog": "2.1.0: Renamed plugin to Gmail Plugin with primary command /gmail and /mail alias. Full IMAP/SMTP native email integration. 2.0.1: Fix intentContract fields in lowercase. 2.0.0: Native Email Host API integration.",
   "runtime": "wasm",
   "entrypoint": "mail_entry",
   "wasmPath": "plugin.wasm",
@@ -36,10 +36,10 @@
   "fuelLimit": 50000000,
   "tools": [
     {
-      "id": "com.chattree.official.mail.manager",
-      "command": "mail",
-      "displayName": "Device Email & Inbox",
-      "description": "Herramienta oficial de correo electronico conectada al Host API nativo de Chattree. Lee la bandeja de entrada real del usuario mediante IMAP, lee correos completos por ID, despacha correos por SMTP y administra cuentas de forma segura. Subcomandos: /mail, /mail inbox, /mail read <id>, /mail send <destinatario> | <asunto> | <mensaje>, /mail config <correo> <contrasena_aplicacion>, /mail disconnect.",
+      "id": "com.chattree.official.gmail.manager",
+      "command": "gmail",
+      "displayName": "Gmail & Inbox",
+      "description": "Herramienta oficial de Gmail conectada al Host API nativo de Chattree. Lee la bandeja de entrada real del usuario mediante IMAP, lee correos completos por ID, despacha correos por SMTP y administra cuentas de forma segura. Subcomandos: /gmail, /gmail inbox, /gmail read <id>, /gmail send <destinatario> | <asunto> | <mensaje>, /gmail config <correo> <contrasena_aplicacion>, /gmail disconnect.",
       "capabilities": [
         "storage.private",
         "email.read",
@@ -48,7 +48,7 @@
       "intentContract": {
         "intent": "mail_inbox",
         "validIntents": ["config", "inbox", "read", "send", "disconnect"],
-        "description": "Lee correos reales de la bandeja de entrada, consulta mensajes detallados o envia correos.",
+        "description": "Lee correos reales de la bandeja de entrada de Gmail, consulta mensajes detallados o envia correos.",
         "fields": [
           {
             "name": "action",

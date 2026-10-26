@@ -19,9 +19,9 @@ Conversational Layer:
                                       ▼
 Data Layer:
   Notes Database (SQLite) ◄──► Local Vector Store (Embeddings & Cosine Search)
-  Reminders Database (SQLite) ◄──► Android AlarmManager / WorkManager
-                               ▲
-                               │
+  Reminders Database (SQLite) ◄──► Android AlarmManager (Exact Alarms via flutter_local_notifications)
+                                ▲
+                                │
 Host API Layer (ChattreeHostApi):
   WASM Plugin ──host_call()──► PermissionGateway ──► Chattree Notes / Reminders Handlers
 ```
@@ -30,37 +30,23 @@ Host API Layer (ChattreeHostApi):
 
 ## 1. Conversational Chat Commands
 
-Chattree provides intuitive natural-language interactions as well as explicit slash commands for notes and reminders.
+Chattree provides explicit slash commands and structured natural language interactions for notes and reminders.
 
 ### Notes
 
-Users can instruct the AI to save, look up, edit, or delete notes using everyday language:
-
-```text
-Remember that my student ID is 12345.
-Save note: buy coffee beans and milk tomorrow.
-What was my student ID again?
-```
-
-- **Extraction & Confirmation:** The local model detects the note-taking intent, extracts a clean title and markdown content, and confirms the action.
-- **Explicit Slash Command:** Users can also type `/note` directly:
+- **Explicit Slash Command:** Users type `/note` directly for deterministic operations:
   ```text
   /note buy coffee beans and milk
   /note project deadline: submit final report on Friday
   /note search student ID
   /note list
   ```
-- **Safety:** Destructive actions (such as deletion) require explicit user confirmation. If a request is ambiguous or references multiple notes, the assistant asks for clarification rather than deleting the wrong entry.
+- **Conversational Safety:** In standard conversational chat without slash commands, Chattree prioritizes natural conversation. If a note-taking or reminder intent is detected, Chattree transparently guides the user to invoke `/note` or `/reminder`, ensuring side-effects are never performed without explicit user consent.
+- **Confirmation:** Destructive actions (such as deletion) require explicit user confirmation. If a request is ambiguous or references multiple notes, the assistant asks for clarification rather than deleting the wrong entry.
 
 ### Reminders
 
 Reminders handle time-sensitive tasks with scheduled notifications on Android:
-
-```text
-Remind me to call Alex tomorrow at 10:00 AM
-What reminders do I have for Friday?
-Mark the project deadline reminder as completed
-```
 
 - **Explicit Slash Command:** Typing `/reminder` without arguments immediately lists all pending reminders. With arguments, it routes to the assistant:
   ```text
@@ -68,6 +54,7 @@ Mark the project deadline reminder as completed
   /reminder submit tax report next Monday at 9:00 AM
   ```
 - **Date & Time Disambiguation:** Scheduled reminders require a clear date and time. Ambiguous references (e.g., "in the morning") prompt clarification rather than guessing.
+- **Background Notifications on Android:** Reminders are scheduled directly in the Android system using `AlarmManager` (exact alarms). When the scheduled timestamp arrives, Android wakes up the notification service to ring the alert on time, even if the phone is locked or Chattree is closed, with zero battery drain.
 
 ---
 

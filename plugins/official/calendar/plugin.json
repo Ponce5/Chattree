@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "name": "Calendar Plugin",
   "description": "Official on-device calendar integration for scheduling and inspecting calendar events.",
   "author": "Chattree Core Team",
@@ -23,7 +23,7 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png",
-  "changelog": "1.4.1: Fixed byte alignments in WASM memory copy, enriched AI intent context with few-shot examples for future dates and exact hours.",
+  "changelog": "1.5.0: Enhanced date resolution and multi-case fields support (title, startDate/start, duration, action). Provides explicit prompt rules to prevent scheduling on today when the user requested tomorrow or a specific future day.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
@@ -37,33 +37,40 @@
       "id": "com.chattree.official.calendar.manager",
       "command": "calendar",
       "displayName": "Device Calendar",
-      "description": "Gestiona eventos del calendario local del dispositivo. Para crear un evento hoy o en fecha futura, emite JSON con {\"action\": \"create\", \"title\": \"<título limpio>\", \"startDate\": \"YYYY-MM-DDTHH:mm:ss\"} o usa /calendar <título limpio> | <YYYY-MM-DDTHH:mm:ss>. Nunca incluyas 'hoy' o 'mañana' en el título. Para consultar eventos: /calendar list.",
+      "description": "Gestiona eventos del calendario local del dispositivo. Para crear un evento, emite JSON con {\"action\":\"create\",\"title\":\"<título limpio>\",\"startDate\":\"YYYY-MM-DDTHH:mm:ss\"}. OBLIGATORIO: Si el usuario dice 'mañana', suma 1 día a la fecha actual. Si dice un día específico (ej. 'el 25' o 'el viernes'), calcula el año-mes-día exacto de ese día; NUNCA uses la fecha de hoy si el usuario indicó otro día. Para listar eventos: {\"action\":\"list\"} o /calendar list.",
       "capabilities": [
         "calendar.create",
         "calendar.read"
       ],
       "intentContract": {
-        "intent": "calendar_create",
-        "validIntents": ["calendar_create", "calendar_list", "unknown"],
+        "intent": "create",
+        "validIntents": ["create", "list", "unknown"],
         "description": "Agenda eventos, reuniones o citas en el calendario del dispositivo para hoy o fechas futuras.",
         "fields": [
           {
-            "name": "TITLE",
-            "key": "TITLE",
+            "name": "action",
+            "key": "action",
+            "type": "string",
+            "description": "Acción a realizar: 'create' para agendar evento, o 'list' para consultar eventos",
+            "required": true
+          },
+          {
+            "name": "title",
+            "key": "title",
             "type": "string",
             "description": "Título limpio del evento o reunión sin fechas ni horas (ej: 'Reunión', 'Reunión en Teams', 'Dentista')",
             "required": true
           },
           {
-            "name": "START_DATE",
-            "key": "START_DATE",
+            "name": "startDate",
+            "key": "startDate",
             "type": "string",
-            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss) calculada a partir de 'hoy', 'mañana' o fecha especificada con la hora solicitada",
+            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss). Si el usuario dijo 'mañana' suma 1 día. Si dijo 'el 25' calcula la fecha de ese día. NUNCA uses la fecha de hoy si se especificó otro día",
             "required": true
           },
           {
-            "name": "DURATION",
-            "key": "DURATION",
+            "name": "duration",
+            "key": "duration",
             "type": "integer",
             "description": "Duración estimada en minutos (por defecto 60)",
             "required": false
@@ -73,41 +80,43 @@
           {
             "input": "reunión hoy a las 9:40",
             "output": {
-              "INTENT": "calendar_create",
-              "TITLE": "Reunión",
-              "START_DATE": "2026-10-21T09:40:00",
-              "DURATION": "60",
-              "CONFIDENCE": "high"
+              "action": "create",
+              "title": "Reunión",
+              "startDate": "2026-10-21T09:40:00",
+              "duration": "60"
             }
           },
           {
             "input": "reunion en teams mañana a las 10am",
             "output": {
-              "INTENT": "calendar_create",
-              "TITLE": "Reunión en Teams",
-              "START_DATE": "2026-10-22T10:00:00",
-              "DURATION": "60",
-              "CONFIDENCE": "high"
+              "action": "create",
+              "title": "Reunión en Teams",
+              "startDate": "2026-10-22T10:00:00",
+              "duration": "60"
             }
           },
           {
             "input": "reunion en teams el dia 25 a las 4pm",
             "output": {
-              "INTENT": "calendar_create",
-              "TITLE": "Reunión en Teams",
-              "START_DATE": "2026-10-25T16:00:00",
-              "DURATION": "60",
-              "CONFIDENCE": "high"
+              "action": "create",
+              "title": "Reunión en Teams",
+              "startDate": "2026-10-25T16:00:00",
+              "duration": "60"
+            }
+          },
+          {
+            "input": "cita con el médico el viernes a las 3:30 de la tarde",
+            "output": {
+              "action": "create",
+              "title": "Cita con el médico",
+              "startDate": "2026-10-30T15:30:00",
+              "duration": "60"
             }
           },
           {
             "input": "qué tengo en el calendario?",
             "output": {
-              "INTENT": "calendar_list",
-              "TITLE": "",
-              "START_DATE": "",
-              "DURATION": "",
-              "CONFIDENCE": "high"
+              "action": "list"
             }
           }
         ],

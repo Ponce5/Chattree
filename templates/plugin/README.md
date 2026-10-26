@@ -28,7 +28,7 @@ Open `plugin.json` and adjust the identifying metadata for your plugin:
 
 1. **`id`**: Replace `com.example.starter` with your reverse-domain identifier (e.g. `com.yourdomain.plugin-name`).
 2. **`name` & `description`**: Set the public title and description of your plugin.
-3. **`primaryCommand`**: The slash command users will type (e.g. `weather`, `calc`, `todo`).
+3. **`primaryCommand`**: The slash command users will type (e.g. `echo`, `calendar`, `todo`).
 4. **`capabilities`**: Add any Host API permissions needed (e.g. `["storage.private", "network.http"]`).
 5. **`entrypoint`**: Must match the exported function name in your WebAssembly source (default: `starter_entry`).
 

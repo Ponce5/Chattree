@@ -13,6 +13,7 @@ Welcome to the technical documentation library for the **Chattree** ecosystem â€
 - **[Authentication & Configuration](./authentication-configuration.md)**: Zero-telemetry hardware keystore security, API keys for remote models, and plugin permission controls.
 - **[Notes & Reminders (Vector RAG)](./notes-reminders.md)**: Conversational slash commands (`/note`, `/reminder`) and programmatic Host API access with vector indexing.
 - **[Visual Design Architecture (`/visual`)](./visual-design.md)**: Generative vector SVG graphics pipeline, resilient two-pass extraction, SvgSanitizer security, and atomic persistence.
+- **[Inbound Webhooks & Event Pipeline](./inbound-webhooks.md)**: Local loopback HTTP listener, HMAC-SHA256 verification, SSRF protection, SQLite event journal, and lifecycle auto-resume.
 - **[External AI Providers](./ai_providers/architecture.md)**: Interface contracts, encrypted credential storage, and provider adapters for OpenAI, Gemini, and Anthropic.
 
 ### 2. WebAssembly Plugin SDK

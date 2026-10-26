@@ -27,7 +27,13 @@ WebAssembly (WASM) provides several advantages for mobile extensions:
 - **Fast Startup:** Modules instantiate in milliseconds without background runtime overhead.
 
 ### Can plugins run in the background or drain battery?
-No. Chattree plugins only execute when a slash command is explicitly triggered by the user in chat. They are subject to a 5-second timeout and an instruction fuel limit (50,000,000 instructions). Plugins cannot spawn background threads, background services, or persistent daemons.
+No. Chattree plugins only execute when a slash command is explicitly triggered by the user in chat or when an inbound event is routed to an explicit event subscription. They are subject to a 5-second timeout and an instruction fuel limit (50,000,000 instructions). Plugins cannot spawn background threads, background services, or persistent daemons.
+
+### How does Chattree handle background execution and notifications on Android?
+Reminders are scheduled using Android's native `AlarmManager` (exact alarms via `flutter_local_notifications`). This allows Android to wake up and fire scheduled notifications at the exact target time with zero battery drain while the app is closed.
+
+### Can the inbound webhook server run in the background?
+The local webhook listener (`127.0.0.1`) operates while Chattree is in the foreground. Mobile operating systems suspend unprivileged TCP listener sockets when apps are minimized. To avoid draining your battery with an intrusive persistent Android Foreground Service notification, Chattree pauses the socket when backgrounded and automatically re-binds it when you bring the app back to the foreground.
 
 ### Can plugins read my chat history?
 No. The Host API strictly prevents plugins from reading previous conversation history. The `chattree.context.read` capability only provides the single text message passed to the slash command, never past conversation turns.

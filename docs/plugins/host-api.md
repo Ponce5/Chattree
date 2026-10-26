@@ -321,7 +321,7 @@ The `chattree.context.read` operation allows a plugin to inspect the conversatio
 #### Field Explanations
 
 - **`currentMessage` (string):** The complete, untruncated text of the user prompt in which the plugin command was invoked. This allows tools to understand the conversational intent, natural language modifiers, and surrounding prompt context without granting access to the full historical chat tree.
-- **`explicitContext` (string):** The specific string argument passed directly after the slash command. For example, if the prompt is `Please run /weather Tokyo tomorrow`, `explicitContext` will contain strictly `"Tokyo tomorrow"`, while `currentMessage` contains the entire sentence.
+- **`explicitContext` (string):** The specific string argument passed directly after the slash command. For example, if the prompt is `Please run /calendar schedule team standup tomorrow`, `explicitContext` will contain strictly `"schedule team standup tomorrow"`, while `currentMessage` contains the entire sentence.
 - **`authorized` (boolean):** Indicates whether the active user has granted the `chattree.context.read` capability to the plugin. If the user revokes or declines this permission, `authorized` is `false`, and `currentMessage` and `explicitContext` return empty strings (`""`).
 - **`restricted` (boolean):** Evaluates to `true` if the conversation is running under restricted privacy mode (e.g., incognito chats, ephemeral trees, or system prompts containing confidential keys). In restricted mode, external plugins cannot inspect surrounding text even if authorized, preventing context leakage.
 - **`timestamp` (number):** Unix epoch timestamp in milliseconds when the message was dispatched by the user.
