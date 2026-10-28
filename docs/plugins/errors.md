@@ -191,7 +191,21 @@ El módulo WASM no exporta la memoria ("memory").
 **How to fix:**
 - Increase `maxMemoryPages` in `plugin.json`.
 - Optimize memory usage in your WASM code.
-- Note: The absolute maximum is 256 pages (16 MB).
+- Note: The runtime supports up to 1024 pages (64 MB).
+
+---
+
+### `payload buffer exceeded` / `El payload excede la capacidad del buffer de entrada de la ABI v1`
+
+**What it means:** The payload sent to the plugin (from user chat or AI tool JSON) is larger than the static input buffer available between `inputOffset` and `outputOffset` (default 1024 bytes) in an ABI v1 plugin.
+
+**Probable cause:**
+- The plugin uses legacy ABI v1 and receives rich structured JSON or long text from the conversational model exceeding 1024 bytes.
+- `outputOffset` was left at default (1024).
+
+**How to fix:**
+1. **Recommended (Universal ABI v2):** Upgrade the plugin to Universal ABI v2 by exporting `chattree_allocate`, `chattree_deallocate`, and `chattree_dispatch`. This unlocks dynamic memory allocation and supports payloads up to 16 MB (2 MB by default). See [getting-started.md](getting-started.md).
+2. **Quick fix for ABI v1:** Set `"outputOffset": 32768` (or another offset) in `plugin.json` to allocate a larger static input window.
 
 ---
 

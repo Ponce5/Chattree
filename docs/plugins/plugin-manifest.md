@@ -163,7 +163,10 @@ Plugins can declare an optional `intentContract` inside any tool definition. Whe
 | `wasmPath` | `string` | ✅ | Path to the WASM binary inside the archive. Always `"plugin.wasm"`. |
 | `wasmSha256` | `string` | ✅ | SHA-256 hex digest of `plugin.wasm` (64 hex chars). |
 | `runtimeApiVersion` | `string` | ✅ | Must be `"1.0.0"`. |
-| `maxMemoryPages` | `integer` | ❌ | WASM memory ceiling in 64 KiB pages. Runtime default: 256 pages (16 MiB); current schema/web validator maximum: 256 pages. |
+| `maxMemoryPages` | `integer` | ❌ | WASM memory ceiling in 64 KiB pages. Runtime default: 512 pages (32 MiB); accepts up to 1024 pages (64 MiB). |
+| `maxPayloadSizeBytes` | `integer` | ❌ | Maximum request/response payload size in bytes (ABI v2). Default: 2 MiB (2097152 bytes); maximum: 16 MiB. |
+| `outputOffset` | `integer` | ❌ | Static output memory offset in bytes for legacy ABI v1 plugins. Default: 1024. Increase this (e.g. 32768) to expand ABI v1 input capacity. |
+| `inputOffset` | `integer` | ❌ | Static input memory offset in bytes for legacy ABI v1 plugins. Default: 0. |
 | `timeoutMs` | `integer` | ❌ | Per-call timeout in milliseconds. Runtime default: 5000; current validators accept up to 60000. Keep calls short and test on device. |
 | `fuelLimit` | `integer` | ❌ | Instruction fuel budget. Default: 50 000 000. |
 
