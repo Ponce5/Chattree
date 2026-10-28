@@ -65,20 +65,20 @@
   (data (i32.const 3500) "\",\"endDate\":\"")
 
   ;; --- Markdown Design Templates ---
-  ;; Header + Title label (41 bytes): "### 📅 Evento agendado\n\n> **Título:** "
-  (data (i32.const 5000) "### \f0\9f\93\85 Evento agendado\n\n> **T\c3\adtulo:** ")
+  ;; Header + Title label (39 bytes): "### 📅 Event scheduled\n\n> **Title:** "
+  (data (i32.const 5000) "### \f0\9f\93\85 Event scheduled\n\n> **Title:** ")
 
-  ;; Start date label (15 bytes): "\n> **Inicio:** "
-  (data (i32.const 5050) "\n> **Inicio:** ")
+  ;; Start date label (14 bytes): "\n> **Start:** "
+  (data (i32.const 5050) "\n> **Start:** ")
 
-  ;; End date label (12 bytes): "\n> **Fin:** "
-  (data (i32.const 5070) "\n> **Fin:** ")
+  ;; End date label (12 bytes): "\n> **End:** "
+  (data (i32.const 5070) "\n> **End:** ")
 
-  ;; Footer note (44 bytes): "\n\n*Agendado correctamente en tu calendario.*"
-  (data (i32.const 5090) "\n\n*Agendado correctamente en tu calendario.*")
+  ;; Footer note (40 bytes): "\n\n*Successfully added to your calendar.*"
+  (data (i32.const 5090) "\n\n*Successfully added to your calendar.*")
 
-  ;; Empty list response (68 bytes): "### 📅 Calendario\n\nNo tienes eventos programados en tu calendario."
-  (data (i32.const 5200) "### \f0\9f\93\85 Calendario\n\nNo tienes eventos programados en tu calendario.")
+  ;; Empty list response (65 bytes): "### 📅 Calendar\n\nNo upcoming events scheduled in your calendar."
+  (data (i32.const 5200) "### \f0\9f\93\85 Calendar\n\nNo upcoming events scheduled in your calendar.")
 
   ;; Main entrypoint: (inputPtr: i32, inputLen: i32) -> outputLen: i32
   (func (export "calendar_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
@@ -650,10 +650,10 @@
         )
 
         ;; Assemble Markdown Card at offset 1024
-        ;; Step 1: Copy header + title label (41 bytes from 5000)
+        ;; Step 1: Copy header + title label (39 bytes from 5000)
         (local.set $dest (i32.const 1024))
-        (memory.copy (local.get $dest) (i32.const 5000) (i32.const 41))
-        (local.set $dest (i32.add (local.get $dest) (i32.const 41)))
+        (memory.copy (local.get $dest) (i32.const 5000) (i32.const 39))
+        (local.set $dest (i32.add (local.get $dest) (i32.const 39)))
 
         ;; Step 2: Copy title
         (if (i32.gt_s (local.get $title_len) (i32.const 0))
@@ -663,11 +663,11 @@
           )
         )
 
-        ;; Step 3: Copy start date label (15 bytes from 5050) + start date
+        ;; Step 3: Copy start date label (14 bytes from 5050) + start date
         (if (i32.gt_s (local.get $start_len) (i32.const 0))
           (then
-            (memory.copy (local.get $dest) (i32.const 5050) (i32.const 15))
-            (local.set $dest (i32.add (local.get $dest) (i32.const 15)))
+            (memory.copy (local.get $dest) (i32.const 5050) (i32.const 14))
+            (local.set $dest (i32.add (local.get $dest) (i32.const 14)))
             (memory.copy (local.get $dest) (local.get $start_ptr) (local.get $start_len))
             (local.set $dest (i32.add (local.get $dest) (local.get $start_len)))
           )
@@ -683,9 +683,9 @@
           )
         )
 
-        ;; Step 5: Copy footer note (44 bytes from 5090)
-        (memory.copy (local.get $dest) (i32.const 5090) (i32.const 44))
-        (local.set $dest (i32.add (local.get $dest) (i32.const 44)))
+        ;; Step 5: Copy footer note (40 bytes from 5090)
+        (memory.copy (local.get $dest) (i32.const 5090) (i32.const 40))
+        (local.set $dest (i32.add (local.get $dest) (i32.const 40)))
 
         ;; Return total output length: dest - 1024
         (return (i32.sub (local.get $dest) (i32.const 1024)))
