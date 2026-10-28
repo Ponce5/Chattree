@@ -92,6 +92,7 @@ Plugins communicate with Chattree through a single imported function:
    - **Synchronous Operations** (e.g., `storage.*`, `core.*`): Executed immediately. The return value is the byte length written to `resPtr`.
    - **Asynchronous Operations** (e.g., `network.*`, `chattree.notes.*`): Returns `0` immediately. The host performs the operation asynchronously and invokes the plugin's exported `resume(resPtr, resLen)` function once complete.
 5. **Memory Safety:** If `reqLen` or `resMaxLen` exceeds allocated memory boundaries, `host_call` returns `-1` and aborts.
+6. **Direct Markdown Rendering & Conversational Bypassing:** When a plugin outputs formatted Markdown (text not wrapped in JSON brackets `{` or `[`), Chattree renders it straight into the chat bubble via Flutter's rich Markdown engine and completely bypasses the secondary LLM pass. This guarantees deterministic visual presentation and prevents local on-device models from corrupting structured output with strange symbols or hallucinations.
 
 ---
 

@@ -301,6 +301,28 @@ Chattree will:
 
 ---
 
+## Direct Markdown Output Formatting
+
+Every Chattree plugin can return **pre-formatted Markdown** directly to the user (instead of raw JSON or plain unformatted text).
+
+When your exported function or `resume()` writes formatted Markdown into the output buffer:
+- **Direct Chat Rendering:** Chattree renders the output directly in the chat bubble using Flutter's rich Markdown engine (headers `###`, blockquotes `>`, bold `**`, bullet lists, emojis like 📅, 📝, 📊, and tables).
+- **Secondary LLM Bypass:** If the returned text is formatted Markdown (i.e. does not start and end with `{ ... }` or `[ ... ]`), Chattree **automatically bypasses the second LLM generation pass**.
+- **Deterministic UI & Zero Hallucination:** On mobile devices with local LLMs (1.5B–7B models), asking the AI to re-interpret tool output can cause hallucinations, corrupted characters, or weird symbols. Returning Markdown directly guarantees 100% deterministic, immediate, and beautiful visual presentation.
+
+### Example Markdown Output Structure:
+```markdown
+### 📅 Evento agendado
+
+> **Título:** Reunión con el equipo
+> **Inicio:** 2026-10-29 15:00
+> **Fin:** 2026-10-29 15:30
+
+*Agendado correctamente en tu calendario.*
+```
+
+---
+
 ## Optional — Natural-language invocation
 
 Chattree registers declared tool metadata, but natural-language invocation is mediated by the app’s intent interpreter and is not guaranteed for every provider or command. An `intentContract` can describe valid actions and fields (see [plugin-manifest.md](plugin-manifest.md)); test each supported provider and retain a usable slash-command path. Do not rely on a specific model JSON shape as a public runtime ABI.
