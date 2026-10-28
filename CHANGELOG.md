@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [Unreleased]
+
+### Changed
+- **App core (ChatController):** All user-facing strings, internal log tags, doc-comments, and system-prompt messages translated to English for consistency across the codebase.
+  - Error messages (`Provider not active`, `No model selected`, `Permission denied`, etc.) are now English.
+  - Confirmation flow prompts updated (`"Please reply \"yes\" to confirm or \"no\" to cancel."`).
+  - Visual design status labels (`🎨 Designing graphic elements…`, `🎨 Refining visual design…`) now English.
+  - Fallback `[Generation stopped]` / `[Design generation stopped]` labels now English.
+  - Unknown command hint (`Unknown command "/$command". Available commands:`) now English.
+  - System prompts sent to the LLM (`[Tool Result]:…`, `"You are the Chattree intelligent assistant."`) now English.
+  - `cancelPermissionRequest` message (`"Permission not granted. Operation was not executed."`) now English.
+- **App core (VisualDesignTool):** `refine` / `new` English keyword aliases added alongside existing Spanish aliases so both languages are accepted as `/visual` subcommands.
+- **Tests:** Updated `plugin_permission_ui_test.dart` to accept the new English cancel-permission message via a bilingual matcher.
+
+---
+
 ## [1.0.0] - 2026-10-18
 
 ### Added
