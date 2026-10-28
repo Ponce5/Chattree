@@ -63,31 +63,34 @@ Allows the plugin to make outbound **HTTP/HTTPS** requests.
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `network.http_request` | `{ url, method?, headers?, body? }` | `{ statusCode, headers, body }` |
+| `network.http_request` | `{ url, method?, headers?, body?, bodyEncoding?, responseType?, timeoutMs? }` | `{ statusCode, headers, body, encoding, isBase64 }` |
 
 **Input fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `url` | string | ✅ | Full HTTPS/HTTP URL |
-| `method` | string | ❌ | `GET` (default), `POST`, `PUT`, `DELETE` |
+| `method` | string | ❌ | `GET` (default), `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS` |
 | `headers` | object | ❌ | Custom headers (hop-by-hop headers are stripped) |
-| `body` | string | ❌ | Request body (max 64 KB) |
+| `body` | string | ❌ | Request body (max 4 MB) |
+| `bodyEncoding` | string | ❌ | `"utf8"` (default) or `"base64"` for sending binary data |
+| `responseType` | string | ❌ | `"utf8"` or `"base64"`. If omitted, binary MIME types (audio, image, video, pdf, zip) are auto-encoded to `"base64"` |
+| `timeoutMs` | integer | ❌ | Timeout in ms (default 30000, 1000 to 60000) |
 
 **Limitations:**
 - Only `http` and `https` schemes allowed.
 - Loopback, private LAN, link-local addresses blocked (SSRF protection).
-- Max request body: 64 KB. Max response body: 128 KB.
-- Timeout: 10 seconds.
+- Max request body: 4 MB. Max response body: 8 MB.
+- Default timeout: 30 seconds (configurable up to 60s per call via `timeoutMs`).
 - Max concurrent requests per plugin: 2.
-- Allowed methods: GET, POST, PUT, DELETE only.
+- Allowed methods: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS.
 
 **Possible errors:**
 - `Permiso denegado` — capability not granted
 - `Protocolo no permitido` — non-HTTP scheme
 - `Acceso bloqueado` — private/local IP blocked
 - `Método HTTP no permitido` — unsupported method
-- `La respuesta HTTP excedió el tamaño máximo` — response > 128 KB
+- `La respuesta HTTP excedió el tamaño máximo` — response > 8 MB
 - `Tiempo de espera agotado` — timeout
 
 ---
@@ -163,11 +166,11 @@ Reads the content of a file previously selected with `files.pick`.
 | `files.read` | `{ handle, asText?: boolean }` | `{ handle, name, size, encoding, content }` |
 
 **Encoding:** `"utf8"` for text files, `"base64"` for binary files.  
-**Limitations:** Max 4 MB per file. Handle must belong to the calling plugin.
+**Limitations:** Max 8 MB per file. Handle must belong to the calling plugin.
 
 **Possible errors:**
 - `Handle invalido o expirado` — call `files.pick` first
-- `Archivo supera el limite de lectura` — file > 4 MB
+- `Archivo supera el limite de lectura` — file > 8 MB
 - `El archivo ya no existe` — file deleted after picking
 
 ---
@@ -189,7 +192,7 @@ The plugin does not control the final path — Chattree determines it.
 | `files.write` | `{ name, content, encoding? }` | `{ name, size, written, handle }` |
 
 **Encoding:** `"utf8"` (default) or `"base64"`.  
-**Limitations:** Max 2 MB per file. Path traversal (`../`) blocked.
+**Limitations:** Max 8 MB per file. Path traversal (`../`) blocked.
 
 ---
 

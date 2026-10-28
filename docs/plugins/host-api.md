@@ -138,7 +138,7 @@ Your WASM module must declare this import to use any Host API:
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `network.http_request` | ❌ | `{ url, method?, headers?, body? }` | `{ statusCode, headers, body }` |
+| `network.http_request` | ❌ | `{ url, method?, headers?, body?, bodyEncoding?, responseType?, timeoutMs? }` | `{ statusCode, headers, body, encoding?, isBase64? }` |
 
 ---
 
