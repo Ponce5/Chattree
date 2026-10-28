@@ -67,7 +67,9 @@ The `pluginId` is **always injected by the runtime** — the plugin cannot forge
 
 | Resource | Default | Configurable? |
 |----------|---------|---------------|
-| WASM linear memory | 16 MB default | Yes — `maxMemoryPages`; runtime rejects memory above the configured byte ceiling |
+| WASM linear memory | 32 MB default | Yes — `maxMemoryPages`; runtime enforces strict byte boundary |
+| ABI v1 Input Buffer | 1,024 bytes default | Yes — Configurable via `"outputOffset"` in `plugin.json` (capacity = `outputOffset - inputOffset`) |
+| ABI v2 Dynamic Payload | 2 MB default | Yes — Configurable up to 16 MB via `"maxPayloadSizeBytes"` in `plugin.json` |
 | Execution timeout | 5 seconds by default | Current manifest validators accept up to 60000 ms; enforced per invocation by runtime |
 | CPU fuel | 50 000 000 instructions | Yes — `fuelLimit` |
 | Async iterations | 10 round-trips | No |

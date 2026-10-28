@@ -71,7 +71,7 @@ Chattree incorporates an on-device vector search pipeline:
 
 To extend chat capabilities without exposing device security, Chattree runs plugins as isolated WebAssembly modules:
 - **WASM 1.0 MVP + Bulk Memory:** Supports standard WebAssembly binaries compiled from WAT, Rust, C, C++, or Zig.
-- **Linear Memory Protocol:** Plugins operate within an isolated linear memory buffer (default maximum 16 MB).
+- **Linear Memory Protocol:** Plugins operate within an isolated linear memory buffer (default maximum 32 MB, with support for payloads up to 16 MB in ABI v2 or configurable offsets in ABI v1).
 - **Instruction Fuel Limits:** Every plugin call is allocated an instruction budget (default 50,000,000 instructions) and a 5-second timeout, preventing infinite loops and freezing.
 - **No Direct System Access:** Plugins cannot access operating system sockets, filesystem paths, threads, or hardware directly.
 

@@ -70,6 +70,12 @@ When a plugin behaves unexpectedly, verify these items first:
 - **Cause:** The plugin consumed more than the allocated instruction budget (default 50,000,000 instructions).
 - **Solution:** Optimize algorithms and avoid heavy recursion or tight loops.
 
+### Error: "El payload excede la capacidad del buffer de entrada de la ABI v1"
+- **Cause:** The input payload exceeds the default ABI v1 static input buffer (1,024 bytes).
+- **Solution:**
+  1. **Configurable offsets (ABI v1):** In `plugin.json`, set `"outputOffset": 32768` (or larger) and optionally `"maxPayloadSizeBytes": 65536`.
+  2. **Universal ABI v2 (Dynamic Memory):** Export `chattree_allocate`, `chattree_deallocate`, and `chattree_dispatch` to receive dynamic allocations up to 16 MB without fixed static buffer limits.
+
 ---
 
 ## Host API & Permission Issues
