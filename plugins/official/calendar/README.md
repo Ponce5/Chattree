@@ -8,12 +8,12 @@ The **Official Calendar Plugin** provides local, on-device integration with the 
 
 - **Direct Slash Command:**
   - Create event: `/calendar <event title>` (e.g. `/calendar Dentista`)
-  - Create with exact date/time: `/calendar <event title> | <ISO startDate>` (e.g. `/calendar Reunión en Teams | 2026-10-22T09:40:00`)
-  - Create via JSON payload: `/calendar {"title": "Reunión", "startDate": "2026-10-22T09:40:00"}`
-  - List events: `/calendar list`
+  - Create with exact date/time: `/calendar <event title> | <ISO startDate> [| <ISO endDate>]` (e.g. `/calendar Reunión en Teams | 2026-10-22T09:40:00 | 2026-10-22T10:10:00`)
+  - Create via JSON payload: `/calendar {"action":"create","title":"Reunión","start":"2026-10-22T09:40:00","end":"2026-10-22T10:10:00","duration":30}`
+  - List events: `/calendar list` or `/calendar events`
 - **Conversational AI Tool Integration (`intentContract`):**
-  - Declares an `intentContract` for intent `calendar_create` with fields `TITLE`, `START_DATE` (ISO-8601), and `DURATION`.
-  - When you say *"Reunión hoy a las 9:40"* or *"Agéndame una reunión en Teams mañana a las 10 am"*, the AI automatically resolves the future date/time into ISO-8601 and invokes the plugin with the structured parameters.
+  - Declares an `intentContract` with strict 24-hour military format, exact date resolution (today, tomorrow, relative days), and duration calculation for `start`/`startDate` and `end`/`endDate`.
+  - When you say *"Reunión hoy a las 3:30 de la tarde durante media hora"* or *"Agéndame una reunión en Teams mañana a las 10 am de 45 minutos"*, the AI resolves the exact ISO-8601 timestamps and duration.
 - **Privacy & Sandboxing:**
   - Operates inside the WebAssembly linear-memory sandbox.
   - Requires explicit user authorization via `calendar.create` and `calendar.read` capabilities.

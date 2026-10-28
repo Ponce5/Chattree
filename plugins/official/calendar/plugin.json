@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "name": "Calendar Plugin",
   "description": "Official on-device calendar integration for scheduling and inspecting calendar events.",
   "author": "Chattree Core Team",
@@ -23,13 +23,15 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png",
-  "changelog": "1.5.0: Enhanced date resolution and multi-case fields support (title, startDate/start, duration, action). Provides explicit prompt rules to prevent scheduling on today when the user requested tomorrow or a specific future day.",
+  "changelog": "1.6.0: Fixed date, 24h military time conversion, and duration resolution. Added full dual-field support (start/startDate, end/endDate, duration/durationMinutes) ensuring device calendar events strictly match the exact user-requested day, hour, and duration.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "be9431418eda2cbe4d212bef882ccf9666c21f65ef41ed20a1bee4f943734f15",
+  "wasmSha256": "f79bee13e5067df618e120568b2775fa7e576124559bcb6f62f82b758f1374cb",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 4,
+  "outputOffset": 32768,
+  "maxPayloadSizeBytes": 65536,
   "timeoutMs": 5000,
   "fuelLimit": 50000000,
   "tools": [
@@ -37,90 +39,134 @@
       "id": "com.chattree.official.calendar.manager",
       "command": "calendar",
       "displayName": "Device Calendar",
-      "description": "Gestiona eventos del calendario local del dispositivo. Para crear un evento, emite JSON con {\"action\":\"create\",\"title\":\"<título limpio>\",\"startDate\":\"YYYY-MM-DDTHH:mm:ss\"}. OBLIGATORIO: Si el usuario dice 'mañana', suma 1 día a la fecha actual. Si dice un día específico (ej. 'el 25' o 'el viernes'), calcula el año-mes-día exacto de ese día; NUNCA uses la fecha de hoy si el usuario indicó otro día. Para listar eventos: {\"action\":\"list\"} o /calendar list.",
+      "description": "Gestiona eventos del calendario local del dispositivo. Para crear un evento, emite JSON con {\"action\":\"create\",\"title\":\"<título limpio>\",\"start\":\"YYYY-MM-DDTHH:mm:ss\",\"startDate\":\"YYYY-MM-DDTHH:mm:ss\",\"end\":\"YYYY-MM-DDTHH:mm:ss\",\"endDate\":\"YYYY-MM-DDTHH:mm:ss\",\"duration\":<minutos>}. REGLAS ESTRICTAS DE FECHA Y HORA: 1) Si dice 'mañana', suma exactamente 1 día a la fecha actual. 2) Si dice un día específico (ej. 'el 25' o 'el viernes'), calcula la fecha exacta YYYY-MM-DD correspondiente; NUNCA uses la fecha de hoy si se indicó otro día. 3) HORA SIEMPRE EN FORMATO MILITAR 24H: 1pm->13:00, 2pm->14:00, 3pm->15:00, 4pm->16:00, 5pm->17:00, 6pm->18:00, 7pm->19:00, 8pm->20:00, 9pm->21:00, 10pm->22:00, 11pm->23:00, 12pm->12:00, 12am->00:00, horas de la mañana 00:00 a 11:59. 4) DURACIÓN Y END: 'end' y 'endDate' DEBEN ser exactamente start + la duración solicitada (ej. si dura 30 minutos y start es 15:00:00, end es 15:30:00; si dura 2 horas, end es 17:00:00; si no se dice duración, por defecto 60 minutos). Para consultar eventos: {\"action\":\"events\"} o /calendar list.",
       "capabilities": [
         "calendar.create",
         "calendar.read"
       ],
       "intentContract": {
         "intent": "create",
-        "validIntents": ["create", "list", "unknown"],
-        "description": "Agenda eventos, reuniones o citas en el calendario del dispositivo para hoy o fechas futuras.",
+        "validIntents": ["create", "events", "list", "unknown"],
+        "description": "Agenda eventos, reuniones o citas en el calendario del dispositivo para hoy o fechas futuras, respetando con precisión absoluta el día, la hora y la duración especificados por el usuario.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'create' para agendar evento, o 'list' para consultar eventos",
+            "description": "Acción a realizar: 'create' para agendar evento, o 'events' para consultar eventos",
             "required": true
           },
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Título limpio del evento o reunión sin fechas ni horas (ej: 'Reunión', 'Reunión en Teams', 'Dentista')",
+            "description": "Título limpio y conciso del evento sin incluir fechas ni horas (ej: 'Reunión con cliente', 'Cita médica', 'Almuerzo con el equipo')",
+            "required": true
+          },
+          {
+            "name": "start",
+            "key": "start",
+            "type": "string",
+            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss). REGLAS: 1) Si dice 'mañana', suma 1 día a la fecha actual. 2) Si dice un día específico (ej. 'el 25'), usa ese día exacto YYYY-MM-DD. 3) HORA EN FORMATO 24H: ej. 3pm es 15:00:00, 4pm es 16:00:00, 10am es 10:00:00. NUNCA uses formato de 12 horas",
             "required": true
           },
           {
             "name": "startDate",
             "key": "startDate",
             "type": "string",
-            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss). Si el usuario dijo 'mañana' suma 1 día. Si dijo 'el 25' calcula la fecha de ese día. NUNCA uses la fecha de hoy si se especificó otro día",
+            "description": "Idéntico a 'start' (YYYY-MM-DDTHH:mm:ss)",
+            "required": true
+          },
+          {
+            "name": "end",
+            "key": "end",
+            "type": "string",
+            "description": "Fecha y hora exacta de finalización en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss). OBLIGATORIO: Debe ser exactamente start + la duración pedida por el usuario. Si dura 30 minutos (media hora) y start es 15:00:00, end es 15:30:00; si dura 15 min, end es 15:15:00; si dura 45 min, end es 15:45:00; si dura 2 horas, end es 17:00:00; si no se especifica duración, suma 60 minutos por defecto",
+            "required": true
+          },
+          {
+            "name": "endDate",
+            "key": "endDate",
+            "type": "string",
+            "description": "Idéntico a 'end' (YYYY-MM-DDTHH:mm:ss)",
             "required": true
           },
           {
             "name": "duration",
             "key": "duration",
             "type": "integer",
-            "description": "Duración estimada en minutos (por defecto 60)",
+            "description": "Duración estimada en minutos como entero (ej. 15, 30, 45, 60, 90, 120)",
+            "required": false
+          },
+          {
+            "name": "durationMinutes",
+            "key": "durationMinutes",
+            "type": "integer",
+            "description": "Idéntico a 'duration' (entero de minutos)",
             "required": false
           }
         ],
         "examples": [
           {
-            "input": "reunión hoy a las 9:40",
+            "input": "reunión con Juan hoy a las 3:30 de la tarde durante media hora",
             "output": {
               "action": "create",
-              "title": "Reunión",
-              "startDate": "2026-10-21T09:40:00",
-              "duration": "60"
+              "title": "Reunión con Juan",
+              "start": "2026-10-28T15:30:00",
+              "startDate": "2026-10-28T15:30:00",
+              "end": "2026-10-28T16:00:00",
+              "endDate": "2026-10-28T16:00:00",
+              "duration": 30,
+              "durationMinutes": 30
             }
           },
           {
-            "input": "reunion en teams mañana a las 10am",
+            "input": "reunion en teams mañana a las 10am por 45 minutos",
             "output": {
               "action": "create",
               "title": "Reunión en Teams",
-              "startDate": "2026-10-22T10:00:00",
-              "duration": "60"
+              "start": "2026-10-29T10:00:00",
+              "startDate": "2026-10-29T10:00:00",
+              "end": "2026-10-29T10:45:00",
+              "endDate": "2026-10-29T10:45:00",
+              "duration": 45,
+              "durationMinutes": 45
             }
           },
           {
-            "input": "reunion en teams el dia 25 a las 4pm",
+            "input": "taller de diseño el día 25 de 4pm a 6pm",
             "output": {
               "action": "create",
-              "title": "Reunión en Teams",
+              "title": "Taller de diseño",
+              "start": "2026-10-25T16:00:00",
               "startDate": "2026-10-25T16:00:00",
-              "duration": "60"
+              "end": "2026-10-25T18:00:00",
+              "endDate": "2026-10-25T18:00:00",
+              "duration": 120,
+              "durationMinutes": 120
             }
           },
           {
-            "input": "cita con el médico el viernes a las 3:30 de la tarde",
+            "input": "cita con el médico el viernes a las 9 de la mañana",
             "output": {
               "action": "create",
               "title": "Cita con el médico",
-              "startDate": "2026-10-30T15:30:00",
-              "duration": "60"
+              "start": "2026-10-30T09:00:00",
+              "startDate": "2026-10-30T09:00:00",
+              "end": "2026-10-30T10:00:00",
+              "endDate": "2026-10-30T10:00:00",
+              "duration": 60,
+              "durationMinutes": 60
             }
           },
           {
             "input": "qué tengo en el calendario?",
             "output": {
-              "action": "list"
+              "action": "events"
             }
           }
         ],
-        "maxResponseTokens": 150
+        "maxResponseTokens": 200
       }
     }
   ]
