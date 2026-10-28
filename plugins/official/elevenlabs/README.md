@@ -30,3 +30,4 @@ Plugin oficial para Chattree que integra la API de síntesis de voz de ElevenLab
    ```
 
 El archivo generado aparecerá como una burbuja interactiva en el chat con botones nativos para **Guardar** (descargar al dispositivo) y **Compartir**.
+
