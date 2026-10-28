@@ -220,6 +220,12 @@ export function validatePlugin(targetPath) {
     if (manifest.maxMemoryPages && (manifest.maxMemoryPages <= 0 || manifest.maxMemoryPages > 256)) {
       errors.push(`maxMemoryPages (${manifest.maxMemoryPages}) exceeds allowed maximum of 256 pages (16 MB).`);
     }
+    if (manifest.maxPayloadSizeBytes && (manifest.maxPayloadSizeBytes <= 0 || manifest.maxPayloadSizeBytes > 16777216)) {
+      errors.push(`maxPayloadSizeBytes (${manifest.maxPayloadSizeBytes}) exceeds maximum allowed of 16 MB (16777216 bytes).`);
+    }
+    if (manifest.outputOffset && manifest.outputOffset <= 0) {
+      errors.push(`outputOffset (${manifest.outputOffset}) must be greater than 0.`);
+    }
 
     if (Array.isArray(manifest.tools)) {
       const seenToolCmds = new Set();

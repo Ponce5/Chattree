@@ -82,20 +82,32 @@ Key points:
 
 The simplest way to start is **WebAssembly Text format (WAT)**.
 
-### Memory protocol
+### Memory protocol & ABI Versions
 
-Chattree communicates with your plugin via shared linear memory:
+Chattree supports two ABI architectures for communicating with plugins via linear memory:
 
+#### 1. Universal ABI v2 (Recommended for modern plugins & large payloads)
+ABI v2 provides dynamic memory allocation and supports payloads up to **16 MB** (2 MB by default):
+- The plugin exports `chattree_allocate(size: i32) -> i32`
+- The plugin exports `chattree_deallocate(ptr: i32, size: i32)`
+- The plugin exports `chattree_dispatch(req_ptr: i32, req_len: i32) -> i64`
+- The return value is a packed 64-bit integer: `(out_ptr << 32) | out_len`
+- Asynchronous yields return `0` while waiting for Host API calls, and resume via `resume(res_ptr, res_len) -> i64`.
+
+#### 2. Legacy ABI v1 (Static Memory)
+For simple plugins with small payloads:
 | Offset | Content |
 |--------|---------|
-| `0` | Input string (UTF-8, written by Chattree) |
+| `0` (or `inputOffset`) | Input string (UTF-8, written by Chattree) |
 | `inputLen` | End of input |
-| `1024` | **Output string starts here** (written by your WASM) |
+| `1024` (or `outputOffset`) | **Output string starts here** (written by your WASM) |
 
 Your exported function receives `(i32 inputPtr, i32 inputLen)` and must:
 1. Read the input from `[inputPtr … inputPtr+inputLen]`
-2. Write the result string starting at offset `1024`
+2. Write the result string starting at `outputOffset` (default 1024)
 3. **Return the output length** as `i32`
+
+> **Tip:** If your ABI v1 plugin needs to receive payloads larger than 1024 bytes without implementing ABI v2, you can specify `"outputOffset": 32768` (or another offset) in `plugin.json`.
 
 ### Minimal example (WAT)
 

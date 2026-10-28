@@ -190,6 +190,24 @@
       "default": 50000000,
       "description": "Instruction fuel limit to prevent infinite loops."
     },
+    "inputOffset": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Static input memory offset in bytes for legacy ABI v1 plugins."
+    },
+    "outputOffset": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1024,
+      "description": "Static output memory offset in bytes for legacy ABI v1 plugins."
+    },
+    "maxPayloadSizeBytes": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 16777216,
+      "description": "Maximum payload size in bytes accepted by this plugin (up to 16 MB)."
+    },
     "tools": {
       "type": "array",
       "items": {

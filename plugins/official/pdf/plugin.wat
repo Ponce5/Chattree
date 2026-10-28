@@ -1,16 +1,18 @@
-;; Chattree Official PDF Generator Plugin — WebAssembly Text format  v2.3.0
+;; Chattree Official PDF Generator Plugin — WebAssembly Text format  v2.4.0
 ;;
 ;; Capabilities: files.write
 ;;
-;; Protocol (Chattree async host_call):
-;;   • pdf_entry(in_ptr, in_len) → generates PDF, calls files.write via host_call,
-;;     returns 0 (async pending signal). host_call sets pendingAsyncRequest.
-;;   • resume(res_ptr, res_len) → called by Dart host after files.write completes.
-;;     Parses the file handle from the response and returns the ToolResult JSON
-;;     (PluginFileBubble contract: {type,displayText,fileHandle,fileName}).
+;; Protocol:
+;;   • ABI v2 Universal Execution:
+;;     - chattree_allocate(size) -> dynamic memory allocation starting at 3100000
+;;     - chattree_deallocate(ptr, size) -> bump pointer reset
+;;     - chattree_dispatch(req_ptr, req_len) -> returns 0 (async yield) or packed i64
+;;     - resume(res_ptr, res_len) -> returns packed i64 (out_ptr << 32) | out_len
+;;   • ABI v1 Backward Compatibility:
+;;     - pdf_entry(in_ptr, in_len)
 ;;
 ;; Memory layout:
-;;   0        input string (AI JSON / raw text)
+;;   0        input string (ABI v1 fallback)
 ;;   1024     output string (ToolResult JSON returned to chat)
 ;;   2048     host_call request JSON
 ;;   4096     host_call response JSON (4096 bytes max)
@@ -27,10 +29,19 @@
 ;;   1000000  PDF binary output
 ;;   1700000  base64-encoded PDF
 ;;   3000000  NUL-terminated PDF fragment strings (data section)
+;;   3100000  dynamic input buffer (ABI v2, up to 512 KB)
+;;   3700000  body temp sanitize buffer (80000 bytes)
 ;;
 ;; Architecture: Each page is a single BT...ET block using absolute Tm positioning.
 ;;   We track Y position per-line and emit "1 0 0 1 X Y Tm (text) Tj\n" sequences.
 ;;   Tm resets the text matrix for every line so positions do not accumulate.
+;;
+;; v2.4.0 changes:
+;;   • Upgraded to Chattree Universal ABI v2: implements chattree_allocate,
+;;     chattree_deallocate, and chattree_dispatch with 64-bit packed descriptors.
+;;   • Enables input payloads up to 512 KB, removing the 1024-byte limit of ABI v1.
+;;   • Relocated body sanitize temp buffer to 3700000 to prevent overflow into
+;;     filename, handle, and base64 alphabet buffers.
 ;;
 ;; v2.3.0 changes:
 ;;   • Fixed JSON parser: now correctly skips \" escape sequences in string values,
@@ -50,6 +61,7 @@
   (global $fname_len  (mut i32) (i32.const 0))
   (global $handle_len (mut i32) (i32.const 0))
   (global $page_count (mut i32) (i32.const 0))
+  (global $heap_ptr   (mut i32) (i32.const 3100000))
 
   ;; ── helpers ───────────────────────────────────────────────────────────────
 
@@ -972,7 +984,7 @@
   ;; ══════════════════════════════════════════════════════════════════════════
   ;; ENTRYPOINT
   ;; ══════════════════════════════════════════════════════════════════════════
-  (func (export "pdf_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
+  (func $pdf_entry (export "pdf_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
     (local $pdf_len i32) (local $b64_len i32)
     (local $req_p i32) (local $req_len i32)
     (local $idx i32)
@@ -1113,9 +1125,9 @@
     (if (i32.eq (local.get $c_start) (i32.const 70000))
       (then
         ;; Already decoded UTF-8 escapes; sanitize multi-byte UTF-8 in place
-        ;; Copy to temp 33000 area, sanitize back to 70000
-        (memory.copy (i32.const 33000) (i32.const 70000) (local.get $c_len))
-        (local.set $la (call $sanitize_ascii (i32.const 33000) (local.get $c_len) (i32.const 70000) (i32.const 80000)))
+        ;; Copy to temp 3700000 area, sanitize back to 70000
+        (memory.copy (i32.const 3700000) (i32.const 70000) (local.get $c_len))
+        (local.set $la (call $sanitize_ascii (i32.const 3700000) (local.get $c_len) (i32.const 70000) (i32.const 80000)))
       )
       (else
         (local.set $la (call $sanitize_ascii (local.get $c_start) (local.get $c_len) (i32.const 70000) (i32.const 80000)))
@@ -1201,9 +1213,9 @@
   ;; ══════════════════════════════════════════════════════════════════════════
   ;; RESUME
   ;; ══════════════════════════════════════════════════════════════════════════
-  (func (export "resume") (param $res_ptr i32) (param $res_len i32) (result i32)
+  (func (export "resume") (param $res_ptr i32) (param $res_len i32) (result i64)
     (local $idx i32) (local $h_start i32) (local $ch i32)
-    (local $out_p i32)
+    (local $out_p i32) (local $len i32)
 
     (local.set $idx (call $find_sub (local.get $res_ptr) (local.get $res_len) (i32.const 52830) (i32.const 10)))
     (if (i32.ge_s (local.get $idx) (i32.const 0))
@@ -1231,7 +1243,13 @@
     (if (i32.eqz (global.get $handle_len))
       (then
         (local.set $out_p (call $write_str (local.get $out_p) (i32.const 53200) (i32.const 117)))
-        (return (i32.sub (local.get $out_p) (i32.const 1024)))
+        (local.set $len (i32.sub (local.get $out_p) (i32.const 1024)))
+        (return
+          (i64.or
+            (i64.shl (i64.extend_i32_u (i32.const 1024)) (i64.const 32))
+            (i64.extend_i32_u (local.get $len))
+          )
+        )
       )
     )
 
@@ -1243,7 +1261,38 @@
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52990) (i32.const 14)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 49408) (global.get $fname_len)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 53100) (i32.const 2)))
-    (i32.sub (local.get $out_p) (i32.const 1024))
+    (local.set $len (i32.sub (local.get $out_p) (i32.const 1024)))
+    (i64.or
+      (i64.shl (i64.extend_i32_u (i32.const 1024)) (i64.const 32))
+      (i64.extend_i32_u (local.get $len))
+    )
+  )
+
+  ;; ══════════════════════════════════════════════════════════════════════════
+  ;; CHATTREE UNIVERSAL ABI v2 EXPORTS
+  ;; ══════════════════════════════════════════════════════════════════════════
+
+  (func (export "chattree_allocate") (param $size i32) (result i32)
+    (local $old i32)
+    (local.set $old (global.get $heap_ptr))
+    (global.set $heap_ptr (i32.add (global.get $heap_ptr) (local.get $size)))
+    (local.get $old)
+  )
+
+  (func (export "chattree_deallocate") (param $ptr i32) (param $size i32)
+    (global.set $heap_ptr (i32.const 3100000))
+  )
+
+  (func (export "chattree_dispatch") (param $req_ptr i32) (param $req_len i32) (result i64)
+    (local $ret i32)
+    (local.set $ret (call $pdf_entry (local.get $req_ptr) (local.get $req_len)))
+    (if (i32.eqz (local.get $ret))
+      (then (return (i64.const 0)))
+    )
+    (i64.or
+      (i64.shl (i64.extend_i32_u (i32.const 1024)) (i64.const 32))
+      (i64.extend_i32_u (local.get $ret))
+    )
   )
 
   ;; ── Static data sections ──────────────────────────────────────────────────
