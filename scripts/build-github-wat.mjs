@@ -36,19 +36,20 @@ function registerData(name, str) {
 // Static Strings
 const s_help = `🐙 **GitHub Integration para Chattree**
 
-Gestiona y consulta información de GitHub directamente desde tu chat con IA.
+Gestiona y consulta información de GitHub directamente en lenguaje natural o con comandos rápidos.
 
-**Comandos disponibles:**
-• \`/github config <token>\` — Guarda tu Personal Access Token (PAT)
-• \`/github status\` — Verifica el estado y cuenta vinculada
-• \`/github repo <owner/repo>\` — Información y métricas del repositorio
+**Ejemplos en lenguaje natural:**
+• \`/github que repos tengo\` o \`/github mis repos\` — Lista tus repositorios recientes
+• \`/github quien soy\` o \`/github mi perfil\` — Información de tu cuenta vinculada
+• \`/github <owner/repo>\` — Información y métricas de un repositorio
 • \`/github issues <owner/repo>\` — Lista los issues abiertos
 • \`/github prs <owner/repo>\` — Lista los pull requests abiertos
-• \`/gh <comando>\` — Alias corto para cualquier comando
+• \`/github config <token>\` — Guarda tu Personal Access Token (PAT)
+• \`/gh <consulta>\` — Alias rápido para cualquier consulta
 
 *Genera un Personal Access Token en: https://github.com/settings/tokens*`;
 
-const s_key_saved = `✅ **Token de GitHub guardado exitosamente.**\n\nYa puedes verificar tu conexión con \`/github status\` o consultar repositorios con \`/github repo <owner/repo>\`.`;
+const s_key_saved = `✅ **Token de GitHub guardado exitosamente.**\n\nYa puedes consultar tus repositorios con \`/github que repos tengo\` o verificar tu cuenta con \`/github quien soy\`.`;
 const s_key_missing = `⚠️ **No hay un token de GitHub configurado.**\n\nPor favor registra tu Personal Access Token ejecutando:\n\`/github config <tu_token>\`\n\nPuedes generar uno con permisos \`repo\` y \`read:user\` en https://github.com/settings/tokens`;
 
 const s_storage_get = JSON.stringify({ api: 'storage', operation: 'get', payload: { key: 'api_key' } });
@@ -58,6 +59,8 @@ const s_storage_set_suffix = '"}}';
 const s_http_user_prefix = '{"api":"network","operation":"http_request","payload":{"url":"https://api.github.com/user","method":"GET","headers":{"User-Agent":"Chattree-GitHub-Plugin","Accept":"application/vnd.github+json"';
 const s_http_user_auth_prefix = ',"Authorization":"Bearer ';
 const s_http_user_suffix = '},"timeoutMs":15000}}';
+
+const s_http_user_repos_prefix = '{"api":"network","operation":"http_request","payload":{"url":"https://api.github.com/user/repos?per_page=6&sort=updated","method":"GET","headers":{"User-Agent":"Chattree-GitHub-Plugin","Accept":"application/vnd.github+json"';
 
 const s_http_repo_prefix = '{"api":"network","operation":"http_request","payload":{"url":"https://api.github.com/repos/';
 const s_http_issues_suffix = '/issues?state=open&per_page=5","method":"GET","headers":{"User-Agent":"Chattree-GitHub-Plugin","Accept":"application/vnd.github+json"';
@@ -69,6 +72,12 @@ const s_status_ok_prefix = '✅ **Conectado a GitHub exitosamente**\n\n• **Usu
 const s_status_ok_name = '\n• **Nombre:** ';
 const s_status_ok_repos = '\n• **Repositorios públicos:** ';
 const s_status_ok_suffix = '\n• **Estado:** Conexión autorizada y lista.';
+
+const s_user_repos_header = '📚 **Tus repositorios recientes en GitHub:**\n\n';
+const s_user_repos_empty = 'ℹ️ No se encontraron repositorios en tu cuenta de GitHub.\n\nPuedes crear uno en https://github.com/new';
+const s_user_repos_footer = '\n*Tip: Consulta métricas de un repo con `/github <owner/repo>` o sus issues con `/github issues <owner/repo>`.*';
+const s_bullet_bold = '• **';
+const s_stars_prefix = ' (⭐ ';
 
 const s_repo_header = '📦 **Repositorio: ';
 const s_repo_stars = '\n\n⭐ **Estrellas:** ';
@@ -94,6 +103,13 @@ const d_storage_set_suffix = registerData('storage_set_suffix', s_storage_set_su
 const d_http_user_prefix = registerData('http_user_prefix', s_http_user_prefix);
 const d_http_user_auth_prefix = registerData('http_user_auth_prefix', s_http_user_auth_prefix);
 const d_http_user_suffix = registerData('http_user_suffix', s_http_user_suffix);
+const d_http_user_repos_prefix = registerData('http_user_repos_prefix', s_http_user_repos_prefix);
+
+const d_user_repos_header = registerData('user_repos_header', s_user_repos_header);
+const d_user_repos_empty = registerData('user_repos_empty', s_user_repos_empty);
+const d_user_repos_footer = registerData('user_repos_footer', s_user_repos_footer);
+const d_bullet_bold = registerData('bullet_bold', s_bullet_bold);
+const d_stars_prefix = registerData('stars_prefix', s_stars_prefix);
 
 const d_http_repo_prefix = registerData('http_repo_prefix', s_http_repo_prefix);
 const d_http_issues_suffix = registerData('http_issues_suffix', s_http_issues_suffix);
@@ -118,7 +134,7 @@ const d_auth_error = registerData('auth_error', s_auth_error);
 const d_not_found = registerData('not_found', s_not_found);
 const d_generic_error = registerData('generic_error', s_generic_error);
 
-// Needles
+// Needles for commands and patterns
 const needle_ghp = registerData('needle_ghp', 'ghp_');
 const needle_github_pat = registerData('needle_github_pat', 'github_pat_');
 const needle_config = registerData('needle_config', 'config');
@@ -128,6 +144,33 @@ const needle_prs = registerData('needle_prs', 'prs');
 const needle_pulls = registerData('needle_pulls', 'pulls');
 const needle_repo = registerData('needle_repo', 'repo');
 const needle_github_cmd = registerData('needle_github_cmd', 'github');
+
+// Natural Language Needles - User Repos
+const needle_que_repo = registerData('needle_que_repo', 'que repo');
+const needle_mis_repo = registerData('needle_mis_repo', 'mis repo');
+const needle_mis_proy = registerData('needle_mis_proy', 'mis proy');
+const needle_tengo = registerData('needle_tengo', 'tengo');
+const needle_repos = registerData('needle_repos', 'repos');
+const needle_repositorios = registerData('needle_repositorios', 'repositorio');
+
+// Natural Language Needles - User Profile / Status
+const needle_quien_soy = registerData('needle_quien_soy', 'quien soy');
+const needle_cuenta = registerData('needle_cuenta', 'cuenta');
+const needle_perfil = registerData('needle_perfil', 'perfil');
+const needle_usuario = registerData('needle_usuario', 'usuario');
+const needle_estado = registerData('needle_estado', 'estado');
+
+// Natural Language Needles - Issues & PRs
+const needle_problema = registerData('needle_problema', 'problema');
+const needle_error = registerData('needle_error', 'error');
+const needle_bug = registerData('needle_bug', 'bug');
+const needle_cambio = registerData('needle_cambio', 'cambio');
+
+// Natural Language Needles - Help
+const needle_ayuda = registerData('needle_ayuda', 'ayuda');
+const needle_help = registerData('needle_help', 'help');
+const needle_como_se_usa = registerData('needle_como_se_usa', 'como se usa');
+const needle_como_funciona = registerData('needle_como_funciona', 'como funciona');
 
 const needle_val_field = registerData('needle_val_field', '"value":"');
 const needle_status_200 = registerData('needle_status_200', '"statusCode":200');
@@ -157,7 +200,7 @@ const dataSectionWat = dataEntries
   .join('\n');
 
 const watContent = `;; Chattree Official GitHub Integration Plugin
-;; Provides repository inspection, issue listing, pull request monitoring, and token management
+;; Provides repository inspection, issue listing, pull request monitoring, user repositories, and natural language intent
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -346,6 +389,7 @@ ${dataSectionWat}
     (local $ch i32)
     (local $key_count i32)
     (local $start_scan i32)
+    (local $is_user_repos i32)
 
     (global.set $phase (i32.const 0))
     (global.set $repo_len (i32.const 0))
@@ -357,6 +401,9 @@ ${dataSectionWat}
         (return (i32.const ${d_help.length}))
       )
     )
+
+    ;; Copy input to lowercase at 50000 for NLP inspection
+    (call $to_lower (local.get $in_ptr) (i32.const 50000) (local.get $in_len))
 
     ;; 2. DIRECT TOKEN PATTERN: Search for "ghp_" or "github_pat_" ANYWHERE in input
     (local.set $tok_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_ghp.offset}) (i32.const ${needle_ghp.length})))
@@ -376,7 +423,6 @@ ${dataSectionWat}
               (if (i32.lt_u (local.get $i) (i32.const 120))
                 (then
                   (local.set $ch (i32.load8_u (i32.add (local.get $text_start) (local.get $i))))
-                  ;; Stop at space(32), quote(34), comma(44), brace(125), LF(10), CR(13), backslash(92)
                   (if (i32.and
                         (i32.and (i32.ne (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
                         (i32.and
@@ -395,7 +441,6 @@ ${dataSectionWat}
 
         (if (i32.gt_u (local.get $i) (i32.const 10))
           (then
-            ;; Save token to storage.set
             (local.set $p (call $copy_mem (i32.const ${d_storage_set_prefix.offset}) (i32.const 100000) (i32.const ${d_storage_set_prefix.length})))
             (local.set $p (call $copy_mem (local.get $text_start) (local.get $p) (local.get $i)))
             (local.set $p (call $copy_mem (i32.const ${d_storage_set_suffix.offset}) (local.get $p) (i32.const ${d_storage_set_suffix.length})))
@@ -414,7 +459,6 @@ ${dataSectionWat}
     (local.set $cfg_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_config.offset}) (i32.const ${needle_config.length})))
     (if (i32.ge_s (local.get $cfg_pos) (i32.const 0))
       (then
-        ;; Try extracting from JSON fields first if input is JSON
         (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_token_field.offset}) (i32.const ${needle_token_field.length}) (i32.const 200000) (i32.const 120)))
         (if (i32.eqz (local.get $i))
           (then
@@ -427,7 +471,6 @@ ${dataSectionWat}
           )
         )
 
-        ;; If not from JSON fields, read text after "config"
         (if (i32.eqz (local.get $i))
           (then
             (local.set $text_start (i32.add (i32.add (local.get $in_ptr) (local.get $cfg_pos)) (i32.const 6)))
@@ -486,9 +529,66 @@ ${dataSectionWat}
       )
     )
 
-    ;; 4. Check for "status"
-    (local.set $status_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_status.offset}) (i32.const ${needle_status.length})))
-    (if (i32.ge_s (local.get $status_pos) (i32.const 0))
+    ;; 4. NATURAL LANGUAGE INTENT: User Repositories ("que repos tengo", "mis repos", "tengo repos", "repositorios", "repos")
+    (local.set $is_user_repos (i32.const 0))
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_que_repo.offset}) (i32.const ${needle_que_repo.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_mis_repo.offset}) (i32.const ${needle_mis_repo.length})) (i32.const 0)))
+          (i32.or
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_mis_proy.offset}) (i32.const ${needle_mis_proy.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_tengo.offset}) (i32.const ${needle_tengo.length})) (i32.const 0)))
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_repositorios.offset}) (i32.const ${needle_repositorios.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_repos.offset}) (i32.const ${needle_repos.length})) (i32.const 0)))))
+      (then
+        ;; But only if input does not specify an explicit external owner/repo (slash '/')
+        (if (i32.lt_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 47) (i32.const 1)) (i32.const 0))
+          (then
+            (local.set $is_user_repos (i32.const 1))
+          )
+        )
+      )
+    )
+
+    (if (local.get $is_user_repos)
+      (then
+        (local.set $key_count (call $load_api_key))
+        (if (i32.eqz (local.get $key_count))
+          (then
+            (drop (call $copy_mem (i32.const ${d_key_missing.offset}) (i32.const 1024) (i32.const ${d_key_missing.length})))
+            (return (i32.const ${d_key_missing.length}))
+          )
+        )
+
+        ;; Dispatch HTTP GET /user/repos?per_page=6&sort=updated (Phase 5)
+        (local.set $p (call $copy_mem (i32.const ${d_http_user_repos_prefix.offset}) (i32.const 100000) (i32.const ${d_http_user_repos_prefix.length})))
+        (local.set $p (call $copy_mem (i32.const ${d_http_user_auth_prefix.offset}) (local.get $p) (i32.const ${d_http_user_auth_prefix.length})))
+        (local.set $p (call $copy_mem (i32.const 3000000) (local.get $p) (global.get $key_len)))
+        (i32.store8 (local.get $p) (i32.const 34))
+        (local.set $p (i32.add (local.get $p) (i32.const 1)))
+        (local.set $p (call $copy_mem (i32.const ${d_http_user_suffix.offset}) (local.get $p) (i32.const ${d_http_user_suffix.length})))
+        (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+
+        (global.set $phase (i32.const 5))
+        (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 1000000)))
+        (return (i32.const 0))
+      )
+    )
+
+    ;; 5. NATURAL LANGUAGE INTENT: User Profile / Status ("status", "quien soy", "mi perfil", "mi cuenta", "usuario", "estado")
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_status.offset}) (i32.const ${needle_status.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_quien_soy.offset}) (i32.const ${needle_quien_soy.length})) (i32.const 0)))
+          (i32.or
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_cuenta.offset}) (i32.const ${needle_cuenta.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_perfil.offset}) (i32.const ${needle_perfil.length})) (i32.const 0)))
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_usuario.offset}) (i32.const ${needle_usuario.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_estado.offset}) (i32.const ${needle_estado.length})) (i32.const 0)))))
       (then
         (local.set $key_count (call $load_api_key))
         (if (i32.eqz (local.get $key_count))
@@ -513,10 +613,21 @@ ${dataSectionWat}
       )
     )
 
-    ;; 5. Search for repo name (owner/repo)
-    (call $to_lower (local.get $in_ptr) (i32.const 50000) (local.get $in_len))
+    ;; 6. Check for Help keywords
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_ayuda.offset}) (i32.const ${needle_ayuda.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_help.offset}) (i32.const ${needle_help.length})) (i32.const 0)))
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_como_se_usa.offset}) (i32.const ${needle_como_se_usa.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_como_funciona.offset}) (i32.const ${needle_como_funciona.length})) (i32.const 0))))
+      (then
+        (drop (call $copy_mem (i32.const ${d_help.offset}) (i32.const 1024) (i32.const ${d_help.length})))
+        (return (i32.const ${d_help.length}))
+      )
+    )
 
-    ;; Start search after any command prefix (skip "github", "repo", "issues", "prs")
+    ;; 7. Search for specific repo name (contains owner/repo)
     (local.set $start_scan (i32.const 0))
     (local.set $p (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_github_cmd.offset}) (i32.const ${needle_github_cmd.length})))
     (if (i32.and (i32.ge_s (local.get $p) (i32.const 0)) (i32.lt_u (local.get $p) (i32.const 15)))
@@ -536,7 +647,7 @@ ${dataSectionWat}
       )
     )
 
-    ;; Now find a slash '/' at or after $start_scan
+    ;; Find slash '/' at or after $start_scan
     (local.set $i (local.get $start_scan))
     (local.set $text_start (i32.const -1))
     (loop $find_slash
@@ -544,11 +655,9 @@ ${dataSectionWat}
         (then
           (if (i32.eq (i32.load8_u (i32.add (i32.const 50000) (local.get $i))) (i32.const 47))
             (then
-              ;; Ensure there is at least one letter before the slash and after $start_scan
               (if (i32.gt_u (local.get $i) (local.get $start_scan))
                 (then
                   (local.set $text_start (local.get $i))
-                  ;; Walk backwards to find start of owner name
                   (loop $find_owner_start
                     (if (i32.gt_u (local.get $text_start) (local.get $start_scan))
                       (then
@@ -578,7 +687,6 @@ ${dataSectionWat}
       )
     )
 
-    ;; If owner/repo found (text_start >= 0 and has chars), extract it into 300000
     (if (i32.ge_s (local.get $text_start) (i32.const 0))
       (then
         (local.set $i (i32.const 0))
@@ -604,7 +712,6 @@ ${dataSectionWat}
             )
           )
         )
-        ;; A valid owner/repo must be at least 3 characters and contain a slash
         (if (i32.gt_u (local.get $i) (i32.const 2))
           (then
             (global.set $repo_len (local.get $i))
@@ -624,8 +731,24 @@ ${dataSectionWat}
     ;; Read token if stored
     (drop (call $load_api_key))
 
-    ;; 5.1 Issues
+    ;; 7.1 Issues in natural language or command
     (local.set $issues_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_issues.offset}) (i32.const ${needle_issues.length})))
+    (if (i32.lt_s (local.get $issues_pos) (i32.const 0))
+      (then
+        (local.set $issues_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_problema.offset}) (i32.const ${needle_problema.length})))
+      )
+    )
+    (if (i32.lt_s (local.get $issues_pos) (i32.const 0))
+      (then
+        (local.set $issues_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_error.offset}) (i32.const ${needle_error.length})))
+      )
+    )
+    (if (i32.lt_s (local.get $issues_pos) (i32.const 0))
+      (then
+        (local.set $issues_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_bug.offset}) (i32.const ${needle_bug.length})))
+      )
+    )
+
     (if (i32.ge_s (local.get $issues_pos) (i32.const 0))
       (then
         (local.set $p (call $copy_mem (i32.const ${d_http_repo_prefix.offset}) (i32.const 100000) (i32.const ${d_http_repo_prefix.length})))
@@ -648,13 +771,19 @@ ${dataSectionWat}
       )
     )
 
-    ;; 5.2 Pull Requests
+    ;; 7.2 Pull Requests in natural language or command
     (local.set $prs_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_prs.offset}) (i32.const ${needle_prs.length})))
     (if (i32.lt_s (local.get $prs_pos) (i32.const 0))
       (then
         (local.set $prs_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_pulls.offset}) (i32.const ${needle_pulls.length})))
       )
     )
+    (if (i32.lt_s (local.get $prs_pos) (i32.const 0))
+      (then
+        (local.set $prs_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_cambio.offset}) (i32.const ${needle_cambio.length})))
+      )
+    )
+
     (if (i32.ge_s (local.get $prs_pos) (i32.const 0))
       (then
         (local.set $p (call $copy_mem (i32.const ${d_http_repo_prefix.offset}) (i32.const 100000) (i32.const ${d_http_repo_prefix.length})))
@@ -677,7 +806,7 @@ ${dataSectionWat}
       )
     )
 
-    ;; 5.3 Default for repo: Get repo info
+    ;; 7.3 Default for repo: Get repo info
     (local.set $p (call $copy_mem (i32.const ${d_http_repo_prefix.offset}) (i32.const 100000) (i32.const ${d_http_repo_prefix.length})))
     (local.set $p (call $copy_mem (i32.const 300000) (local.get $p) (global.get $repo_len)))
     (local.set $p (call $copy_mem (i32.const ${d_http_info_suffix.offset}) (local.get $p) (i32.const ${d_http_info_suffix.length})))
@@ -705,6 +834,10 @@ ${dataSectionWat}
     (local $val_start i32)
     (local $i i32)
     (local $ch i32)
+    (local $p i32)
+    (local $count i32)
+    (local $rem_len i32)
+    (local $pos i32)
 
     ;; Check for 401 Unauthorized
     (if (i32.ge_s (call $find_substring (local.get $res_ptr) (local.get $res_len) (i32.const ${needle_status_401.offset}) (i32.const ${needle_status_401.length})) (i32.const 0))
@@ -756,6 +889,77 @@ ${dataSectionWat}
       )
     )
 
+    ;; Phase 5: User Repositories (/user/repos)
+    (if (i32.eq (global.get $phase) (i32.const 5))
+      (then
+        (local.set $out (call $copy_mem (i32.const ${d_user_repos_header.offset}) (i32.const 1024) (i32.const ${d_user_repos_header.length})))
+
+        (local.set $p (local.get $res_ptr))
+        (local.set $count (i32.const 0))
+
+        (loop $find_next_repo
+          (if (i32.and (i32.lt_u (local.get $p) (i32.add (local.get $res_ptr) (local.get $res_len))) (i32.lt_u (local.get $count) (i32.const 6)))
+            (then
+              (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
+              (local.set $pos (call $find_substring (local.get $p) (local.get $rem_len) (i32.const ${needle_full_name.offset}) (i32.const ${needle_full_name.length})))
+              (if (i32.ge_s (local.get $pos) (i32.const 0))
+                (then
+                  (local.set $p (i32.add (local.get $p) (local.get $pos)))
+                  (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
+
+                  ;; Add bullet: "• **"
+                  (local.set $out (call $copy_mem (i32.const ${d_bullet_bold.offset}) (local.get $out) (i32.const ${d_bullet_bold.length})))
+
+                  ;; Extract full_name value
+                  (local.set $extracted_len (call $extract_field (local.get $p) (local.get $rem_len) (i32.const ${needle_full_name.offset}) (i32.const ${needle_full_name.length}) (local.get $out) (i32.const 60)))
+                  (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
+
+                  ;; Close bold "**"
+                  (i32.store8 (local.get $out) (i32.const 42))
+                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                  (i32.store8 (local.get $out) (i32.const 42))
+                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+
+                  ;; Advance $p past this full_name
+                  (local.set $p (i32.add (local.get $p) (i32.add (i32.const ${needle_full_name.length}) (local.get $extracted_len))))
+                  (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
+
+                  ;; Extract stars if present nearby
+                  (local.set $out (call $copy_mem (i32.const ${d_stars_prefix.offset}) (local.get $out) (i32.const ${d_stars_prefix.length})))
+                  (local.set $extracted_len (call $extract_field (local.get $p) (local.get $rem_len) (i32.const ${needle_stars.offset}) (i32.const ${needle_stars.length}) (local.get $out) (i32.const 10)))
+                  (if (i32.gt_u (local.get $extracted_len) (i32.const 0))
+                    (then (local.set $out (i32.add (local.get $out) (local.get $extracted_len))))
+                    (else
+                      (i32.store8 (local.get $out) (i32.const 48))
+                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                    )
+                  )
+                  (i32.store8 (local.get $out) (i32.const 41)) ;; ")"
+                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                  (i32.store8 (local.get $out) (i32.const 10)) ;; newline
+                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+
+                  (local.set $count (i32.add (local.get $count) (i32.const 1)))
+                  (br $find_next_repo)
+                )
+              )
+            )
+          )
+        )
+
+        (if (i32.eqz (local.get $count))
+          (then
+            (drop (call $copy_mem (i32.const ${d_user_repos_empty.offset}) (i32.const 1024) (i32.const ${d_user_repos_empty.length})))
+            (return (i32.const ${d_user_repos_empty.length}))
+          )
+          (else
+            (local.set $out (call $copy_mem (i32.const ${d_user_repos_footer.offset}) (local.get $out) (i32.const ${d_user_repos_footer.length})))
+            (return (i32.sub (local.get $out) (i32.const 1024)))
+          )
+        )
+      )
+    )
+
     ;; Phase 4: Repo Info
     (if (i32.eq (global.get $phase) (i32.const 4))
       (then
@@ -768,7 +972,6 @@ ${dataSectionWat}
             (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
           )
           (else
-            ;; fallback to query repo name
             (local.set $out (call $copy_mem (i32.const 300000) (local.get $out) (global.get $repo_len)))
           )
         )
@@ -778,9 +981,9 @@ ${dataSectionWat}
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
         (i32.store8 (local.get $out) (i32.const 42)) ;; *
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
-        (i32.store8 (local.get $out) (i32.const 10)) ;; \n
+        (i32.store8 (local.get $out) (i32.const 10)) ;; newline
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
-        (i32.store8 (local.get $out) (i32.const 10)) ;; \n
+        (i32.store8 (local.get $out) (i32.const 10)) ;; newline
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
 
         ;; Extract description
