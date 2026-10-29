@@ -27,8 +27,8 @@
     "speech",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/icon.png",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/banner.png",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/icon.png?v=1.0.4",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/banner.png?v=1.0.4",
   "changelog": "1.0.4: Updated official ElevenLabs branding with new logo and banner assets.",
   "runtime": "wasm",
   "entrypoint": "elevenlabs_entry",

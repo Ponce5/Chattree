@@ -23,8 +23,8 @@
     "export",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png?v=2.4.1",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png?v=2.4.1",
   "changelog": "2.4.1: Updated PDF visual branding to classic red theme with white typography.",
   "runtime": "wasm",
   "entrypoint": "pdf_entry",

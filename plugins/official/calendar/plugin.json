@@ -21,8 +21,8 @@
     "scheduler",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.6.4",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.6.4",
   "changelog": "1.6.4: Redesigned official Google Calendar icon and banner with modern Google Workspace styling.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
