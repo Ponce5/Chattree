@@ -153,12 +153,6 @@ function main() {
     console.log(`Attached icon.png (${fs.statSync(iconPath).size} bytes)`);
   }
 
-  const bannerPath = path.join(targetDir, "banner.png");
-  if (fs.existsSync(bannerPath)) {
-    filesToBundle.push({ name: "banner.png", data: fs.readFileSync(bannerPath) });
-    console.log(`Attached banner.png (${fs.statSync(bannerPath).size} bytes)`);
-  }
-
   const readmePath = path.join(targetDir, "README.md");
   if (fs.existsSync(readmePath)) {
     filesToBundle.push({ name: "README.md", data: fs.readFileSync(readmePath) });
