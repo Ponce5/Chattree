@@ -1,5 +1,5 @@
-;; Chattree Official GitHub Integration Plugin v1.0.8
-;; Full Dual-Engine: intentContract Host API + Native Natural Language Fallback
+;; Chattree Official GitHub Integration Plugin v1.0.9
+;; Robust Field Parsing + Dual IntentContract & Natural Language Support
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -98,33 +98,34 @@
   (data (i32.const 14503) "\e2\80\a2 **")
   (data (i32.const 14525) " (\e2\ad\90 ")
   (data (i32.const 14547) "\f0\9f\93\a6 **Repositorio: ")
-  (data (i32.const 14583) "\0a\0a\e2\ad\90 **Estrellas:** ")
-  (data (i32.const 14620) " | \f0\9f\8d\b4 **Forks:** ")
-  (data (i32.const 14655) "\0a\f0\9f\94\97 **Enlace:** ")
-  (data (i32.const 14689) "\f0\9f\93\8b **Issues recientes en ")
-  (data (i32.const 14732) "\f0\9f\94\80 **Pull Requests recientes en ")
-  (data (i32.const 14782) ":**\0a\0a")
-  (data (i32.const 14803) "\f0\9f\93\84 **README de ")
-  (data (i32.const 14836) ":**\0a\0a")
-  (data (i32.const 14857) "\e2\84\b9\ef\b8\8f Este repositorio no tiene un README disponible.")
-  (data (i32.const 14927) "\f0\9f\94\8d **Resultados de b\c3\basqueda en ")
-  (data (i32.const 14977) "\0a\e2\80\a2 ")
-  (data (i32.const 14998) "\e2\84\b9\ef\b8\8f No se encontraron coincidencias para esa b\c3\basqueda.")
-  (data (i32.const 15072) "\e2\9c\85 **Issue creado en ")
-  (data (i32.const 15110) ":**\0a\0aPuedes verlo en: https://github.com/")
-  (data (i32.const 15167) "/issues")
-  (data (i32.const 15190) "\e2\9a\a0\ef\b8\8f **Se requiere un token de GitHub para crear issues.**\0a\0aConfig\c3\baralo diciendo: \22configura mi token: ghp_tutoken\22")
-  (data (i32.const 15324) "\e2\9d\8c **Error de autenticaci\c3\b3n con GitHub.**\0a\0aEl token es inv\c3\a1lido o ha expirado. Configura uno nuevo diciendo:\0a\22configura mi token: ghp_nuevotoken\22")
-  (data (i32.const 15488) "\e2\9d\8c **Repositorio o recurso no encontrado en GitHub.**\0a\0aVerifica que el nombre `owner/repo` sea correcto y que tu token tenga los permisos necesarios.")
-  (data (i32.const 15654) "\e2\9d\8c **Error al consultar la API de GitHub.**\0a\0aPor favor verifica tu conexi\c3\b3n o intenta nuevamente.")
-  (data (i32.const 15769) "login")
-  (data (i32.const 15790) "name")
-  (data (i32.const 15810) "public_repos")
-  (data (i32.const 15838) "full_name")
-  (data (i32.const 15863) "stargazers_count")
-  (data (i32.const 15895) "forks_count")
-  (data (i32.const 15922) "html_url")
-  (data (i32.const 15946) "\22path\22:\22")
+  (data (i32.const 14583) "\e2\ad\90 **Estrellas:** ")
+  (data (i32.const 14618) " | \f0\9f\8d\b4 **Forks:** ")
+  (data (i32.const 14653) "\0a\f0\9f\94\97 **Enlace:** ")
+  (data (i32.const 14687) "https://github.com/")
+  (data (i32.const 14722) "\f0\9f\93\8b **Issues recientes en ")
+  (data (i32.const 14765) "\f0\9f\94\80 **Pull Requests recientes en ")
+  (data (i32.const 14815) ":**\0a\0a")
+  (data (i32.const 14836) "\f0\9f\93\84 **README de ")
+  (data (i32.const 14869) ":**\0a\0a")
+  (data (i32.const 14890) "\e2\84\b9\ef\b8\8f Este repositorio no tiene un README disponible.")
+  (data (i32.const 14960) "\f0\9f\94\8d **Resultados de b\c3\basqueda en ")
+  (data (i32.const 15010) "\0a\e2\80\a2 ")
+  (data (i32.const 15031) "\e2\84\b9\ef\b8\8f No se encontraron coincidencias para esa b\c3\basqueda.")
+  (data (i32.const 15105) "\e2\9c\85 **Issue creado en ")
+  (data (i32.const 15143) ":**\0a\0aPuedes verlo en: https://github.com/")
+  (data (i32.const 15200) "/issues")
+  (data (i32.const 15223) "\e2\9a\a0\ef\b8\8f **Se requiere un token de GitHub para crear issues.**\0a\0aConfig\c3\baralo diciendo: \22configura mi token: ghp_tutoken\22")
+  (data (i32.const 15357) "\e2\9d\8c **Error de autenticaci\c3\b3n con GitHub.**\0a\0aEl token es inv\c3\a1lido o ha expirado. Configura uno nuevo diciendo:\0a\22configura mi token: ghp_nuevotoken\22")
+  (data (i32.const 15521) "\e2\9d\8c **Repositorio o recurso no encontrado en GitHub.**\0a\0aVerifica que el nombre `owner/repo` sea correcto y que tu token tenga los permisos necesarios.")
+  (data (i32.const 15687) "\e2\9d\8c **Error al consultar la API de GitHub.**\0a\0aPor favor verifica tu conexi\c3\b3n o intenta nuevamente.")
+  (data (i32.const 15802) "login")
+  (data (i32.const 15823) "name")
+  (data (i32.const 15843) "public_repos")
+  (data (i32.const 15871) "full_name")
+  (data (i32.const 15896) "description")
+  (data (i32.const 15923) "stargazers_count")
+  (data (i32.const 15955) "forks_count")
+  (data (i32.const 15982) "\22path\22:\22")
 
   ;; ── copy_mem ─────────────────────────────────────────────────────────────
   (func $copy_mem (param $src i32) (param $dst i32) (param $len i32) (result i32)
@@ -190,8 +191,8 @@
     (i32.const -1)
   )
 
-  ;; ── extract_str_field ─────────────────────────────────────────────────────
-  (func $extract_str_field
+  ;; ── extract_field: robust JSON field parser (handles strings & numbers) ───
+  (func $extract_field
     (param $src i32) (param $src_len i32)
     (param $ndl i32) (param $ndl_len i32)
     (param $dst i32) (param $max i32)
@@ -200,6 +201,7 @@
     (local $p   i32)
     (local $end i32)
     (local $ch  i32)
+    (local $is_str i32)
     (local $n   i32)
 
     (local.set $pos (call $find_substring
@@ -208,21 +210,124 @@
     (if (i32.lt_s (local.get $pos) (i32.const 0))
       (then (return (i32.const 0)))
     )
+
     (local.set $p (i32.add (i32.add (local.get $src) (local.get $pos)) (local.get $ndl_len)))
     (local.set $end (i32.add (local.get $src) (local.get $src_len)))
-    (local.set $n (i32.const 0))
-    (loop $copy
-      (if (i32.and
-            (i32.lt_u (local.get $p) (local.get $end))
-            (i32.lt_u (local.get $n) (local.get $max)))
+
+    ;; Skip until colon ':' (58)
+    (loop $find_colon
+      (if (i32.lt_u (local.get $p) (local.get $end))
         (then
-          (local.set $ch (i32.load8_u (local.get $p)))
-          (if (i32.and (i32.ne (local.get $ch) (i32.const 34)) (i32.ne (local.get $ch) (i32.const 92)))
+          (if (i32.ne (i32.load8_u (local.get $p)) (i32.const 58))
             (then
+              (local.set $p (i32.add (local.get $p) (i32.const 1)))
+              (br $find_colon)
+            )
+          )
+        )
+      )
+    )
+    (if (i32.ge_u (local.get $p) (local.get $end)) (then (return (i32.const 0))))
+    (local.set $p (i32.add (local.get $p) (i32.const 1))) ;; skip ':'
+
+    ;; Skip leading spaces (32)
+    (loop $skip_ws
+      (if (i32.lt_u (local.get $p) (local.get $end))
+        (then
+          (if (i32.eq (i32.load8_u (local.get $p)) (i32.const 32))
+            (then
+              (local.set $p (i32.add (local.get $p) (i32.const 1)))
+              (br $skip_ws)
+            )
+          )
+        )
+      )
+    )
+
+    ;; Check if value is string: starts with quote (34) or backslash (92)
+    (local.set $is_str (i32.const 0))
+    (if (i32.lt_u (local.get $p) (local.get $end))
+      (then
+        (local.set $ch (i32.load8_u (local.get $p)))
+        (if (i32.eq (local.get $ch) (i32.const 92)) ;; backslash before quote
+          (then
+            (local.set $p (i32.add (local.get $p) (i32.const 1)))
+            (if (i32.lt_u (local.get $p) (local.get $end))
+              (then
+                (if (i32.eq (i32.load8_u (local.get $p)) (i32.const 34))
+                  (then
+                    (local.set $is_str (i32.const 1))
+                    (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                  )
+                )
+              )
+            )
+          )
+          (else
+            (if (i32.eq (local.get $ch) (i32.const 34))
+              (then
+                (local.set $is_str (i32.const 1))
+                (local.set $p (i32.add (local.get $p) (i32.const 1)))
+              )
+            )
+          )
+        )
+      )
+    )
+
+    (local.set $n (i32.const 0))
+    (if (local.get $is_str)
+      (then
+        ;; String value: copy until closing quote
+        (loop $cp_str
+          (if (i32.and
+                (i32.lt_u (local.get $p) (local.get $end))
+                (i32.lt_u (local.get $n) (local.get $max)))
+            (then
+              (local.set $ch (i32.load8_u (local.get $p)))
+              (if (i32.eq (local.get $ch) (i32.const 92))
+                (then
+                  (if (i32.lt_u (i32.add (local.get $p) (i32.const 1)) (local.get $end))
+                    (then
+                      (if (i32.eq (i32.load8_u (i32.add (local.get $p) (i32.const 1))) (i32.const 34))
+                        (then (return (local.get $n))) ;; reached closing "
+                      )
+                    )
+                  )
+                )
+              )
+              (if (i32.eq (local.get $ch) (i32.const 34))
+                (then (return (local.get $n))) ;; reached unescaped "
+              )
+              ;; Store character
               (i32.store8 (i32.add (local.get $dst) (local.get $n)) (local.get $ch))
               (local.set $n (i32.add (local.get $n) (i32.const 1)))
               (local.set $p (i32.add (local.get $p) (i32.const 1)))
-              (br $copy)
+              (br $cp_str)
+            )
+          )
+        )
+      )
+      (else
+        ;; Number / boolean: copy until comma (44), brace (125), quote (34), space (32), newline (10)
+        (loop $cp_num
+          (if (i32.and
+                (i32.lt_u (local.get $p) (local.get $end))
+                (i32.lt_u (local.get $n) (local.get $max)))
+            (then
+              (local.set $ch (i32.load8_u (local.get $p)))
+              (if (i32.and
+                    (i32.and (i32.ne (local.get $ch) (i32.const 44)) (i32.ne (local.get $ch) (i32.const 125)))
+                    (i32.and
+                      (i32.and (i32.ne (local.get $ch) (i32.const 34)) (i32.ne (local.get $ch) (i32.const 32)))
+                      (i32.and (i32.ne (local.get $ch) (i32.const 10)) (i32.ne (local.get $ch) (i32.const 13)))))
+                (then
+                  (i32.store8 (i32.add (local.get $dst) (local.get $n)) (local.get $ch))
+                  (local.set $n (i32.add (local.get $n) (i32.const 1)))
+                  (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                  (br $cp_num)
+                )
+              )
             )
           )
         )
@@ -346,14 +451,14 @@
     (call $to_lower (local.get $in_ptr) (i32.const 50000) (local.get $p))
 
     ;; ── 1. Extract action: check "operation":" first, then "action":" ────────
-    (local.set $act_len (call $extract_str_field
+    (local.set $act_len (call $extract_field
       (local.get $in_ptr) (local.get $in_len)
       (i32.const 10227) (i32.const 13)
       (i32.const 200000) (i32.const 20)))
 
     (if (i32.eqz (local.get $act_len))
       (then
-        (local.set $act_len (call $extract_str_field
+        (local.set $act_len (call $extract_field
           (local.get $in_ptr) (local.get $in_len)
           (i32.const 10256) (i32.const 10)
           (i32.const 200000) (i32.const 20)))
@@ -361,26 +466,26 @@
     )
 
     ;; ── 2. Extract repo from "repo":" ───────────────────────────────────────
-    (local.set $repo_len_local (call $extract_str_field
+    (local.set $repo_len_local (call $extract_field
       (local.get $in_ptr) (local.get $in_len)
       (i32.const 10282) (i32.const 8)
       (i32.const 210000) (i32.const 80)))
     (global.set $repo_len (local.get $repo_len_local))
 
     ;; ── 3. Extract query from "query":" ─────────────────────────────────────
-    (local.set $q_len (call $extract_str_field
+    (local.set $q_len (call $extract_field
       (local.get $in_ptr) (local.get $in_len)
       (i32.const 10306) (i32.const 9)
       (i32.const 220000) (i32.const 100)))
 
     ;; ── 4. Extract title from "title":" ─────────────────────────────────────
-    (local.set $t_len (call $extract_str_field
+    (local.set $t_len (call $extract_field
       (local.get $in_ptr) (local.get $in_len)
       (i32.const 10331) (i32.const 9)
       (i32.const 230000) (i32.const 150)))
 
     ;; ── 5. Extract token from "token":" or direct ghp_/github_pat_ ──────────
-    (local.set $tok_len (call $extract_str_field
+    (local.set $tok_len (call $extract_field
       (local.get $in_ptr) (local.get $in_len)
       (i32.const 10356) (i32.const 9)
       (i32.const 240000) (i32.const 120)))
@@ -415,7 +520,6 @@
               )
             )
             (local.set $tok_len (local.get $i))
-            ;; If direct token found, force config action
             (drop (call $copy_mem (i32.const 10185) (i32.const 200000) (i32.const 6)))
             (local.set $act_len (i32.const 6))
           )
@@ -423,10 +527,9 @@
       )
     )
 
-    ;; ── 6. Fallback owner/repo extraction if not found in JSON ───────────────
+    ;; ── 6. Fallback owner/repo extraction from text if repo_len == 0 ────────
     (if (i32.eqz (global.get $repo_len))
       (then
-        ;; Scan for '/' in lowercased buffer at 50000, skipping first 5 chars
         (local.set $i (i32.const 2))
         (local.set $slash_pos (i32.const -1))
         (loop $find_slash
@@ -444,7 +547,6 @@
         )
         (if (i32.gt_s (local.get $slash_pos) (i32.const 0))
           (then
-            ;; Walk backwards to start of owner (stop at space, quote, colon, slash)
             (local.set $repo_start (local.get $slash_pos))
             (loop $back_owner
               (if (i32.gt_u (local.get $repo_start) (i32.const 0))
@@ -461,7 +563,6 @@
                 )
               )
             )
-            ;; Copy owner/repo from original in_ptr
             (local.set $i (i32.const 0))
             (loop $cp_repo_raw
               (if (i32.and
@@ -780,7 +881,6 @@
     ;; ════════════════════════════════════════════════════════════════════════
     (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const 10135) (i32.const 6))
       (then
-        ;; Replace spaces in query with '+'
         (local.set $p (i32.const 0))
         (loop $enc_q
           (if (i32.lt_u (local.get $p) (local.get $q_len))
@@ -813,7 +913,7 @@
       (then
         (if (i32.eqz (global.get $key_len))
           (then
-            (drop (call $copy_mem (i32.const 15190) (i32.const 1024) (i32.const 118)))
+            (drop (call $copy_mem (i32.const 15223) (i32.const 1024) (i32.const 118)))
             (return (i32.const 118))
           )
         )
@@ -885,7 +985,7 @@
           (i32.const 11223) (i32.const 16))
          (i32.const 0))
       (then
-        (drop (call $copy_mem (i32.const 15324) (i32.const 1024) (i32.const 148)))
+        (drop (call $copy_mem (i32.const 15357) (i32.const 1024) (i32.const 148)))
         (return (i32.const 148))
       )
     )
@@ -896,7 +996,7 @@
           (i32.const 11255) (i32.const 16))
          (i32.const 0))
       (then
-        (drop (call $copy_mem (i32.const 15488) (i32.const 1024) (i32.const 150)))
+        (drop (call $copy_mem (i32.const 15521) (i32.const 1024) (i32.const 150)))
         (return (i32.const 150))
       )
     )
@@ -912,7 +1012,7 @@
             (i32.const 11191) (i32.const 16))
             (i32.const 0)))
       (then
-        (drop (call $copy_mem (i32.const 15654) (i32.const 1024) (i32.const 99)))
+        (drop (call $copy_mem (i32.const 15687) (i32.const 1024) (i32.const 99)))
         (return (i32.const 99))
       )
     )
@@ -925,21 +1025,21 @@
     (if (i32.eq (global.get $phase) (i32.const 1))
       (then
         (local.set $out (call $copy_mem (i32.const 14018) (i32.const 1024) (i32.const 59)))
-        (local.set $extracted (call $extract_str_field
+        (local.set $extracted (call $extract_field
           (local.get $res_ptr) (local.get $res_len)
-          (i32.const 15769) (i32.const 5)
+          (i32.const 15802) (i32.const 5)
           (local.get $out) (i32.const 40)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted)))
         (local.set $out (call $copy_mem (i32.const 14093) (local.get $out) (i32.const 17)))
-        (local.set $extracted (call $extract_str_field
+        (local.set $extracted (call $extract_field
           (local.get $res_ptr) (local.get $res_len)
-          (i32.const 15790) (i32.const 4)
+          (i32.const 15823) (i32.const 4)
           (local.get $out) (i32.const 60)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted)))
         (local.set $out (call $copy_mem (i32.const 14126) (local.get $out) (i32.const 33)))
-        (local.set $extracted (call $extract_str_field
+        (local.set $extracted (call $extract_field
           (local.get $res_ptr) (local.get $res_len)
-          (i32.const 15810) (i32.const 12)
+          (i32.const 15843) (i32.const 12)
           (local.get $out) (i32.const 10)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted)))
         (local.set $out (call $copy_mem (i32.const 14175) (local.get $out) (i32.const 46)))
@@ -961,15 +1061,15 @@
               (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
               (local.set $pos (call $find_substring
                 (local.get $p) (local.get $rem_len)
-                (i32.const 15838) (i32.const 9)))
+                (i32.const 15871) (i32.const 9)))
               (if (i32.ge_s (local.get $pos) (i32.const 0))
                 (then
                   (local.set $p (i32.add (local.get $p) (local.get $pos)))
                   (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
                   (local.set $out (call $copy_mem (i32.const 14503) (local.get $out) (i32.const 6)))
-                  (local.set $extracted (call $extract_str_field
+                  (local.set $extracted (call $extract_field
                     (local.get $p) (local.get $rem_len)
-                    (i32.const 15838) (i32.const 9)
+                    (i32.const 15871) (i32.const 9)
                     (local.get $out) (i32.const 80)))
                   (local.set $out (i32.add (local.get $out) (local.get $extracted)))
                   (i32.store8 (local.get $out) (i32.const 42))
@@ -979,9 +1079,9 @@
                   (local.set $p (i32.add (local.get $p) (i32.add (i32.const 9) (local.get $extracted))))
                   (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
                   (local.set $out (call $copy_mem (i32.const 14525) (local.get $out) (i32.const 6)))
-                  (local.set $extracted (call $extract_str_field
+                  (local.set $extracted (call $extract_field
                     (local.get $p) (local.get $rem_len)
-                    (i32.const 15863) (i32.const 16)
+                    (i32.const 15923) (i32.const 16)
                     (local.get $out) (i32.const 10)))
                   (if (i32.gt_u (local.get $extracted) (i32.const 0))
                     (then (local.set $out (i32.add (local.get $out) (local.get $extracted))))
@@ -1018,40 +1118,73 @@
     (if (i32.eq (global.get $phase) (i32.const 4))
       (then
         (local.set $out (call $copy_mem (i32.const 14547) (i32.const 1024) (i32.const 20)))
-        (local.set $extracted (call $extract_str_field
+        (local.set $extracted (call $extract_field
           (local.get $res_ptr) (local.get $res_len)
-          (i32.const 15838) (i32.const 9)
+          (i32.const 15871) (i32.const 9)
           (local.get $out) (i32.const 80)))
         (if (i32.gt_u (local.get $extracted) (i32.const 0))
           (then (local.set $out (i32.add (local.get $out) (local.get $extracted))))
           (else (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len))))
         )
-        (i32.store8 (local.get $out) (i32.const 42))
+        (i32.store8 (local.get $out) (i32.const 42)) ;; *
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
-        (i32.store8 (local.get $out) (i32.const 42))
+        (i32.store8 (local.get $out) (i32.const 42)) ;; *
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
-        (i32.store8 (local.get $out) (i32.const 10))
+        (i32.store8 (local.get $out) (i32.const 10)) ;; 
+
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
-        (i32.store8 (local.get $out) (i32.const 10))
+        (i32.store8 (local.get $out) (i32.const 10)) ;; 
+
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
-        (local.set $out (call $copy_mem (i32.const 14583) (local.get $out) (i32.const 21)))
-        (local.set $extracted (call $extract_str_field
+
+        ;; Extract description
+        (local.set $extracted (call $extract_field
           (local.get $res_ptr) (local.get $res_len)
-          (i32.const 15863) (i32.const 16)
+          (i32.const 15896) (i32.const 11)
+          (local.get $out) (i32.const 300)))
+        (if (i32.gt_u (local.get $extracted) (i32.const 0))
+          (then
+            (local.set $out (i32.add (local.get $out) (local.get $extracted)))
+            (i32.store8 (local.get $out) (i32.const 10))
+            (local.set $out (i32.add (local.get $out) (i32.const 1)))
+            (i32.store8 (local.get $out) (i32.const 10))
+            (local.set $out (i32.add (local.get $out) (i32.const 1)))
+          )
+        )
+
+        ;; Stars
+        (local.set $out (call $copy_mem (i32.const 14583) (local.get $out) (i32.const 19)))
+        (local.set $extracted (call $extract_field
+          (local.get $res_ptr) (local.get $res_len)
+          (i32.const 15923) (i32.const 16)
           (local.get $out) (i32.const 15)))
-        (local.set $out (i32.add (local.get $out) (local.get $extracted)))
-        (local.set $out (call $copy_mem (i32.const 14620) (local.get $out) (i32.const 19)))
-        (local.set $extracted (call $extract_str_field
+        (if (i32.gt_u (local.get $extracted) (i32.const 0))
+          (then (local.set $out (i32.add (local.get $out) (local.get $extracted))))
+          (else
+            (i32.store8 (local.get $out) (i32.const 48))
+            (local.set $out (i32.add (local.get $out) (i32.const 1)))
+          )
+        )
+
+        ;; Forks
+        (local.set $out (call $copy_mem (i32.const 14618) (local.get $out) (i32.const 19)))
+        (local.set $extracted (call $extract_field
           (local.get $res_ptr) (local.get $res_len)
-          (i32.const 15895) (i32.const 11)
+          (i32.const 15955) (i32.const 11)
           (local.get $out) (i32.const 15)))
-        (local.set $out (i32.add (local.get $out) (local.get $extracted)))
-        (local.set $out (call $copy_mem (i32.const 14655) (local.get $out) (i32.const 18)))
-        (local.set $extracted (call $extract_str_field
-          (local.get $res_ptr) (local.get $res_len)
-          (i32.const 15922) (i32.const 8)
-          (local.get $out) (i32.const 100)))
-        (local.set $out (i32.add (local.get $out) (local.get $extracted)))
+        (if (i32.gt_u (local.get $extracted) (i32.const 0))
+          (then (local.set $out (i32.add (local.get $out) (local.get $extracted))))
+          (else
+            (i32.store8 (local.get $out) (i32.const 48))
+            (local.set $out (i32.add (local.get $out) (i32.const 1)))
+          )
+        )
+
+        ;; Link: https://github.com/{repo}
+        (local.set $out (call $copy_mem (i32.const 14653) (local.get $out) (i32.const 18)))
+        (local.set $out (call $copy_mem (i32.const 14687) (local.get $out) (i32.const 19)))
+        (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len)))
+
         (return (i32.sub (local.get $out) (i32.const 1024)))
       )
     )
@@ -1060,11 +1193,11 @@
     (if (i32.or (i32.eq (global.get $phase) (i32.const 2)) (i32.eq (global.get $phase) (i32.const 3)))
       (then
         (if (i32.eq (global.get $phase) (i32.const 2))
-          (then (local.set $out (call $copy_mem (i32.const 14689) (i32.const 1024) (i32.const 27))))
-          (else (local.set $out (call $copy_mem (i32.const 14732) (i32.const 1024) (i32.const 34))))
+          (then (local.set $out (call $copy_mem (i32.const 14722) (i32.const 1024) (i32.const 27))))
+          (else (local.set $out (call $copy_mem (i32.const 14765) (i32.const 1024) (i32.const 34))))
         )
         (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len)))
-        (local.set $out (call $copy_mem (i32.const 14782) (local.get $out) (i32.const 5)))
+        (local.set $out (call $copy_mem (i32.const 14815) (local.get $out) (i32.const 5)))
         (if (i32.ge_s (local.get $body_idx) (i32.const 0))
           (then
             (local.set $val_start (i32.add (i32.add (local.get $res_ptr) (local.get $body_idx)) (i32.const 8)))
@@ -1095,9 +1228,9 @@
     ;; ── Phase 6: README ──────────────────────────────────────────────────────
     (if (i32.eq (global.get $phase) (i32.const 6))
       (then
-        (local.set $out (call $copy_mem (i32.const 14803) (i32.const 1024) (i32.const 17)))
+        (local.set $out (call $copy_mem (i32.const 14836) (i32.const 1024) (i32.const 17)))
         (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len)))
-        (local.set $out (call $copy_mem (i32.const 14836) (local.get $out) (i32.const 5)))
+        (local.set $out (call $copy_mem (i32.const 14869) (local.get $out) (i32.const 5)))
         (if (i32.ge_s (local.get $body_idx) (i32.const 0))
           (then
             (local.set $val_start (i32.add (i32.add (local.get $res_ptr) (local.get $body_idx)) (i32.const 8)))
@@ -1136,6 +1269,7 @@
                         )
                         (else
                           (i32.store8 (local.get $out) (local.get $ch))
+                          (local.set $out (i32.add (local.get $out) (local.get $extracted)))
                           (local.set $out (i32.add (local.get $out) (i32.const 1)))
                           (local.set $i (i32.add (local.get $i) (i32.const 1)))
                           (br $cp_readme)
@@ -1149,7 +1283,7 @@
             (return (i32.sub (local.get $out) (i32.const 1024)))
           )
           (else
-            (drop (call $copy_mem (i32.const 14857) (i32.const 1024) (i32.const 54)))
+            (drop (call $copy_mem (i32.const 14890) (i32.const 1024) (i32.const 54)))
             (return (i32.const 54))
           )
         )
@@ -1159,9 +1293,9 @@
     ;; ── Phase 7: Code Search ─────────────────────────────────────────────────
     (if (i32.eq (global.get $phase) (i32.const 7))
       (then
-        (local.set $out (call $copy_mem (i32.const 14927) (i32.const 1024) (i32.const 34)))
+        (local.set $out (call $copy_mem (i32.const 14960) (i32.const 1024) (i32.const 34)))
         (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len)))
-        (local.set $out (call $copy_mem (i32.const 14782) (local.get $out) (i32.const 5)))
+        (local.set $out (call $copy_mem (i32.const 14815) (local.get $out) (i32.const 5)))
         (if (i32.ge_s (local.get $body_idx) (i32.const 0))
           (then
             (local.set $val_start (i32.add (i32.add (local.get $res_ptr) (local.get $body_idx)) (i32.const 8)))
@@ -1176,11 +1310,11 @@
                   (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
                   (local.set $pos (call $find_substring
                     (local.get $p) (local.get $rem_len)
-                    (i32.const 15946) (i32.const 8)))
+                    (i32.const 15982) (i32.const 8)))
                   (if (i32.ge_s (local.get $pos) (i32.const 0))
                     (then
                       (local.set $p (i32.add (local.get $p) (i32.add (local.get $pos) (i32.const 8))))
-                      (local.set $out (call $copy_mem (i32.const 14977) (local.get $out) (i32.const 5)))
+                      (local.set $out (call $copy_mem (i32.const 15010) (local.get $out) (i32.const 5)))
                       (local.set $i (i32.const 0))
                       (loop $cp_path
                         (if (i32.and
@@ -1209,13 +1343,13 @@
             )
             (if (i32.eqz (local.get $count))
               (then
-                (drop (call $copy_mem (i32.const 14998) (i32.const 1024) (i32.const 58)))
+                (drop (call $copy_mem (i32.const 15031) (i32.const 1024) (i32.const 58)))
                 (return (i32.const 58))
               )
             )
           )
           (else
-            (drop (call $copy_mem (i32.const 14998) (i32.const 1024) (i32.const 58)))
+            (drop (call $copy_mem (i32.const 15031) (i32.const 1024) (i32.const 58)))
             (return (i32.const 58))
           )
         )
@@ -1226,16 +1360,16 @@
     ;; ── Phase 8: Create Issue ────────────────────────────────────────────────
     (if (i32.eq (global.get $phase) (i32.const 8))
       (then
-        (local.set $out (call $copy_mem (i32.const 15072) (i32.const 1024) (i32.const 22)))
+        (local.set $out (call $copy_mem (i32.const 15105) (i32.const 1024) (i32.const 22)))
         (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len)))
-        (local.set $out (call $copy_mem (i32.const 15110) (local.get $out) (i32.const 41)))
+        (local.set $out (call $copy_mem (i32.const 15143) (local.get $out) (i32.const 41)))
         (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len)))
-        (local.set $out (call $copy_mem (i32.const 15167) (local.get $out) (i32.const 7)))
+        (local.set $out (call $copy_mem (i32.const 15200) (local.get $out) (i32.const 7)))
         (return (i32.sub (local.get $out) (i32.const 1024)))
       )
     )
 
-    (drop (call $copy_mem (i32.const 15654) (i32.const 1024) (i32.const 99)))
+    (drop (call $copy_mem (i32.const 15687) (i32.const 1024) (i32.const 99)))
     (i32.const 99)
   )
 )
