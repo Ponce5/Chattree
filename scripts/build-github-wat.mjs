@@ -134,6 +134,12 @@ const needle_status_401 = registerData('needle_status_401', '"statusCode":401');
 const needle_status_404 = registerData('needle_status_404', '"statusCode":404');
 const needle_body_field = registerData('needle_body_field', '"body":"');
 
+// JSON action detection needles
+const needle_action_config = registerData('needle_action_config', '"action":"config"');
+const needle_action_status = registerData('needle_action_status', '"action":"status"');
+const needle_repo_field    = registerData('needle_repo_field',    '"repo":"');
+const needle_token_field   = registerData('needle_token_field',   '"token":"');
+
 // JSON fields to extract in GitHub responses
 const needle_login = registerData('needle_login', 'login');
 const needle_name = registerData('needle_name', 'name');
@@ -350,7 +356,60 @@ ${dataSectionWat}
       )
     )
 
-    ;; 2. Detect direct token pattern (ghp_ or github_pat_)
+    ;; 2. JSON tool-call dispatch: if input starts with '{', handle action field
+    (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123))
+      (then
+        ;; Check "action":"config"
+        (local.set $cfg_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_action_config.offset}) (i32.const ${needle_action_config.length})))
+        (if (i32.ge_s (local.get $cfg_pos) (i32.const 0))
+          (then
+            ;; Try "token":"<value>" first, then fall back to "repo":"<value>"
+            (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_token_field.offset}) (i32.const ${needle_token_field.length}) (i32.const 200000) (i32.const 120)))
+            (if (i32.eqz (local.get $i))
+              (then
+                (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_repo_field.offset}) (i32.const ${needle_repo_field.length}) (i32.const 200000) (i32.const 120)))
+              )
+            )
+            (if (i32.gt_u (local.get $i) (i32.const 4))
+              (then
+                (local.set $p (call $copy_mem (i32.const ${d_storage_set_prefix.offset}) (i32.const 100000) (i32.const ${d_storage_set_prefix.length})))
+                (local.set $p (call $copy_mem (i32.const 200000) (local.get $p) (local.get $i)))
+                (local.set $p (call $copy_mem (i32.const ${d_storage_set_suffix.offset}) (local.get $p) (i32.const ${d_storage_set_suffix.length})))
+                (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+                (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 3000500) (i32.const 1024)))
+                (drop (call $copy_mem (i32.const ${d_key_saved.offset}) (i32.const 1024) (i32.const ${d_key_saved.length})))
+                (return (i32.const ${d_key_saved.length}))
+              )
+            )
+          )
+        )
+        ;; Check "action":"status"
+        (local.set $status_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_action_status.offset}) (i32.const ${needle_action_status.length})))
+        (if (i32.ge_s (local.get $status_pos) (i32.const 0))
+          (then
+            (local.set $key_count (call $load_api_key))
+            (if (i32.eqz (local.get $key_count))
+              (then
+                (drop (call $copy_mem (i32.const ${d_key_missing.offset}) (i32.const 1024) (i32.const ${d_key_missing.length})))
+                (return (i32.const ${d_key_missing.length}))
+              )
+            )
+            (local.set $p (call $copy_mem (i32.const ${d_http_user_prefix.offset}) (i32.const 100000) (i32.const ${d_http_user_prefix.length})))
+            (local.set $p (call $copy_mem (i32.const ${d_http_user_auth_prefix.offset}) (local.get $p) (i32.const ${d_http_user_auth_prefix.length})))
+            (local.set $p (call $copy_mem (i32.const 3000000) (local.get $p) (global.get $key_len)))
+            (i32.store8 (local.get $p) (i32.const 34))
+            (local.set $p (i32.add (local.get $p) (i32.const 1)))
+            (local.set $p (call $copy_mem (i32.const ${d_http_user_suffix.offset}) (local.get $p) (i32.const ${d_http_user_suffix.length})))
+            (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+            (global.set $phase (i32.const 1))
+            (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 1000000)))
+            (return (i32.const 0))
+          )
+        )
+      )
+    )
+
+    ;; 3. Detect direct token pattern (ghp_ or github_pat_)
     (local.set $tok_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_ghp.offset}) (i32.const ${needle_ghp.length})))
     (if (i32.lt_s (local.get $tok_pos) (i32.const 0))
       (then
@@ -404,7 +463,7 @@ ${dataSectionWat}
           (if (i32.lt_u (local.get $text_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
             (then
               (local.set $ch (i32.load8_u (local.get $text_start)))
-              (if (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 58)))
+              (if (i32.or (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 58))) (i32.eq (local.get $ch) (i32.const 34)))
                 (then
                   (local.set $text_start (i32.add (local.get $text_start) (i32.const 1)))
                   (br $skip_ws)

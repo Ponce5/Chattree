@@ -53,14 +53,18 @@
   (data (i32.const 13202) "\22statusCode\22:401")
   (data (i32.const 13234) "\22statusCode\22:404")
   (data (i32.const 13266) "\22body\22:\22")
-  (data (i32.const 13290) "login")
-  (data (i32.const 13311) "name")
-  (data (i32.const 13331) "public_repos")
-  (data (i32.const 13359) "full_name")
-  (data (i32.const 13384) "description")
-  (data (i32.const 13411) "stargazers_count")
-  (data (i32.const 13443) "forks_count")
-  (data (i32.const 13470) "html_url")
+  (data (i32.const 13290) "\22action\22:\22config\22")
+  (data (i32.const 13323) "\22action\22:\22status\22")
+  (data (i32.const 13356) "\22repo\22:\22")
+  (data (i32.const 13380) "\22token\22:\22")
+  (data (i32.const 13405) "login")
+  (data (i32.const 13426) "name")
+  (data (i32.const 13446) "public_repos")
+  (data (i32.const 13474) "full_name")
+  (data (i32.const 13499) "description")
+  (data (i32.const 13526) "stargazers_count")
+  (data (i32.const 13558) "forks_count")
+  (data (i32.const 13585) "html_url")
 
   (func $copy_mem (param $src i32) (param $dst i32) (param $len i32) (result i32)
     (memory.copy (local.get $dst) (local.get $src) (local.get $len))
@@ -245,7 +249,60 @@
       )
     )
 
-    ;; 2. Detect direct token pattern (ghp_ or github_pat_)
+    ;; 2. JSON tool-call dispatch: if input starts with '{', handle action field
+    (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123))
+      (then
+        ;; Check "action":"config"
+        (local.set $cfg_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 13290) (i32.const 17)))
+        (if (i32.ge_s (local.get $cfg_pos) (i32.const 0))
+          (then
+            ;; Try "token":"<value>" first, then fall back to "repo":"<value>"
+            (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const 13380) (i32.const 9) (i32.const 200000) (i32.const 120)))
+            (if (i32.eqz (local.get $i))
+              (then
+                (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const 13356) (i32.const 8) (i32.const 200000) (i32.const 120)))
+              )
+            )
+            (if (i32.gt_u (local.get $i) (i32.const 4))
+              (then
+                (local.set $p (call $copy_mem (i32.const 11135) (i32.const 100000) (i32.const 71)))
+                (local.set $p (call $copy_mem (i32.const 200000) (local.get $p) (local.get $i)))
+                (local.set $p (call $copy_mem (i32.const 11222) (local.get $p) (i32.const 3)))
+                (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+                (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 3000500) (i32.const 1024)))
+                (drop (call $copy_mem (i32.const 10639) (i32.const 1024) (i32.const 159)))
+                (return (i32.const 159))
+              )
+            )
+          )
+        )
+        ;; Check "action":"status"
+        (local.set $status_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 13323) (i32.const 17)))
+        (if (i32.ge_s (local.get $status_pos) (i32.const 0))
+          (then
+            (local.set $key_count (call $load_api_key))
+            (if (i32.eqz (local.get $key_count))
+              (then
+                (drop (call $copy_mem (i32.const 10814) (i32.const 1024) (i32.const 226)))
+                (return (i32.const 226))
+              )
+            )
+            (local.set $p (call $copy_mem (i32.const 11241) (i32.const 100000) (i32.const 193)))
+            (local.set $p (call $copy_mem (i32.const 11450) (local.get $p) (i32.const 25)))
+            (local.set $p (call $copy_mem (i32.const 3000000) (local.get $p) (global.get $key_len)))
+            (i32.store8 (local.get $p) (i32.const 34))
+            (local.set $p (i32.add (local.get $p) (i32.const 1)))
+            (local.set $p (call $copy_mem (i32.const 11491) (local.get $p) (i32.const 21)))
+            (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+            (global.set $phase (i32.const 1))
+            (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 1000000)))
+            (return (i32.const 0))
+          )
+        )
+      )
+    )
+
+    ;; 3. Detect direct token pattern (ghp_ or github_pat_)
     (local.set $tok_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 12972) (i32.const 4)))
     (if (i32.lt_s (local.get $tok_pos) (i32.const 0))
       (then
@@ -299,7 +356,7 @@
           (if (i32.lt_u (local.get $text_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
             (then
               (local.set $ch (i32.load8_u (local.get $text_start)))
-              (if (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 58)))
+              (if (i32.or (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 58))) (i32.eq (local.get $ch) (i32.const 34)))
                 (then
                   (local.set $text_start (i32.add (local.get $text_start) (i32.const 1)))
                   (br $skip_ws)
@@ -557,19 +614,19 @@
         (local.set $out (call $copy_mem (i32.const 12052) (i32.const 1024) (i32.const 59)))
 
         ;; Extract login
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13290) (i32.const 5) (local.get $out) (i32.const 40)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13405) (i32.const 5) (local.get $out) (i32.const 40)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
 
         (local.set $out (call $copy_mem (i32.const 12127) (local.get $out) (i32.const 17)))
 
         ;; Extract name
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13311) (i32.const 4) (local.get $out) (i32.const 50)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13426) (i32.const 4) (local.get $out) (i32.const 50)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
 
         (local.set $out (call $copy_mem (i32.const 12160) (local.get $out) (i32.const 33)))
 
         ;; Extract public_repos
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13331) (i32.const 12) (local.get $out) (i32.const 10)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13446) (i32.const 12) (local.get $out) (i32.const 10)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
 
         (local.set $out (call $copy_mem (i32.const 12209) (local.get $out) (i32.const 46)))
@@ -583,7 +640,7 @@
         (local.set $out (call $copy_mem (i32.const 12271) (i32.const 1024) (i32.const 20)))
 
         ;; Extract full_name
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13359) (i32.const 9) (local.get $out) (i32.const 80)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13474) (i32.const 9) (local.get $out) (i32.const 80)))
         (if (i32.gt_u (local.get $extracted_len) (i32.const 0))
           (then
             (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
@@ -607,22 +664,22 @@
         (local.set $out (i32.add (local.get $out) (i32.const 1)))
 
         ;; Extract description
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13384) (i32.const 11) (local.get $out) (i32.const 200)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13499) (i32.const 11) (local.get $out) (i32.const 200)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
 
         ;; Stars
         (local.set $out (call $copy_mem (i32.const 12307) (local.get $out) (i32.const 21)))
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13411) (i32.const 16) (local.get $out) (i32.const 15)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13526) (i32.const 16) (local.get $out) (i32.const 15)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
 
         ;; Forks
         (local.set $out (call $copy_mem (i32.const 12344) (local.get $out) (i32.const 19)))
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13443) (i32.const 11) (local.get $out) (i32.const 15)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13558) (i32.const 11) (local.get $out) (i32.const 15)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
 
         ;; URL
         (local.set $out (call $copy_mem (i32.const 12379) (local.get $out) (i32.const 18)))
-        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13470) (i32.const 8) (local.get $out) (i32.const 100)))
+        (local.set $extracted_len (call $extract_field (local.get $res_ptr) (local.get $res_len) (i32.const 13585) (i32.const 8) (local.get $out) (i32.const 100)))
         (local.set $out (i32.add (local.get $out) (local.get $extracted_len)))
 
         (return (i32.sub (local.get $out) (i32.const 1024)))
