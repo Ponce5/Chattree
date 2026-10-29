@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "name": "GitHub",
   "description": "Official GitHub integration for Chattree. Inspect repositories, list your projects, view issues, read READMEs, search code, create issues, and manage tokens using fully natural language.",
   "author": "Chattree Core Team",
@@ -26,13 +26,13 @@
     "pullrequests",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.0.7",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.0.7",
-  "changelog": "1.0.7: Added intentContract for true 100% natural language support. The Chattree AI model now extracts the intent and fields before invoking the WASM plugin.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.0.8",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.0.8",
+  "changelog": "1.0.8: Full dual NLP and intentContract support. Supports both Host API structured operations and direct natural language text fallback.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "94e25009a3d7e5323f3d817f8d3e880c530ef18b6b436552163c7010d0d7219e",
+  "wasmSha256": "445bdaad5bb50441e8dcae1745cba73083def10dac42b5257eeb2f07c31eda35",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 30000,
@@ -42,7 +42,7 @@
       "id": "com.chattree.official.github.manager",
       "command": "github",
       "displayName": "GitHub Integration",
-      "description": "Interactúa con GitHub en lenguaje 100% natural. Puedes preguntar sobre tus repos, ver issues, leer READMEs, buscar código, crear issues y más — escribe lo que necesitas en tus propias palabras.",
+      "description": "Interactúa con GitHub en lenguaje 100% natural. Puedes consultar tus repositorios, ver issues, leer el README de un proyecto, buscar código o crear issues en tus propias palabras.",
       "capabilities": [
         "network.http",
         "storage.private",
@@ -50,37 +50,85 @@
       ],
       "intentContract": {
         "intent": "github_action",
-        "description": "Extrae la acción de GitHub que el usuario quiere realizar y sus parámetros a partir de lenguaje natural. El campo 'action' debe ser uno de: 'profile' (ver perfil/cuenta), 'my_repos' (listar repositorios del usuario), 'repo_info' (info de un repo específico), 'issues' (ver issues de un repo), 'prs' (ver pull requests de un repo), 'readme' (leer README de un repo), 'search' (buscar código en un repo), 'create_issue' (crear un issue en un repo), 'config' (guardar token), 'help' (ayuda). El campo 'repo' debe ser 'owner/repo' si el usuario mencionó un repositorio (puede inferirse del contexto, p.ej. 'el repo de chattree' → 'Ponce5/Chattree'). El campo 'query' es para búsquedas de código. El campo 'title' es el título del issue a crear. El campo 'token' es el Personal Access Token si el usuario lo proporcionó.",
+        "validIntents": [
+          "profile",
+          "my_repos",
+          "repo_info",
+          "issues",
+          "prs",
+          "readme",
+          "search",
+          "create_issue",
+          "config",
+          "help"
+        ],
+        "description": "Interactúa con GitHub para consultar repositorios, leer READMEs, ver issues o PRs, buscar código, crear issues o gestionar la cuenta.",
         "fields": [
           {
             "name": "action",
+            "key": "action",
             "type": "string",
-            "description": "La acción a ejecutar: profile | my_repos | repo_info | issues | prs | readme | search | create_issue | config | help",
+            "description": "Acción a realizar: 'profile', 'my_repos', 'repo_info', 'issues', 'prs', 'readme', 'search', 'create_issue', 'config', 'help'",
             "required": true
           },
           {
             "name": "repo",
+            "key": "repo",
             "type": "string",
-            "description": "Repositorio en formato owner/repo. Inferir del contexto si es posible.",
+            "description": "Repositorio en formato owner/repo (ej. Ponce5/Chattree)",
             "required": false
           },
           {
             "name": "query",
+            "key": "query",
             "type": "string",
-            "description": "Término de búsqueda para búsqueda de código (action=search).",
+            "description": "Término o nombre de función para buscar código",
             "required": false
           },
           {
             "name": "title",
+            "key": "title",
             "type": "string",
-            "description": "Título del issue a crear (action=create_issue).",
+            "description": "Título del issue a crear",
             "required": false
           },
           {
             "name": "token",
+            "key": "token",
             "type": "string",
-            "description": "Personal Access Token de GitHub si el usuario lo proporcionó (action=config).",
+            "description": "Personal Access Token de GitHub (ghp_...)",
             "required": false
+          }
+        ],
+        "examples": [
+          {
+            "input": "dime qué repos tengo",
+            "output": {
+              "action": "my_repos"
+            }
+          },
+          {
+            "input": "explícame el README de Ponce5/Chattree",
+            "output": {
+              "action": "readme",
+              "repo": "Ponce5/Chattree"
+            }
+          },
+          {
+            "input": "busca la función login en Ponce5/Chattree",
+            "output": {
+              "action": "search",
+              "repo": "Ponce5/Chattree",
+              "query": "login"
+            }
+          },
+          {
+            "input": "crea un issue en Ponce5/Chattree: El botón no funciona",
+            "output": {
+              "action": "create_issue",
+              "repo": "Ponce5/Chattree",
+              "title": "El botón no funciona"
+            }
           }
         ],
         "maxResponseTokens": 120
