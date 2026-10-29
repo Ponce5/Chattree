@@ -46,3 +46,4 @@ Official GitHub integration plugin for Chattree. Seamlessly inspect repositories
 - `network.http`: Communicates with `https://api.github.com` via HTTPS.
 - `storage.private`: Safely isolates and stores your token on-device.
 - `open.url`: Opens repository and issue links in your browser.
+

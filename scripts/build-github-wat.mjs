@@ -798,9 +798,11 @@ console.log('WASM SHA-256:', wasmSha256);
 
 // Update plugin.json with new wasmSha256
 const manifestPath = path.join(pluginDir, 'plugin.json');
+let version = '1.0.0';
 if (fs.existsSync(manifestPath)) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   manifest.wasmSha256 = wasmSha256;
+  version = manifest.version || '1.0.0';
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   console.log('✅ Updated plugin.json with new wasmSha256.');
 }
@@ -811,9 +813,9 @@ execSync(`node "${packScript}" "${pluginDir}"`, { stdio: 'inherit' });
 console.log('✅ Packaged plugin archive.');
 
 // Copy to slug name for publish_plugin.js
-const origPkg = path.join(pluginDir, 'com.chattree.official.github-v1.0.0.chattree-plugin');
-const slugPkg = path.join(pluginDir, 'github-v1.0.0.chattree-plugin');
+const origPkg = path.join(pluginDir, `com.chattree.official.github-v${version}.chattree-plugin`);
+const slugPkg = path.join(pluginDir, `github-v${version}.chattree-plugin`);
 if (fs.existsSync(origPkg)) {
   fs.copyFileSync(origPkg, slugPkg);
-  console.log('✅ Created github-v1.0.0.chattree-plugin.');
+  console.log(`✅ Created github-v${version}.chattree-plugin.`);
 }
