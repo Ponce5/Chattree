@@ -127,6 +127,7 @@ const needle_issues = registerData('needle_issues', 'issues');
 const needle_prs = registerData('needle_prs', 'prs');
 const needle_pulls = registerData('needle_pulls', 'pulls');
 const needle_repo = registerData('needle_repo', 'repo');
+const needle_github_cmd = registerData('needle_github_cmd', 'github');
 
 const needle_val_field = registerData('needle_val_field', '"value":"');
 const needle_status_200 = registerData('needle_status_200', '"statusCode":200');
@@ -134,11 +135,10 @@ const needle_status_401 = registerData('needle_status_401', '"statusCode":401');
 const needle_status_404 = registerData('needle_status_404', '"statusCode":404');
 const needle_body_field = registerData('needle_body_field', '"body":"');
 
-// JSON action detection needles
-const needle_action_config = registerData('needle_action_config', '"action":"config"');
-const needle_action_status = registerData('needle_action_status', '"action":"status"');
-const needle_repo_field    = registerData('needle_repo_field',    '"repo":"');
-const needle_token_field   = registerData('needle_token_field',   '"token":"');
+// JSON fields
+const needle_token_field = registerData('needle_token_field', '"token":"');
+const needle_repo_field = registerData('needle_repo_field', '"repo":"');
+const needle_title_field = registerData('needle_title_field', '"title":"');
 
 // JSON fields to extract in GitHub responses
 const needle_login = registerData('needle_login', 'login');
@@ -345,8 +345,10 @@ ${dataSectionWat}
     (local $i i32)
     (local $ch i32)
     (local $key_count i32)
+    (local $start_scan i32)
 
     (global.set $phase (i32.const 0))
+    (global.set $repo_len (i32.const 0))
 
     ;; 1. Empty input -> Help
     (if (i32.eqz (local.get $in_len))
@@ -356,60 +358,7 @@ ${dataSectionWat}
       )
     )
 
-    ;; 2. JSON tool-call dispatch: if input starts with '{', handle action field
-    (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123))
-      (then
-        ;; Check "action":"config"
-        (local.set $cfg_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_action_config.offset}) (i32.const ${needle_action_config.length})))
-        (if (i32.ge_s (local.get $cfg_pos) (i32.const 0))
-          (then
-            ;; Try "token":"<value>" first, then fall back to "repo":"<value>"
-            (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_token_field.offset}) (i32.const ${needle_token_field.length}) (i32.const 200000) (i32.const 120)))
-            (if (i32.eqz (local.get $i))
-              (then
-                (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_repo_field.offset}) (i32.const ${needle_repo_field.length}) (i32.const 200000) (i32.const 120)))
-              )
-            )
-            (if (i32.gt_u (local.get $i) (i32.const 4))
-              (then
-                (local.set $p (call $copy_mem (i32.const ${d_storage_set_prefix.offset}) (i32.const 100000) (i32.const ${d_storage_set_prefix.length})))
-                (local.set $p (call $copy_mem (i32.const 200000) (local.get $p) (local.get $i)))
-                (local.set $p (call $copy_mem (i32.const ${d_storage_set_suffix.offset}) (local.get $p) (i32.const ${d_storage_set_suffix.length})))
-                (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
-                (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 3000500) (i32.const 1024)))
-                (drop (call $copy_mem (i32.const ${d_key_saved.offset}) (i32.const 1024) (i32.const ${d_key_saved.length})))
-                (return (i32.const ${d_key_saved.length}))
-              )
-            )
-          )
-        )
-        ;; Check "action":"status"
-        (local.set $status_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_action_status.offset}) (i32.const ${needle_action_status.length})))
-        (if (i32.ge_s (local.get $status_pos) (i32.const 0))
-          (then
-            (local.set $key_count (call $load_api_key))
-            (if (i32.eqz (local.get $key_count))
-              (then
-                (drop (call $copy_mem (i32.const ${d_key_missing.offset}) (i32.const 1024) (i32.const ${d_key_missing.length})))
-                (return (i32.const ${d_key_missing.length}))
-              )
-            )
-            (local.set $p (call $copy_mem (i32.const ${d_http_user_prefix.offset}) (i32.const 100000) (i32.const ${d_http_user_prefix.length})))
-            (local.set $p (call $copy_mem (i32.const ${d_http_user_auth_prefix.offset}) (local.get $p) (i32.const ${d_http_user_auth_prefix.length})))
-            (local.set $p (call $copy_mem (i32.const 3000000) (local.get $p) (global.get $key_len)))
-            (i32.store8 (local.get $p) (i32.const 34))
-            (local.set $p (i32.add (local.get $p) (i32.const 1)))
-            (local.set $p (call $copy_mem (i32.const ${d_http_user_suffix.offset}) (local.get $p) (i32.const ${d_http_user_suffix.length})))
-            (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
-            (global.set $phase (i32.const 1))
-            (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 1000000)))
-            (return (i32.const 0))
-          )
-        )
-      )
-    )
-
-    ;; 3. Detect direct token pattern (ghp_ or github_pat_)
+    ;; 2. DIRECT TOKEN PATTERN: Search for "ghp_" or "github_pat_" ANYWHERE in input
     (local.set $tok_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_ghp.offset}) (i32.const ${needle_ghp.length})))
     (if (i32.lt_s (local.get $tok_pos) (i32.const 0))
       (then
@@ -424,12 +373,15 @@ ${dataSectionWat}
         (loop $scan_tok
           (if (i32.lt_u (i32.add (local.get $tok_pos) (local.get $i)) (local.get $in_len))
             (then
-              (if (i32.lt_u (local.get $i) (i32.const 100))
+              (if (i32.lt_u (local.get $i) (i32.const 120))
                 (then
                   (local.set $ch (i32.load8_u (i32.add (local.get $text_start) (local.get $i))))
+                  ;; Stop at space(32), quote(34), comma(44), brace(125), LF(10), CR(13), backslash(92)
                   (if (i32.and
                         (i32.and (i32.ne (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
-                        (i32.and (i32.ne (local.get $ch) (i32.const 125)) (i32.and (i32.ne (local.get $ch) (i32.const 10)) (i32.ne (local.get $ch) (i32.const 13)))))
+                        (i32.and
+                          (i32.and (i32.ne (local.get $ch) (i32.const 44)) (i32.ne (local.get $ch) (i32.const 125)))
+                          (i32.and (i32.ne (local.get $ch) (i32.const 10)) (i32.and (i32.ne (local.get $ch) (i32.const 13)) (i32.ne (local.get $ch) (i32.const 92))))))
                     (then
                       (local.set $i (i32.add (local.get $i) (i32.const 1)))
                       (br $scan_tok)
@@ -441,48 +393,75 @@ ${dataSectionWat}
           )
         )
 
-        ;; Save token to storage.set
-        (local.set $p (call $copy_mem (i32.const ${d_storage_set_prefix.offset}) (i32.const 100000) (i32.const ${d_storage_set_prefix.length})))
-        (local.set $p (call $copy_mem (local.get $text_start) (local.get $p) (local.get $i)))
-        (local.set $p (call $copy_mem (i32.const ${d_storage_set_suffix.offset}) (local.get $p) (i32.const ${d_storage_set_suffix.length})))
-        (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+        (if (i32.gt_u (local.get $i) (i32.const 10))
+          (then
+            ;; Save token to storage.set
+            (local.set $p (call $copy_mem (i32.const ${d_storage_set_prefix.offset}) (i32.const 100000) (i32.const ${d_storage_set_prefix.length})))
+            (local.set $p (call $copy_mem (local.get $text_start) (local.get $p) (local.get $i)))
+            (local.set $p (call $copy_mem (i32.const ${d_storage_set_suffix.offset}) (local.get $p) (i32.const ${d_storage_set_suffix.length})))
+            (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
 
-        (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 3000500) (i32.const 1024)))
+            (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 3000500) (i32.const 1024)))
 
-        (drop (call $copy_mem (i32.const ${d_key_saved.offset}) (i32.const 1024) (i32.const ${d_key_saved.length})))
-        (return (i32.const ${d_key_saved.length}))
+            (drop (call $copy_mem (i32.const ${d_key_saved.offset}) (i32.const 1024) (i32.const ${d_key_saved.length})))
+            (return (i32.const ${d_key_saved.length}))
+          )
+        )
       )
     )
 
-    ;; 3. Check for "config " command
+    ;; 3. Check for "config" command (text or JSON)
     (local.set $cfg_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_config.offset}) (i32.const ${needle_config.length})))
     (if (i32.ge_s (local.get $cfg_pos) (i32.const 0))
       (then
-        (local.set $text_start (i32.add (i32.add (local.get $in_ptr) (local.get $cfg_pos)) (i32.const 6)))
-        (loop $skip_ws
-          (if (i32.lt_u (local.get $text_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
-            (then
-              (local.set $ch (i32.load8_u (local.get $text_start)))
-              (if (i32.or (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 58))) (i32.eq (local.get $ch) (i32.const 34)))
+        ;; Try extracting from JSON fields first if input is JSON
+        (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_token_field.offset}) (i32.const ${needle_token_field.length}) (i32.const 200000) (i32.const 120)))
+        (if (i32.eqz (local.get $i))
+          (then
+            (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_repo_field.offset}) (i32.const ${needle_repo_field.length}) (i32.const 200000) (i32.const 120)))
+          )
+        )
+        (if (i32.eqz (local.get $i))
+          (then
+            (local.set $i (call $extract_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_title_field.offset}) (i32.const ${needle_title_field.length}) (i32.const 200000) (i32.const 120)))
+          )
+        )
+
+        ;; If not from JSON fields, read text after "config"
+        (if (i32.eqz (local.get $i))
+          (then
+            (local.set $text_start (i32.add (i32.add (local.get $in_ptr) (local.get $cfg_pos)) (i32.const 6)))
+            (loop $skip_cfg_sep
+              (if (i32.lt_u (local.get $text_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
                 (then
-                  (local.set $text_start (i32.add (local.get $text_start) (i32.const 1)))
-                  (br $skip_ws)
+                  (local.set $ch (i32.load8_u (local.get $text_start)))
+                  (if (i32.or
+                        (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 58)))
+                        (i32.or (i32.eq (local.get $ch) (i32.const 34)) (i32.eq (local.get $ch) (i32.const 61))))
+                    (then
+                      (local.set $text_start (i32.add (local.get $text_start) (i32.const 1)))
+                      (br $skip_cfg_sep)
+                    )
+                  )
                 )
               )
             )
-          )
-        )
-        (local.set $i (i32.const 0))
-        (loop $scan_cfg
-          (if (i32.lt_u (i32.add (local.get $text_start) (local.get $i)) (i32.add (local.get $in_ptr) (local.get $in_len)))
-            (then
-              (if (i32.lt_u (local.get $i) (i32.const 100))
+            (local.set $i (i32.const 0))
+            (loop $scan_cfg_raw
+              (if (i32.lt_u (i32.add (local.get $text_start) (local.get $i)) (i32.add (local.get $in_ptr) (local.get $in_len)))
                 (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $text_start) (local.get $i))))
-                  (if (i32.and (i32.ne (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
+                  (if (i32.lt_u (local.get $i) (i32.const 120))
                     (then
-                      (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                      (br $scan_cfg)
+                      (local.set $ch (i32.load8_u (i32.add (local.get $text_start) (local.get $i))))
+                      (if (i32.and
+                            (i32.and (i32.ne (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
+                            (i32.and (i32.ne (local.get $ch) (i32.const 44)) (i32.and (i32.ne (local.get $ch) (i32.const 125)) (i32.and (i32.ne (local.get $ch) (i32.const 10)) (i32.ne (local.get $ch) (i32.const 13))))))
+                        (then
+                          (i32.store8 (i32.add (i32.const 200000) (local.get $i)) (local.get $ch))
+                          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                          (br $scan_cfg_raw)
+                        )
+                      )
                     )
                   )
                 )
@@ -490,10 +469,11 @@ ${dataSectionWat}
             )
           )
         )
+
         (if (i32.gt_u (local.get $i) (i32.const 4))
           (then
             (local.set $p (call $copy_mem (i32.const ${d_storage_set_prefix.offset}) (i32.const 100000) (i32.const ${d_storage_set_prefix.length})))
-            (local.set $p (call $copy_mem (local.get $text_start) (local.get $p) (local.get $i)))
+            (local.set $p (call $copy_mem (i32.const 200000) (local.get $p) (local.get $i)))
             (local.set $p (call $copy_mem (i32.const ${d_storage_set_suffix.offset}) (local.get $p) (i32.const ${d_storage_set_suffix.length})))
             (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
 
@@ -533,27 +513,56 @@ ${dataSectionWat}
       )
     )
 
-    ;; 5. Search for repo name (contains slash '/')
+    ;; 5. Search for repo name (owner/repo)
     (call $to_lower (local.get $in_ptr) (i32.const 50000) (local.get $in_len))
 
-    (local.set $i (i32.const 0))
-    (local.set $text_start (i32.const 0))
+    ;; Start search after any command prefix (skip "github", "repo", "issues", "prs")
+    (local.set $start_scan (i32.const 0))
+    (local.set $p (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_github_cmd.offset}) (i32.const ${needle_github_cmd.length})))
+    (if (i32.and (i32.ge_s (local.get $p) (i32.const 0)) (i32.lt_u (local.get $p) (i32.const 15)))
+      (then
+        (local.set $start_scan (i32.add (local.get $p) (i32.const 6)))
+      )
+    )
+
+    (local.set $p (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_repo.offset}) (i32.const ${needle_repo.length})))
+    (if (i32.ge_s (local.get $p) (i32.const 0))
+      (then
+        (if (i32.gt_u (i32.add (local.get $p) (i32.const 4)) (local.get $start_scan))
+          (then
+            (local.set $start_scan (i32.add (local.get $p) (i32.const 4)))
+          )
+        )
+      )
+    )
+
+    ;; Now find a slash '/' at or after $start_scan
+    (local.set $i (local.get $start_scan))
+    (local.set $text_start (i32.const -1))
     (loop $find_slash
       (if (i32.lt_u (local.get $i) (local.get $in_len))
         (then
-          (if (i32.eq (i32.load8_u (i32.add (local.get $in_ptr) (local.get $i))) (i32.const 47))
+          (if (i32.eq (i32.load8_u (i32.add (i32.const 50000) (local.get $i))) (i32.const 47))
             (then
-              (local.set $text_start (local.get $i))
-              (loop $find_start
-                (if (i32.gt_u (local.get $text_start) (i32.const 0))
-                  (then
-                    (local.set $ch (i32.load8_u (i32.add (local.get $in_ptr) (i32.sub (local.get $text_start) (i32.const 1)))))
-                    (if (i32.and
-                          (i32.and (i32.ne (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
-                          (i32.and (i32.ne (local.get $ch) (i32.const 58)) (i32.ne (local.get $ch) (i32.const 61))))
+              ;; Ensure there is at least one letter before the slash and after $start_scan
+              (if (i32.gt_u (local.get $i) (local.get $start_scan))
+                (then
+                  (local.set $text_start (local.get $i))
+                  ;; Walk backwards to find start of owner name
+                  (loop $find_owner_start
+                    (if (i32.gt_u (local.get $text_start) (local.get $start_scan))
                       (then
-                        (local.set $text_start (i32.sub (local.get $text_start) (i32.const 1)))
-                        (br $find_start)
+                        (local.set $ch (i32.load8_u (i32.add (i32.const 50000) (i32.sub (local.get $text_start) (i32.const 1)))))
+                        (if (i32.and
+                              (i32.and (i32.ne (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
+                              (i32.and
+                                (i32.and (i32.ne (local.get $ch) (i32.const 58)) (i32.ne (local.get $ch) (i32.const 61)))
+                                (i32.and (i32.ne (local.get $ch) (i32.const 47)) (i32.ne (local.get $ch) (i32.const 44)))))
+                          (then
+                            (local.set $text_start (i32.sub (local.get $text_start) (i32.const 1)))
+                            (br $find_owner_start)
+                          )
+                        )
                       )
                     )
                   )
@@ -569,20 +578,21 @@ ${dataSectionWat}
       )
     )
 
-    ;; If owner/repo found, extract it into 300000
-    (if (i32.gt_u (local.get $i) (i32.const 0))
+    ;; If owner/repo found (text_start >= 0 and has chars), extract it into 300000
+    (if (i32.ge_s (local.get $text_start) (i32.const 0))
       (then
-        (local.set $text_start (i32.add (local.get $in_ptr) (local.get $text_start)))
         (local.set $i (i32.const 0))
         (loop $copy_repo
-          (if (i32.lt_u (i32.add (local.get $text_start) (local.get $i)) (i32.add (local.get $in_ptr) (local.get $in_len)))
+          (if (i32.lt_u (i32.add (local.get $text_start) (local.get $i)) (local.get $in_len))
             (then
               (if (i32.lt_u (local.get $i) (i32.const 80))
                 (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $text_start) (local.get $i))))
+                  (local.set $ch (i32.load8_u (i32.add (i32.const 50000) (i32.add (local.get $text_start) (local.get $i)))))
                   (if (i32.and
                         (i32.and (i32.ne (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
-                        (i32.and (i32.ne (local.get $ch) (i32.const 125)) (i32.and (i32.ne (local.get $ch) (i32.const 10)) (i32.ne (local.get $ch) (i32.const 13)))))
+                        (i32.and
+                          (i32.and (i32.ne (local.get $ch) (i32.const 125)) (i32.ne (local.get $ch) (i32.const 44)))
+                          (i32.and (i32.ne (local.get $ch) (i32.const 10)) (i32.ne (local.get $ch) (i32.const 13)))))
                     (then
                       (i32.store8 (i32.add (i32.const 300000) (local.get $i)) (local.get $ch))
                       (local.set $i (i32.add (local.get $i) (i32.const 1)))
@@ -594,7 +604,12 @@ ${dataSectionWat}
             )
           )
         )
-        (global.set $repo_len (local.get $i))
+        ;; A valid owner/repo must be at least 3 characters and contain a slash
+        (if (i32.gt_u (local.get $i) (i32.const 2))
+          (then
+            (global.set $repo_len (local.get $i))
+          )
+        )
       )
     )
 
