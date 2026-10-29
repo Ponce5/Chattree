@@ -1,0 +1,71 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.github",
+  "version": "1.0.0",
+  "name": "GitHub",
+  "description": "Official GitHub integration for Chattree. Inspect repositories, manage issues, view pull requests, and read source code directly in chat.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "github",
+  "aliases": [
+    "gh",
+    "git"
+  ],
+  "type": "imported",
+  "category": "devtools",
+  "capabilities": [
+    "network.http",
+    "storage.private",
+    "open.url"
+  ],
+  "tags": [
+    "github",
+    "git",
+    "devtools",
+    "issues",
+    "pullrequests",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.0.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.0.0",
+  "changelog": "1.0.0: Initial official release of the GitHub integration plugin for Chattree.",
+  "runtime": "wasm",
+  "entrypoint": "github_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "710b911d5fee7c6fb2677c57b8aff0cb1737db78d7f79ce93533174a3a7305cb",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 64,
+  "timeoutMs": 30000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.github.manager",
+      "command": "github",
+      "displayName": "GitHub Integration",
+      "description": "Administra e interactúa con repositorios de GitHub. Consulta repositorios, lista issues, revisa pull requests y verifica tu cuenta. Configuración con /github config <token>.",
+      "capabilities": [
+        "network.http",
+        "storage.private",
+        "open.url"
+      ],
+      "intentContract": {
+        "intent": "github_action",
+        "description": "Interactúa con repositorios de GitHub para consultar información, issues o pull requests.",
+        "fields": [
+          {
+            "name": "action",
+            "type": "string",
+            "description": "Acción a realizar: status, repo, issues, prs, o config",
+            "required": true
+          },
+          {
+            "name": "repo",
+            "type": "string",
+            "description": "Nombre del repositorio en formato owner/repo (ej. Ponce5/Chattree)",
+            "required": false
+          }
+        ]
+      }
+    }
+  ]
+}
