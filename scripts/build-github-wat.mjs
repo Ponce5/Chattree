@@ -44,6 +44,9 @@ Gestiona y consulta información de GitHub directamente en lenguaje natural o co
 • \`/github <owner/repo>\` — Información y métricas de un repositorio
 • \`/github issues <owner/repo>\` — Lista los issues abiertos
 • \`/github prs <owner/repo>\` — Lista los pull requests abiertos
+• \`/github readme <owner/repo>\` — Lee el README del repositorio
+• \`/github search <owner/repo> <término>\` — Busca código en el repositorio
+• \`/github crear issue <owner/repo> <título>\` — Crea un issue en el repositorio
 • \`/github config <token>\` — Guarda tu Personal Access Token (PAT)
 • \`/gh <consulta>\` — Alias rápido para cualquier consulta
 
@@ -92,6 +95,31 @@ const s_auth_error = '❌ **Error de autenticación con GitHub**\n\nEl token con
 const s_not_found = '❌ **Repositorio o recurso no encontrado en GitHub.**\n\nVerifica que el nombre `owner/repo` sea correcto y que tu token tenga los permisos necesarios.';
 const s_generic_error = '❌ **Error al consultar la API de GitHub.**\n\nPor favor verifica tu conexión o intenta nuevamente.';
 
+
+// Phase 6 - README (Accept: application/vnd.github.raw => body is raw markdown text)
+const s_http_readme_suffix = '/readme","method":"GET","headers":{"User-Agent":"Chattree-GitHub-Plugin","Accept":"application/vnd.github.raw"';
+const s_readme_header = '\u{1F4C4} **README de ';
+const s_readme_header_suffix = ':**\n\n';
+const s_readme_empty = '\u2139\uFE0F Este repositorio no tiene un README disponible.';
+
+// Phase 7 - Code Search
+const s_http_search_q_prefix = '{"api":"network","operation":"http_request","payload":{"url":"https://api.github.com/search/code?q=';
+const s_http_search_repo_part = '+repo:';
+const s_http_search_method = '","method":"GET","headers":{"User-Agent":"Chattree-GitHub-Plugin","Accept":"application/vnd.github+json"';
+const s_search_header = '\u{1F50D} **Resultados de busqueda en ';
+const s_search_path_bullet = '\n- ';
+const s_search_empty = '\u2139\uFE0F No se encontraron coincidencias en el repositorio para esa busqueda.';
+
+// Phase 8 - Create Issue (POST)
+const s_http_issue_url_prefix = '{"api":"network","operation":"http_request","payload":{"url":"https://api.github.com/repos/';
+const s_http_issue_url_suffix = '/issues","method":"POST","headers":{"User-Agent":"Chattree-GitHub-Plugin","Accept":"application/vnd.github+json","Content-Type":"application/json"';
+const s_http_issue_body_open = '},"body":"{\\\"title\\\":\\\"';
+const s_http_issue_body_close = '\\\"}","timeoutMs":15000}}';
+const s_issue_created_prefix = '\u2705 **Issue creado en ';
+const s_issue_created_mid = ':**\n\nPuedes verlo en: https://github.com/';
+const s_issue_created_suffix = '/issues';
+const s_issue_need_token = '\u26A0\uFE0F **Se requiere un token de GitHub para crear issues.**\n\nConfigura tu token con /github config <tu_token>';
+
 // Register segments
 const d_help = registerData('help', s_help);
 const d_key_saved = registerData('key_saved', s_key_saved);
@@ -133,6 +161,30 @@ const d_bracket_close = registerData('bracket_close', s_bracket_close);
 const d_auth_error = registerData('auth_error', s_auth_error);
 const d_not_found = registerData('not_found', s_not_found);
 const d_generic_error = registerData('generic_error', s_generic_error);
+
+// Phase 6 — README data segments
+const d_http_readme_suffix = registerData('http_readme_suffix', s_http_readme_suffix);
+const d_readme_header = registerData('readme_header', s_readme_header);
+const d_readme_header_suffix = registerData('readme_header_suffix', s_readme_header_suffix);
+const d_readme_empty = registerData('readme_empty', s_readme_empty);
+
+// Phase 7 — Code Search data segments
+const d_http_search_q_prefix = registerData('http_search_q_prefix', s_http_search_q_prefix);
+const d_http_search_repo_part = registerData('http_search_repo_part', s_http_search_repo_part);
+const d_http_search_method = registerData('http_search_method', s_http_search_method);
+const d_search_header = registerData('search_header', s_search_header);
+const d_search_path_bullet = registerData('search_path_bullet', s_search_path_bullet);
+const d_search_empty = registerData('search_empty', s_search_empty);
+
+// Phase 8 — Create Issue data segments
+const d_http_issue_url_prefix = registerData('http_issue_url_prefix', s_http_issue_url_prefix);
+const d_http_issue_url_suffix = registerData('http_issue_url_suffix', s_http_issue_url_suffix);
+const d_http_issue_body_open = registerData('http_issue_body_open', s_http_issue_body_open);
+const d_http_issue_body_close = registerData('http_issue_body_close', s_http_issue_body_close);
+const d_issue_created_prefix = registerData('issue_created_prefix', s_issue_created_prefix);
+const d_issue_created_mid = registerData('issue_created_mid', s_issue_created_mid);
+const d_issue_created_suffix = registerData('issue_created_suffix', s_issue_created_suffix);
+const d_issue_need_token = registerData('issue_need_token', s_issue_need_token);
 
 // Needles for commands and patterns
 const needle_ghp = registerData('needle_ghp', 'ghp_');
@@ -192,6 +244,31 @@ const needle_desc = registerData('needle_desc', 'description');
 const needle_stars = registerData('needle_stars', 'stargazers_count');
 const needle_forks = registerData('needle_forks', 'forks_count');
 const needle_html_url = registerData('needle_html_url', 'html_url');
+// NLP Needles - Phase 6 README
+const needle_readme = registerData('needle_readme', 'readme');
+const needle_leer = registerData('needle_leer', 'leer');
+const needle_lee = registerData('needle_lee', ' lee ');
+const needle_mostrar = registerData('needle_mostrar', 'mostrar');
+const needle_archivo = registerData('needle_archivo', 'archivo');
+const needle_read_cmd = registerData('needle_read_cmd', 'read');
+const needle_contenido = registerData('needle_contenido', 'contenido');
+
+// NLP Needles - Phase 7 Code Search
+const needle_buscar = registerData('needle_buscar', 'buscar');
+const needle_busca = registerData('needle_busca', 'busca');
+const needle_search_cmd = registerData('needle_search_cmd', 'search');
+const needle_donde = registerData('needle_donde', 'donde');
+const needle_encontrar = registerData('needle_encontrar', 'encontrar');
+const needle_items_path = registerData('needle_items_path', '"path":"');
+
+// NLP Needles - Phase 8 Create Issue
+const needle_crear = registerData('needle_crear', 'crear');
+const needle_abrir = registerData('needle_abrir', 'abrir');
+const needle_issue_kw = registerData('needle_issue_kw', 'issue');
+const needle_reportar = registerData('needle_reportar', 'reportar');
+const needle_create_kw = registerData('needle_create_kw', 'create');
+const needle_status_201 = registerData('needle_status_201', '"statusCode":201');
+
 
 console.log(`Registered ${dataEntries.length} static data segments up to offset ${staticPtr}.`);
 
@@ -390,6 +467,10 @@ ${dataSectionWat}
     (local $key_count i32)
     (local $start_scan i32)
     (local $is_user_repos i32)
+    (local $query_start i32)
+    (local $query_len i32)
+    (local $title_start i32)
+    (local $title_len i32)
 
     (global.set $phase (i32.const 0))
     (global.set $repo_len (i32.const 0))
@@ -731,6 +812,216 @@ ${dataSectionWat}
     ;; Read token if stored
     (drop (call $load_api_key))
 
+    ;; 7.0 README — Phase 6
+    ;; Trigger: readme, leer, mostrar, archivo, read, contenido
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_readme.offset}) (i32.const ${needle_readme.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_leer.offset}) (i32.const ${needle_leer.length})) (i32.const 0)))
+          (i32.or
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_mostrar.offset}) (i32.const ${needle_mostrar.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_contenido.offset}) (i32.const ${needle_contenido.length})) (i32.const 0)))
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_read_cmd.offset}) (i32.const ${needle_read_cmd.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_archivo.offset}) (i32.const ${needle_archivo.length})) (i32.const 0)))))
+      (then
+        ;; Build GET /repos/{owner/repo}/readme with Accept: vnd.github.raw + Auth
+        (local.set $p (call $copy_mem (i32.const ${d_http_repo_prefix.offset}) (i32.const 100000) (i32.const ${d_http_repo_prefix.length})))
+        (local.set $p (call $copy_mem (i32.const 300000) (local.get $p) (global.get $repo_len)))
+        (local.set $p (call $copy_mem (i32.const ${d_http_readme_suffix.offset}) (local.get $p) (i32.const ${d_http_readme_suffix.length})))
+        (if (i32.gt_u (global.get $key_len) (i32.const 0))
+          (then
+            (local.set $p (call $copy_mem (i32.const ${d_http_user_auth_prefix.offset}) (local.get $p) (i32.const ${d_http_user_auth_prefix.length})))
+            (local.set $p (call $copy_mem (i32.const 3000000) (local.get $p) (global.get $key_len)))
+            (i32.store8 (local.get $p) (i32.const 34)) ;; closing quote for auth value
+            (local.set $p (i32.add (local.get $p) (i32.const 1)))
+          )
+        )
+        (local.set $p (call $copy_mem (i32.const ${d_http_user_suffix.offset}) (local.get $p) (i32.const ${d_http_user_suffix.length})))
+        (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+        (global.set $phase (i32.const 6))
+        (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 1000000)))
+        (return (i32.const 0))
+      )
+    )
+
+    ;; 7.0b Search Code — Phase 7
+    ;; Trigger: buscar, busca, search, donde, encontrar AND has owner/repo
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_buscar.offset}) (i32.const ${needle_buscar.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_busca.offset}) (i32.const ${needle_busca.length})) (i32.const 0)))
+          (i32.or
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_search_cmd.offset}) (i32.const ${needle_search_cmd.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_donde.offset}) (i32.const ${needle_donde.length})) (i32.const 0)))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_encontrar.offset}) (i32.const ${needle_encontrar.length})) (i32.const 0))))
+      (then
+        ;; Extract query text = everything after the owner/repo in lowercased buffer
+        ;; Query start = text_start_of_repo + repo_len + 1 (skip space)
+        ;; We store query in 400000, replacing spaces with + (43)
+        (local.set $query_start (i32.add (i32.add (i32.const 50000) (local.get $text_start)) (global.get $repo_len)))
+        ;; skip whitespace
+        (loop $skip_q_ws
+          (if (i32.lt_u (local.get $query_start) (i32.add (i32.const 50000) (local.get $in_len)))
+            (then
+              (local.set $ch (i32.load8_u (local.get $query_start)))
+              (if (i32.eq (local.get $ch) (i32.const 32))
+                (then
+                  (local.set $query_start (i32.add (local.get $query_start) (i32.const 1)))
+                  (br $skip_q_ws)
+                )
+              )
+            )
+          )
+        )
+        (local.set $query_len (i32.const 0))
+        (loop $copy_query
+          (if (i32.and
+                (i32.lt_u (i32.add (local.get $query_start) (local.get $query_len)) (i32.add (i32.const 50000) (local.get $in_len)))
+                (i32.lt_u (local.get $query_len) (i32.const 80)))
+            (then
+              (local.set $ch (i32.load8_u (i32.add (local.get $query_start) (local.get $query_len))))
+              (if (i32.and
+                    (i32.ne (local.get $ch) (i32.const 10))
+                    (i32.ne (local.get $ch) (i32.const 13)))
+                (then
+                  ;; Replace space (32) with + (43)
+                  (if (i32.eq (local.get $ch) (i32.const 32))
+                    (then (local.set $ch (i32.const 43)))
+                  )
+                  (i32.store8 (i32.add (i32.const 400000) (local.get $query_len)) (local.get $ch))
+                  (local.set $query_len (i32.add (local.get $query_len) (i32.const 1)))
+                  (br $copy_query)
+                )
+              )
+            )
+          )
+        )
+        ;; Build: {"api":"network",...,"url":"https://api.github.com/search/code?q=<query>+repo:<owner/repo>","method":"GET",...}
+        (local.set $p (call $copy_mem (i32.const ${d_http_search_q_prefix.offset}) (i32.const 100000) (i32.const ${d_http_search_q_prefix.length})))
+        ;; append query (URL-encoded spaces)
+        (local.set $p (call $copy_mem (i32.const 400000) (local.get $p) (local.get $query_len)))
+        ;; append +repo:
+        (local.set $p (call $copy_mem (i32.const ${d_http_search_repo_part.offset}) (local.get $p) (i32.const ${d_http_search_repo_part.length})))
+        ;; append owner/repo
+        (local.set $p (call $copy_mem (i32.const 300000) (local.get $p) (global.get $repo_len)))
+        ;; append method+headers
+        (local.set $p (call $copy_mem (i32.const ${d_http_search_method.offset}) (local.get $p) (i32.const ${d_http_search_method.length})))
+        (if (i32.gt_u (global.get $key_len) (i32.const 0))
+          (then
+            (local.set $p (call $copy_mem (i32.const ${d_http_user_auth_prefix.offset}) (local.get $p) (i32.const ${d_http_user_auth_prefix.length})))
+            (local.set $p (call $copy_mem (i32.const 3000000) (local.get $p) (global.get $key_len)))
+            (i32.store8 (local.get $p) (i32.const 34))
+            (local.set $p (i32.add (local.get $p) (i32.const 1)))
+          )
+        )
+        (local.set $p (call $copy_mem (i32.const ${d_http_user_suffix.offset}) (local.get $p) (i32.const ${d_http_user_suffix.length})))
+        (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+        (global.set $phase (i32.const 7))
+        (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 1000000)))
+        (return (i32.const 0))
+      )
+    )
+
+    ;; 7.0c Create Issue — Phase 8
+    ;; Trigger: (crear|abrir|reportar|create) + issue AND has owner/repo
+    (if (i32.and
+          (i32.or
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_crear.offset}) (i32.const ${needle_crear.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_abrir.offset}) (i32.const ${needle_abrir.length})) (i32.const 0)))
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_reportar.offset}) (i32.const ${needle_reportar.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_create_kw.offset}) (i32.const ${needle_create_kw.length})) (i32.const 0))))
+          (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_issue_kw.offset}) (i32.const ${needle_issue_kw.length})) (i32.const 0)))
+      (then
+        ;; Need token for POST
+        (if (i32.eqz (global.get $key_len))
+          (then
+            (drop (call $copy_mem (i32.const ${d_issue_need_token.offset}) (i32.const 1024) (i32.const ${d_issue_need_token.length})))
+            (return (i32.const ${d_issue_need_token.length}))
+          )
+        )
+        ;; Extract title = text after owner/repo
+        (local.set $title_start (i32.add (i32.add (local.get $in_ptr) (local.get $text_start)) (global.get $repo_len)))
+        ;; skip whitespace in original (non-lowercased) input
+        (loop $skip_t_ws
+          (if (i32.lt_u (local.get $title_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
+            (then
+              (local.set $ch (i32.load8_u (local.get $title_start)))
+              (if (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 10)))
+                (then
+                  (local.set $title_start (i32.add (local.get $title_start) (i32.const 1)))
+                  (br $skip_t_ws)
+                )
+              )
+            )
+          )
+        )
+        (local.set $title_len (i32.const 0))
+        (loop $copy_title
+          (if (i32.and
+                (i32.lt_u (i32.add (local.get $title_start) (local.get $title_len)) (i32.add (local.get $in_ptr) (local.get $in_len)))
+                (i32.lt_u (local.get $title_len) (i32.const 120)))
+            (then
+              (local.set $ch (i32.load8_u (i32.add (local.get $title_start) (local.get $title_len))))
+              (if (i32.and (i32.ne (local.get $ch) (i32.const 10)) (i32.ne (local.get $ch) (i32.const 13)))
+                (then
+                  ;; Escape double quotes in title (replace 34 with space 32 for safety)
+                  (if (i32.eq (local.get $ch) (i32.const 34))
+                    (then (local.set $ch (i32.const 39))) ;; replace " with '
+                  )
+                  (i32.store8 (i32.add (i32.const 450000) (local.get $title_len)) (local.get $ch))
+                  (local.set $title_len (i32.add (local.get $title_len) (i32.const 1)))
+                  (br $copy_title)
+                )
+              )
+            )
+          )
+        )
+        ;; If no title extracted, use a default
+        (if (i32.eqz (local.get $title_len))
+          (then
+            (i32.store8 (i32.const 450000) (i32.const 78))  ;; N
+            (i32.store8 (i32.const 450001) (i32.const 117)) ;; u
+            (i32.store8 (i32.const 450002) (i32.const 101)) ;; e
+            (i32.store8 (i32.const 450003) (i32.const 118)) ;; v
+            (i32.store8 (i32.const 450004) (i32.const 111)) ;; o
+            (i32.store8 (i32.const 450005) (i32.const 32))  ;; (space)
+            (i32.store8 (i32.const 450006) (i32.const 73))  ;; I
+            (i32.store8 (i32.const 450007) (i32.const 115)) ;; s
+            (i32.store8 (i32.const 450008) (i32.const 115)) ;; s
+            (i32.store8 (i32.const 450009) (i32.const 117)) ;; u
+            (i32.store8 (i32.const 450010) (i32.const 101)) ;; e
+            (local.set $title_len (i32.const 11))
+          )
+        )
+        ;; Build POST request:
+        ;; {"api":"network","operation":"http_request","payload":{"url":"https://api.github.com/repos/{repo}/issues","method":"POST","headers":{...,"Authorization":"Bearer {token}"},"body":"{\"title\":\"<title>\"}","timeoutMs":15000}}
+        (local.set $p (call $copy_mem (i32.const ${d_http_issue_url_prefix.offset}) (i32.const 100000) (i32.const ${d_http_issue_url_prefix.length})))
+        (local.set $p (call $copy_mem (i32.const 300000) (local.get $p) (global.get $repo_len)))
+        (local.set $p (call $copy_mem (i32.const ${d_http_issue_url_suffix.offset}) (local.get $p) (i32.const ${d_http_issue_url_suffix.length})))
+        ;; append auth header
+        (local.set $p (call $copy_mem (i32.const ${d_http_user_auth_prefix.offset}) (local.get $p) (i32.const ${d_http_user_auth_prefix.length})))
+        (local.set $p (call $copy_mem (i32.const 3000000) (local.get $p) (global.get $key_len)))
+        (i32.store8 (local.get $p) (i32.const 34)) ;; close auth value
+        (local.set $p (i32.add (local.get $p) (i32.const 1)))
+        ;; append body: },"body":"{\"title\":\"
+        (local.set $p (call $copy_mem (i32.const ${d_http_issue_body_open.offset}) (local.get $p) (i32.const ${d_http_issue_body_open.length})))
+        ;; append title
+        (local.set $p (call $copy_mem (i32.const 450000) (local.get $p) (local.get $title_len)))
+        ;; close: \"}","timeoutMs":15000}}
+        (local.set $p (call $copy_mem (i32.const ${d_http_issue_body_close.offset}) (local.get $p) (i32.const ${d_http_issue_body_close.length})))
+        (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+        ;; Store repo name for resume phase 8
+        (global.set $phase (i32.const 8))
+        (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 1000000)))
+        (return (i32.const 0))
+      )
+    )
+
     ;; 7.1 Issues in natural language or command
     (local.set $issues_pos (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${needle_issues.offset}) (i32.const ${needle_issues.length})))
     (if (i32.lt_s (local.get $issues_pos) (i32.const 0))
@@ -855,8 +1146,10 @@ ${dataSectionWat}
       )
     )
 
-    ;; Check for 200 OK
-    (if (i32.lt_s (call $find_substring (local.get $res_ptr) (local.get $res_len) (i32.const ${needle_status_200.offset}) (i32.const ${needle_status_200.length})) (i32.const 0))
+    ;; Check for 200 OK or 201 Created (phase 8 POST returns 201)
+    (if (i32.and
+          (i32.lt_s (call $find_substring (local.get $res_ptr) (local.get $res_len) (i32.const ${needle_status_200.offset}) (i32.const ${needle_status_200.length})) (i32.const 0))
+          (i32.lt_s (call $find_substring (local.get $res_ptr) (local.get $res_len) (i32.const ${needle_status_201.offset}) (i32.const ${needle_status_201.length})) (i32.const 0)))
       (then
         (drop (call $copy_mem (i32.const ${d_generic_error.offset}) (i32.const 1024) (i32.const ${d_generic_error.length})))
         (return (i32.const ${d_generic_error.length}))
@@ -960,6 +1253,8 @@ ${dataSectionWat}
       )
     )
 
+
+
     ;; Phase 4: Repo Info
     (if (i32.eq (global.get $phase) (i32.const 4))
       (then
@@ -1050,6 +1345,172 @@ ${dataSectionWat}
             )
           )
         )
+        (return (i32.sub (local.get $out) (i32.const 1024)))
+      )
+    )
+
+
+    ;; Phase 6: README response
+    (if (i32.eq (global.get $phase) (i32.const 6))
+      (then
+        ;; The response body field contains raw markdown (Accept: vnd.github.raw)
+        (local.set $out (call $copy_mem (i32.const ${d_readme_header.offset}) (i32.const 1024) (i32.const ${d_readme_header.length})))
+        (local.set $out (call $copy_mem (i32.const 300000) (local.get $out) (global.get $repo_len)))
+        (local.set $out (call $copy_mem (i32.const ${d_readme_header_suffix.offset}) (local.get $out) (i32.const ${d_readme_header_suffix.length})))
+
+        ;; Extract body field
+        (local.set $body_idx (call $find_substring (local.get $res_ptr) (local.get $res_len) (i32.const ${needle_body_field.offset}) (i32.const ${needle_body_field.length})))
+        (if (i32.ge_s (local.get $body_idx) (i32.const 0))
+          (then
+            (local.set $val_start (i32.add (i32.add (local.get $res_ptr) (local.get $body_idx)) (i32.const ${needle_body_field.length})))
+            (local.set $i (i32.const 0))
+            (loop $cp_readme
+              (if (i32.and
+                    (i32.lt_u (i32.add (local.get $val_start) (local.get $i)) (i32.add (local.get $res_ptr) (local.get $res_len)))
+                    (i32.lt_u (local.get $i) (i32.const 8000)))
+                (then
+                  (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
+                  ;; Stop at closing quote that ends body value
+                  (if (i32.ne (local.get $ch) (i32.const 34))
+                    (then
+                      ;; Handle backslash-n and backslash-t in body text
+                      (if (i32.eq (local.get $ch) (i32.const 92)) ;; backslash
+                        (then
+                          ;; peek next
+                          (local.set $p (i32.load8_u (i32.add (local.get $val_start) (i32.add (local.get $i) (i32.const 1)))))
+                          (if (i32.eq (local.get $p) (i32.const 110)) ;; 'n'
+                            (then
+                              (i32.store8 (local.get $out) (i32.const 10))
+                              (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                              (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                              (br $cp_readme)
+                            )
+                          )
+                          (if (i32.eq (local.get $p) (i32.const 116)) ;; 't'
+                            (then
+                              (i32.store8 (local.get $out) (i32.const 9))
+                              (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                              (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                              (br $cp_readme)
+                            )
+                          )
+                          (if (i32.eq (local.get $p) (i32.const 34)) ;; escaped quote -> skip both
+                            (then
+                              (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                              (br $cp_readme)
+                            )
+                          )
+                          ;; other backslash escape: skip the backslash, emit next char
+                          (i32.store8 (local.get $out) (local.get $p))
+                          (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                          (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                          (br $cp_readme)
+                        )
+                        (else
+                          (i32.store8 (local.get $out) (local.get $ch))
+                          (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                          (br $cp_readme)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+            (return (i32.sub (local.get $out) (i32.const 1024)))
+          )
+          (else
+            (drop (call $copy_mem (i32.const ${d_readme_empty.offset}) (i32.const 1024) (i32.const ${d_readme_empty.length})))
+            (return (i32.const ${d_readme_empty.length}))
+          )
+        )
+      )
+    )
+
+    ;; Phase 7: Code Search response
+    (if (i32.eq (global.get $phase) (i32.const 7))
+      (then
+        (local.set $out (call $copy_mem (i32.const ${d_search_header.offset}) (i32.const 1024) (i32.const ${d_search_header.length})))
+        (local.set $out (call $copy_mem (i32.const 300000) (local.get $out) (global.get $repo_len)))
+        (local.set $out (call $copy_mem (i32.const ${d_bracket_close.offset}) (local.get $out) (i32.const ${d_bracket_close.length})))
+
+        ;; Find body field
+        (local.set $body_idx (call $find_substring (local.get $res_ptr) (local.get $res_len) (i32.const ${needle_body_field.offset}) (i32.const ${needle_body_field.length})))
+        (if (i32.ge_s (local.get $body_idx) (i32.const 0))
+          (then
+            (local.set $val_start (i32.add (i32.add (local.get $res_ptr) (local.get $body_idx)) (i32.const ${needle_body_field.length})))
+            (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $val_start)))
+            (local.set $count (i32.const 0))
+            (local.set $p (local.get $val_start))
+
+            (loop $find_paths
+              (if (i32.and
+                    (i32.lt_u (local.get $p) (i32.add (local.get $res_ptr) (local.get $res_len)))
+                    (i32.lt_u (local.get $count) (i32.const 8)))
+                (then
+                  (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
+                  (local.set $pos (call $find_substring (local.get $p) (local.get $rem_len) (i32.const ${needle_items_path.offset}) (i32.const ${needle_items_path.length})))
+                  (if (i32.ge_s (local.get $pos) (i32.const 0))
+                    (then
+                      (local.set $p (i32.add (local.get $p) (i32.add (local.get $pos) (i32.const ${needle_items_path.length}))))
+                      ;; emit bullet
+                      (local.set $out (call $copy_mem (i32.const ${d_search_path_bullet.offset}) (local.get $out) (i32.const ${d_search_path_bullet.length})))
+                      ;; copy path value until closing quote
+                      (local.set $i (i32.const 0))
+                      (loop $cp_path
+                        (if (i32.and
+                              (i32.lt_u (i32.add (local.get $p) (local.get $i)) (i32.add (local.get $res_ptr) (local.get $res_len)))
+                              (i32.lt_u (local.get $i) (i32.const 200)))
+                          (then
+                            (local.set $ch (i32.load8_u (i32.add (local.get $p) (local.get $i))))
+                            (if (i32.and
+                                  (i32.ne (local.get $ch) (i32.const 34))
+                                  (i32.ne (local.get $ch) (i32.const 92)))
+                              (then
+                                (i32.store8 (local.get $out) (local.get $ch))
+                                (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                                (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                                (br $cp_path)
+                              )
+                            )
+                          )
+                        )
+                      )
+                      (local.set $p (i32.add (local.get $p) (local.get $i)))
+                      (local.set $count (i32.add (local.get $count) (i32.const 1)))
+                      (br $find_paths)
+                    )
+                  )
+                )
+              )
+            )
+
+            (if (i32.eqz (local.get $count))
+              (then
+                (drop (call $copy_mem (i32.const ${d_search_empty.offset}) (i32.const 1024) (i32.const ${d_search_empty.length})))
+                (return (i32.const ${d_search_empty.length}))
+              )
+            )
+            (return (i32.sub (local.get $out) (i32.const 1024)))
+          )
+          (else
+            (drop (call $copy_mem (i32.const ${d_search_empty.offset}) (i32.const 1024) (i32.const ${d_search_empty.length})))
+            (return (i32.const ${d_search_empty.length}))
+          )
+        )
+      )
+    )
+
+    ;; Phase 8: Create Issue response (may be 201 Created)
+    (if (i32.eq (global.get $phase) (i32.const 8))
+      (then
+        ;; Accept 201 as success (already checked 401/404/200 above; 201 != 200 so we need special handling)
+        (local.set $out (call $copy_mem (i32.const ${d_issue_created_prefix.offset}) (i32.const 1024) (i32.const ${d_issue_created_prefix.length})))
+        (local.set $out (call $copy_mem (i32.const 300000) (local.get $out) (global.get $repo_len)))
+        (local.set $out (call $copy_mem (i32.const ${d_issue_created_mid.offset}) (local.get $out) (i32.const ${d_issue_created_mid.length})))
+        (local.set $out (call $copy_mem (i32.const 300000) (local.get $out) (global.get $repo_len)))
+        (local.set $out (call $copy_mem (i32.const ${d_issue_created_suffix.offset}) (local.get $out) (i32.const ${d_issue_created_suffix.length})))
         (return (i32.sub (local.get $out) (i32.const 1024)))
       )
     )
