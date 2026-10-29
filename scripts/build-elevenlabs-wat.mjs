@@ -22,17 +22,18 @@ function toWatData(str) {
   return { escaped: res, length: buf.length };
 }
 
-// Memory Layout:
+// Memory Layout (256 pages = 16 MB):
 // 0..1023: Input buffer (1 KB)
 // 1024..65535: Output buffer (64 KB)
-// 10000..50000: Static data strings
+// 10000..50000: Static data strings (collision-free)
 // 100000..999999: HTTP Request buffer (900 KB)
 // 1000000..4999999: HTTP Response buffer (4 MB)
 // 5000000..8999999: Files Write Request buffer (4 MB)
 // 9000000..9999999: Files Write Response buffer (1 MB)
 // 10000000..10001000: Storage API Response & scratch (1 KB)
 // 10001000..10002000: API Key storage (1 KB)
-// 10002000..10050000: Sanitized Text buffer (48 KB)
+// 10002000..10003000: Sanitized Text buffer (4 KB)
+// 10003000..10010000: Lowercased Input buffer (7 KB)
 
 let staticPtr = 10000;
 const dataEntries = [];
@@ -40,27 +41,36 @@ const dataEntries = [];
 function registerData(name, str) {
   const d = toWatData(str);
   const offset = staticPtr;
-  staticPtr += d.length + 16; // 16 bytes safe padding between segments
+  staticPtr += d.length + 16; // 16 bytes safe padding
   dataEntries.push({ name, offset, length: d.length, escaped: d.escaped });
   return { offset, length: d.length };
 }
 
 // Static strings
-const s_help = `🔊 **ElevenLabs Audio Generator**\n\nGenera audios de alta calidad con IA mediante ElevenLabs.\n\n**Comandos disponibles:**\n• \`/elevenlabs config <tu_api_key>\` — Registra tu clave de API\n• \`/elevenlabs status\` — Verifica el estado de la configuración\n• \`/elevenlabs <texto>\` — Genera un audio en MP3\n• \`/tts <texto>\` — Alias rápido para síntesis de voz\n\n*Obtén tu clave de API gratuita en: https://elevenlabs.io*`;
-const s_key_saved = `✅ **Clave de ElevenLabs guardada exitosamente.**\n\nYa puedes generar audios usando:\n\`/elevenlabs Tu texto aquí\``;
+const s_help = `🔊 **ElevenLabs Audio Generator**\n\nGenera audios de alta calidad con IA mediante ElevenLabs con voces naturales (femeninas y masculinas).\n\n**Comandos disponibles:**\n• \`/elevenlabs config <tu_api_key>\` — Registra tu clave de API\n• \`/elevenlabs status\` — Verifica el estado de la configuración\n• \`/elevenlabs <texto>\` — Genera audio con voz predeterminada\n• \`/elevenlabs con voz de mujer que diga: "texto"\` — Selección inteligente de voz\n• \`/tts <texto>\` — Alias rápido para síntesis de voz\n\n*Obtén tu clave de API gratuita en: https://elevenlabs.io*`;
+const s_key_saved = `✅ **Clave de ElevenLabs guardada exitosamente.**\n\nYa puedes generar audios usando:\n\`/elevenlabs Tu texto aquí\` o pidiendo una voz femenina / masculina en lenguaje natural.`;
 const s_key_missing = `⚠️ **ElevenLabs no está configurado.**\n\nPor favor registra tu API Key ejecutando:\n\`/elevenlabs config <tu_api_key>\`\n\nPuedes obtener una clave gratuita en https://elevenlabs.io`;
-const s_status_ok = `✅ **ElevenLabs está configurado y listo.**\n\nPuedes sintetizar audio con \`/elevenlabs <texto>\`.`;
+const s_status_ok = `✅ **ElevenLabs está configurado y listo.**\n\nPuedes sintetizar audio con \`/elevenlabs <texto>\` o pedir voz de mujer/hombre en lenguaje natural.`;
 const s_storage_get = JSON.stringify({ api: 'storage', operation: 'get', payload: { key: 'api_key' } });
 const s_storage_set_prefix = '{"api":"storage","operation":"set","payload":{"key":"api_key","value":"';
 const s_storage_set_suffix = '"}}';
-// Using George (JBFqnCBsd6RMkjVDRZzb), premade voice fully available on free & creator plans
-const s_http_prefix = '{"api":"network","operation":"http_request","payload":{"url":"https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb","method":"POST","headers":{"xi-api-key":"';
+
+// Voice IDs (both 20 characters, premade, free-tier compatible)
+const s_voice_male = 'JBFqnCBsd6RMkjVDRZzb';   // George (Warm Storyteller)
+const s_voice_female = 'EXAVITQu4vr4xnSDxMaL'; // Sarah (Mature, Reassuring)
+
+const s_http_url_prefix = '{"api":"network","operation":"http_request","payload":{"url":"https://api.elevenlabs.io/v1/text-to-speech/';
+const s_http_url_mid = '","method":"POST","headers":{"xi-api-key":"';
 const s_http_mid1 = '","Content-Type":"application/json","Accept":"audio/mpeg"},"body":"{\\"text\\":\\"';
 const s_http_mid2 = '\\",\\"model_id\\":\\"eleven_multilingual_v2\\"}","responseType":"base64","timeoutMs":30000}}';
+
 const s_files_write_prefix = '{"api":"files","operation":"write","payload":{"name":"audio_elevenlabs.mp3","encoding":"base64","content":"';
 const s_files_write_suffix = '"}}';
-const s_direct_bubble_prefix = '{"type":"direct","displayText":"🔊 **Audio generado exitosamente con ElevenLabs**\\n\\nTu archivo de audio MP3 está listo para guardar o compartir.","fileHandle":"';
+
+const s_direct_bubble_male_prefix = '{"type":"direct","displayText":"🔊 **Audio generado exitosamente (Voz Masculina: George)**\\n\\nTu archivo de audio MP3 está listo para guardar o compartir.","fileHandle":"';
+const s_direct_bubble_female_prefix = '{"type":"direct","displayText":"🔊 **Audio generado exitosamente (Voz Femenina: Sarah)**\\n\\nTu archivo de audio MP3 está listo para guardar o compartir.","fileHandle":"';
 const s_direct_bubble_suffix = '","fileName":"audio_elevenlabs.mp3"}';
+
 const s_error_gen = `❌ **Error al generar audio con ElevenLabs**\n\nVerifica que tu API Key sea correcta o que tengas créditos disponibles en ElevenLabs.\nPuedes actualizar tu clave con:\n\`/elevenlabs config <tu_api_key>\``;
 
 const d_help = registerData('help', s_help);
@@ -70,12 +80,19 @@ const d_status_ok = registerData('status_ok', s_status_ok);
 const d_storage_get = registerData('storage_get', s_storage_get);
 const d_storage_set_prefix = registerData('storage_set_prefix', s_storage_set_prefix);
 const d_storage_set_suffix = registerData('storage_set_suffix', s_storage_set_suffix);
-const d_http_prefix = registerData('http_prefix', s_http_prefix);
+
+const d_voice_male = registerData('voice_male', s_voice_male);
+const d_voice_female = registerData('voice_female', s_voice_female);
+const d_http_url_prefix = registerData('http_url_prefix', s_http_url_prefix);
+const d_http_url_mid = registerData('http_url_mid', s_http_url_mid);
 const d_http_mid1 = registerData('http_mid1', s_http_mid1);
 const d_http_mid2 = registerData('http_mid2', s_http_mid2);
+
 const d_files_write_prefix = registerData('files_write_prefix', s_files_write_prefix);
 const d_files_write_suffix = registerData('files_write_suffix', s_files_write_suffix);
-const d_direct_bubble_prefix = registerData('direct_bubble_prefix', s_direct_bubble_prefix);
+
+const d_direct_bubble_male_prefix = registerData('direct_bubble_male_prefix', s_direct_bubble_male_prefix);
+const d_direct_bubble_female_prefix = registerData('direct_bubble_female_prefix', s_direct_bubble_female_prefix);
 const d_direct_bubble_suffix = registerData('direct_bubble_suffix', s_direct_bubble_suffix);
 const d_error_gen = registerData('error_gen', s_error_gen);
 
@@ -89,13 +106,28 @@ const needle_status_200 = registerData('needle_status_200', '"statusCode":200');
 const needle_body_field = registerData('needle_body_field', '"body":"');
 const needle_handle_field = registerData('needle_handle_field', '"handle":"');
 
+// NLP Female Voice Keywords
+const needle_mujer = registerData('needle_mujer', 'mujer');
+const needle_femenin = registerData('needle_femenin', 'femenin');
+const needle_chica = registerData('needle_chica', 'chica');
+const needle_female = registerData('needle_female', 'female');
+const needle_woman = registerData('needle_woman', 'woman');
+const needle_sarah = registerData('needle_sarah', 'sarah');
+const needle_alice = registerData('needle_alice', 'alice');
+
+// NLP Speech Triggers
+const needle_trig_diga = registerData('needle_trig_diga', 'diga');
+const needle_trig_diciendo = registerData('needle_trig_diciendo', 'diciendo');
+const needle_trig_texto = registerData('needle_trig_texto', 'texto');
+const needle_trig_mensaje = registerData('needle_trig_mensaje', 'mensaje');
+
 console.log(`Registered ${dataEntries.length} static data segments up to offset ${staticPtr}. All collision-free.`);
 
 const dataSectionWat = dataEntries
   .map(e => `  (data (i32.const ${e.offset}) "${e.escaped}")`)
   .join('\n');
 
-const watContent = `;; Chattree Official ElevenLabs Audio Generator Plugin
+const watContent = `;; Chattree Official ElevenLabs Audio Generator Plugin with Natural Language Intent
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -105,6 +137,7 @@ const watContent = `;; Chattree Official ElevenLabs Audio Generator Plugin
   (memory (export "memory") 256)
 
   (global $phase (mut i32) (i32.const 0))
+  (global $voice_mode (mut i32) (i32.const 0)) ;; 0: Male (George), 1: Female (Sarah)
   (global $key_len (mut i32) (i32.const 0))
   (global $text_len (mut i32) (i32.const 0))
   (global $handle_len (mut i32) (i32.const 0))
@@ -115,6 +148,27 @@ ${dataSectionWat}
   (func $copy_mem (param $src i32) (param $dst i32) (param $len i32) (result i32)
     (memory.copy (local.get $dst) (local.get $src) (local.get $len))
     (i32.add (local.get $dst) (local.get $len))
+  )
+
+  (func $to_lower (param $src i32) (param $dst i32) (param $len i32)
+    (local $i i32)
+    (local $ch i32)
+    (local.set $i (i32.const 0))
+    (loop $l_loop
+      (if (i32.lt_u (local.get $i) (local.get $len))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
+          (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 90)))
+            (then
+              (local.set $ch (i32.add (local.get $ch) (i32.const 32)))
+            )
+          )
+          (i32.store8 (i32.add (local.get $dst) (local.get $i)) (local.get $ch))
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $l_loop)
+        )
+      )
+    )
   )
 
   (func $find_substring (param $haystack i32) (param $h_len i32) (param $needle i32) (param $n_len i32) (result i32)
@@ -207,8 +261,13 @@ ${dataSectionWat}
     (local $cfg_pos i32)
     (local $status_pos i32)
     (local $json_text_pos i32)
+    (local $q1 i32)
+    (local $q2 i32)
+    (local $q_char i32)
+    (local $trig_pos i32)
 
     (global.set $phase (i32.const 0))
+    (global.set $voice_mode (i32.const 0))
 
     ;; 1. Check for empty input
     (if (i32.eqz (local.get $in_len))
@@ -338,10 +397,38 @@ ${dataSectionWat}
       )
     )
 
-    ;; Determine source text: check if input is JSON with "text":"
+    ;; ─── Natural Language Processing & Text Extraction ───
+    ;; Copy lowercased input to 10003000 for keyword inspection
+    (call $to_lower (local.get $in_ptr) (i32.const 10003000) (local.get $in_len))
+
+    ;; 5.1 Voice Selection (Female keywords: mujer, femenin, chica, female, woman, sarah, alice)
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_mujer.offset}) (i32.const ${needle_mujer.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_femenin.offset}) (i32.const ${needle_femenin.length})) (i32.const 0)))
+          (i32.or
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_chica.offset}) (i32.const ${needle_chica.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_female.offset}) (i32.const ${needle_female.length})) (i32.const 0)))
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_woman.offset}) (i32.const ${needle_woman.length})) (i32.const 0))
+              (i32.or
+                (i32.ge_s (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_sarah.offset}) (i32.const ${needle_sarah.length})) (i32.const 0))
+                (i32.ge_s (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_alice.offset}) (i32.const ${needle_alice.length})) (i32.const 0))))))
+      (then
+        (global.set $voice_mode (i32.const 1)) ;; Female: Sarah
+      )
+      (else
+        (global.set $voice_mode (i32.const 0)) ;; Male: George
+      )
+    )
+
+    ;; 5.2 Text Extraction
+    ;; Default: entire input
     (local.set $text_start (local.get $in_ptr))
     (local.set $raw_len (local.get $in_len))
 
+    ;; Check if input is structured JSON with "text":"
     (local.set $json_text_pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_text_field.offset}) (i32.const ${needle_text_field.length})))
     (if (i32.ge_s (local.get $json_text_pos) (i32.const 0))
       (then
@@ -361,9 +448,117 @@ ${dataSectionWat}
         )
         (local.set $raw_len (local.get $i))
       )
+      (else
+        ;; Check for quoted speech: "..." or '...'
+        (local.set $q1 (i32.const -1))
+        (local.set $i (i32.const 0))
+        (loop $find_q1
+          (if (i32.lt_u (local.get $i) (local.get $in_len))
+            (then
+              (local.set $ch (i32.load8_u (i32.add (local.get $in_ptr) (local.get $i))))
+              (if (i32.or (i32.eq (local.get $ch) (i32.const 34)) (i32.eq (local.get $ch) (i32.const 39)))
+                (then
+                  (local.set $q1 (local.get $i))
+                  (local.set $q_char (local.get $ch))
+                )
+                (else
+                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                  (br $find_q1)
+                )
+              )
+            )
+          )
+        )
+
+        (if (i32.ge_s (local.get $q1) (i32.const 0))
+          (then
+            ;; Find closing quote
+            (local.set $q2 (i32.const -1))
+            (local.set $i (i32.add (local.get $q1) (i32.const 1)))
+            (loop $find_q2
+              (if (i32.lt_u (local.get $i) (local.get $in_len))
+                (then
+                  (local.set $ch (i32.load8_u (i32.add (local.get $in_ptr) (local.get $i))))
+                  (if (i32.eq (local.get $ch) (local.get $q_char))
+                    (then
+                      (local.set $q2 (local.get $i))
+                    )
+                    (else
+                      (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                      (br $find_q2)
+                    )
+                  )
+                )
+              )
+            )
+            (if (i32.gt_s (local.get $q2) (local.get $q1))
+              (then
+                ;; Quoted speech extracted!
+                (local.set $text_start (i32.add (local.get $in_ptr) (i32.add (local.get $q1) (i32.const 1))))
+                (local.set $raw_len (i32.sub (i32.sub (local.get $q2) (local.get $q1)) (i32.const 1)))
+              )
+            )
+          )
+          (else
+            ;; No quotes found: check natural speech triggers (diga, diciendo, texto, mensaje)
+            (local.set $trig_pos (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_trig_diga.offset}) (i32.const ${needle_trig_diga.length})))
+            (if (i32.ge_s (local.get $trig_pos) (i32.const 0))
+              (then
+                (local.set $text_start (i32.add (i32.add (local.get $in_ptr) (local.get $trig_pos)) (i32.const 4)))
+              )
+              (else
+                (local.set $trig_pos (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_trig_diciendo.offset}) (i32.const ${needle_trig_diciendo.length})))
+                (if (i32.ge_s (local.get $trig_pos) (i32.const 0))
+                  (then
+                    (local.set $text_start (i32.add (i32.add (local.get $in_ptr) (local.get $trig_pos)) (i32.const 8)))
+                  )
+                  (else
+                    (local.set $trig_pos (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_trig_texto.offset}) (i32.const ${needle_trig_texto.length})))
+                    (if (i32.ge_s (local.get $trig_pos) (i32.const 0))
+                      (then
+                        (local.set $text_start (i32.add (i32.add (local.get $in_ptr) (local.get $trig_pos)) (i32.const 5)))
+                      )
+                      (else
+                        (local.set $trig_pos (call $find_substring (i32.const 10003000) (local.get $in_len) (i32.const ${needle_trig_mensaje.offset}) (i32.const ${needle_trig_mensaje.length})))
+                        (if (i32.ge_s (local.get $trig_pos) (i32.const 0))
+                          (then
+                            (local.set $text_start (i32.add (i32.add (local.get $in_ptr) (local.get $trig_pos)) (i32.const 7)))
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+
+            ;; If a trigger matched, skip leading whitespace, colons and quotes
+            (if (i32.ge_s (local.get $trig_pos) (i32.const 0))
+              (then
+                (loop $skip_lead
+                  (if (i32.lt_u (local.get $text_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
+                    (then
+                      (local.set $ch (i32.load8_u (local.get $text_start)))
+                      (if (i32.or
+                            (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 58)))
+                            (i32.or (i32.eq (local.get $ch) (i32.const 34)) (i32.eq (local.get $ch) (i32.const 39))))
+                        (then
+                          (local.set $text_start (i32.add (local.get $text_start) (i32.const 1)))
+                          (br $skip_lead)
+                        )
+                      )
+                    )
+                  )
+                )
+                (local.set $raw_len (i32.sub (i32.add (local.get $in_ptr) (local.get $in_len)) (local.get $text_start)))
+              )
+            )
+          )
+        )
+      )
     )
 
-    ;; Sanitize input text into 10002000
+    ;; 5.3 Sanitize extracted text into 10002000
     (local.set $i (i32.const 0))
     (local.set $out_ptr (i32.const 10002000))
     (loop $sanitize
@@ -388,8 +583,28 @@ ${dataSectionWat}
     )
     (global.set $text_len (i32.sub (local.get $out_ptr) (i32.const 10002000)))
 
-    ;; Build HTTP request at 100000
-    (local.set $p (call $copy_mem (i32.const ${d_http_prefix.offset}) (i32.const 100000) (i32.const ${d_http_prefix.length})))
+    ;; Fallback: if extracted text is empty, return help
+    (if (i32.eqz (global.get $text_len))
+      (then
+        (drop (call $copy_mem (i32.const ${d_help.offset}) (i32.const 1024) (i32.const ${d_help.length})))
+        (return (i32.const ${d_help.length}))
+      )
+    )
+
+    ;; 5.4 Build HTTP request at 100000
+    (local.set $p (call $copy_mem (i32.const ${d_http_url_prefix.offset}) (i32.const 100000) (i32.const ${d_http_url_prefix.length})))
+
+    ;; Write selected Voice ID (20 bytes)
+    (if (i32.eq (global.get $voice_mode) (i32.const 1))
+      (then
+        (local.set $p (call $copy_mem (i32.const ${d_voice_female.offset}) (local.get $p) (i32.const ${d_voice_female.length})))
+      )
+      (else
+        (local.set $p (call $copy_mem (i32.const ${d_voice_male.offset}) (local.get $p) (i32.const ${d_voice_male.length})))
+      )
+    )
+
+    (local.set $p (call $copy_mem (i32.const ${d_http_url_mid.offset}) (local.get $p) (i32.const ${d_http_url_mid.length})))
     (local.set $p (call $copy_mem (i32.const 10001000) (local.get $p) (global.get $key_len)))
     (local.set $p (call $copy_mem (i32.const ${d_http_mid1.offset}) (local.get $p) (i32.const ${d_http_mid1.length})))
     (local.set $p (call $copy_mem (i32.const 10002000) (local.get $p) (global.get $text_len)))
@@ -418,7 +633,7 @@ ${dataSectionWat}
     ;; Phase 1: HTTP Response received
     (if (i32.eq (global.get $phase) (i32.const 1))
       (then
-        ;; First: verify that HTTP status was 200
+        ;; Verify HTTP status code 200
         (local.set $status_idx (call $find_substring (local.get $res_ptr) (local.get $res_len) (i32.const ${needle_status_200.offset}) (i32.const ${needle_status_200.length})))
         (if (i32.lt_s (local.get $status_idx) (i32.const 0))
           (then
@@ -452,7 +667,7 @@ ${dataSectionWat}
         )
         (local.set $b64_len (local.get $i))
 
-        ;; Build files.write request at 5000000 (completely isolated from 1000000)
+        ;; Build files.write request at 5000000
         (local.set $p (call $copy_mem (i32.const ${d_files_write_prefix.offset}) (i32.const 5000000) (i32.const ${d_files_write_prefix.length})))
         (local.set $p (call $copy_mem (local.get $b64_start) (local.get $p) (local.get $b64_len)))
         (local.set $p (call $copy_mem (i32.const ${d_files_write_suffix.offset}) (local.get $p) (i32.const ${d_files_write_suffix.length})))
@@ -490,8 +705,15 @@ ${dataSectionWat}
             )
             (global.set $handle_len (local.get $i))
 
-            ;; Build direct ToolResult bubble at 1024
-            (local.set $p (call $copy_mem (i32.const ${d_direct_bubble_prefix.offset}) (i32.const 1024) (i32.const ${d_direct_bubble_prefix.length})))
+            ;; Build direct ToolResult bubble at 1024 with gender-specific confirmation
+            (if (i32.eq (global.get $voice_mode) (i32.const 1))
+              (then
+                (local.set $p (call $copy_mem (i32.const ${d_direct_bubble_female_prefix.offset}) (i32.const 1024) (i32.const ${d_direct_bubble_female_prefix.length})))
+              )
+              (else
+                (local.set $p (call $copy_mem (i32.const ${d_direct_bubble_male_prefix.offset}) (i32.const 1024) (i32.const ${d_direct_bubble_male_prefix.length})))
+              )
+            )
             (local.set $p (call $copy_mem (i32.const 10000000) (local.get $p) (global.get $handle_len)))
             (local.set $p (call $copy_mem (i32.const ${d_direct_bubble_suffix.offset}) (local.get $p) (i32.const ${d_direct_bubble_suffix.length})))
             (return (i32.sub (local.get $p) (i32.const 1024)))
