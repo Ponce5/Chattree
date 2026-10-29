@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.elevenlabs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "ElevenLabs Voice",
   "description": "Official ElevenLabs AI voice & speech synthesis plugin. Generates realistic MP3 audio ready to download and share in chat.",
   "author": "Chattree Core Team",
@@ -29,11 +29,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/icon.png",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/banner.png",
-  "changelog": "1.0.0: Initial release of official ElevenLabs audio generator plugin for Chattree.",
+  "changelog": "1.0.1: Improved direct slash-command execution for /elevenlabs config and universal API key detection.",
   "runtime": "wasm",
   "entrypoint": "elevenlabs_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "1546ea933483a5cd173b099affdb6c419e16276b045de5c5d648ae5c6bc3a756",
+  "wasmSha256": "846d2018892f1bb2e42bb06bf0abfac34c00d12d7f4661652efe2a67d6871c89",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 35000,
@@ -43,39 +43,12 @@
       "id": "com.chattree.official.elevenlabs.tts",
       "command": "elevenlabs",
       "displayName": "ElevenLabs Voice Generator",
-      "description": "Genera un audio realista en MP3 a partir de texto usando la API de ElevenLabs. Invoca con el texto a sintetizar o usa /elevenlabs <texto>.",
+      "description": "Genera un audio realista en MP3 a partir de texto usando la API de ElevenLabs. Invoca con /elevenlabs <texto> o /tts <texto>.",
       "capabilities": [
         "network.http",
         "storage.private",
         "files.write"
-      ],
-      "intentContract": {
-        "intent": "audio_generate",
-        "validIntents": [
-          "audio_generate",
-          "unknown"
-        ],
-        "description": "Sintetiza texto a voz usando ElevenLabs.",
-        "fields": [
-          {
-            "name": "text",
-            "key": "text",
-            "type": "string",
-            "description": "Texto a convertir en voz.",
-            "required": true
-          }
-        ],
-        "examples": [
-          {
-            "input": "crea un audio diciendo Hola bienvenidos a Chattree",
-            "output": {
-              "tool": "elevenlabs",
-              "text": "Hola bienvenidos a Chattree"
-            }
-          }
-        ]
-      }
+      ]
     }
   ]
 }
-
