@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "name": "GitHub",
-  "description": "Official GitHub integration for Chattree. Inspect repositories, list your projects, view issues, read READMEs, search code, create issues, and manage tokens using natural language or slash commands.",
+  "description": "Official GitHub integration for Chattree. Inspect repositories, list your projects, view issues, read READMEs, search code, create issues, and manage tokens using fully natural language.",
   "author": "Chattree Core Team",
   "primaryCommand": "github",
   "aliases": [
@@ -26,13 +26,13 @@
     "pullrequests",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.0.6",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.0.6",
-  "changelog": "1.0.6: Added README reading (phase 6), code search (phase 7), and issue creation (phase 8). All via natural language in WASM.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.0.7",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.0.7",
+  "changelog": "1.0.7: Added intentContract for true 100% natural language support. The Chattree AI model now extracts the intent and fields before invoking the WASM plugin.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "fc073d5d2bd6c2c21a12b6c8ddab6b7da9e2c7cee347b0a11d59ee5ca7712f8e",
+  "wasmSha256": "94e25009a3d7e5323f3d817f8d3e880c530ef18b6b436552163c7010d0d7219e",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 30000,
@@ -42,12 +42,49 @@
       "id": "com.chattree.official.github.manager",
       "command": "github",
       "displayName": "GitHub Integration",
-      "description": "Interactúa con GitHub en lenguaje natural o con comandos: /github que repos tengo, /github quien soy, /github <owner/repo>, /github issues <owner/repo>, o /github config <token>.",
+      "description": "Interactúa con GitHub en lenguaje 100% natural. Puedes preguntar sobre tus repos, ver issues, leer READMEs, buscar código, crear issues y más — escribe lo que necesitas en tus propias palabras.",
       "capabilities": [
         "network.http",
         "storage.private",
         "open.url"
-      ]
+      ],
+      "intentContract": {
+        "intent": "github_action",
+        "description": "Extrae la acción de GitHub que el usuario quiere realizar y sus parámetros a partir de lenguaje natural. El campo 'action' debe ser uno de: 'profile' (ver perfil/cuenta), 'my_repos' (listar repositorios del usuario), 'repo_info' (info de un repo específico), 'issues' (ver issues de un repo), 'prs' (ver pull requests de un repo), 'readme' (leer README de un repo), 'search' (buscar código en un repo), 'create_issue' (crear un issue en un repo), 'config' (guardar token), 'help' (ayuda). El campo 'repo' debe ser 'owner/repo' si el usuario mencionó un repositorio (puede inferirse del contexto, p.ej. 'el repo de chattree' → 'Ponce5/Chattree'). El campo 'query' es para búsquedas de código. El campo 'title' es el título del issue a crear. El campo 'token' es el Personal Access Token si el usuario lo proporcionó.",
+        "fields": [
+          {
+            "name": "action",
+            "type": "string",
+            "description": "La acción a ejecutar: profile | my_repos | repo_info | issues | prs | readme | search | create_issue | config | help",
+            "required": true
+          },
+          {
+            "name": "repo",
+            "type": "string",
+            "description": "Repositorio en formato owner/repo. Inferir del contexto si es posible.",
+            "required": false
+          },
+          {
+            "name": "query",
+            "type": "string",
+            "description": "Término de búsqueda para búsqueda de código (action=search).",
+            "required": false
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "description": "Título del issue a crear (action=create_issue).",
+            "required": false
+          },
+          {
+            "name": "token",
+            "type": "string",
+            "description": "Personal Access Token de GitHub si el usuario lo proporcionó (action=config).",
+            "required": false
+          }
+        ],
+        "maxResponseTokens": 120
+      }
     }
   ]
 }
