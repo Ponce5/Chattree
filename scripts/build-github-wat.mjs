@@ -46,13 +46,13 @@ const act_config       = registerData('act_config',       'config');
 const act_help         = registerData('act_help',         'help');
 
 // ─── JSON field needles ─────────────────────────────────────────────────────
-const needle_operation_field = registerData('needle_operation_field', '"operation":"');
-const needle_action_field    = registerData('needle_action_field',    '"action":"');
-const needle_repo_field      = registerData('needle_repo_field',      '"repo":"');
-const needle_query_field     = registerData('needle_query_field',     '"query":"');
-const needle_title_field     = registerData('needle_title_field',     '"title":"');
-const needle_token_field     = registerData('needle_token_field',     '"token":"');
-const needle_val_field       = registerData('needle_val_field',       '"value":"');
+const needle_operation_field = registerData('needle_operation_field', '"operation"');
+const needle_action_field    = registerData('needle_action_field',    '"action"');
+const needle_repo_field      = registerData('needle_repo_field',      '"repo"');
+const needle_query_field     = registerData('needle_query_field',     '"query"');
+const needle_title_field     = registerData('needle_title_field',     '"title"');
+const needle_token_field     = registerData('needle_token_field',     '"token"');
+const needle_val_field       = registerData('needle_val_field',       '"value"');
 const needle_body_field      = registerData('needle_body_field',      '"body":"');
 const needle_ghp             = registerData('needle_ghp',             'ghp_');
 const needle_github_pat      = registerData('needle_github_pat',      'github_pat_');
@@ -70,6 +70,7 @@ const nl_status     = registerData('nl_status',     'status');
 const nl_readme     = registerData('nl_readme',     'readme');
 const nl_leer       = registerData('nl_leer',       'leer');
 const nl_lee        = registerData('nl_lee',        'lee');
+const nl_doc        = registerData('nl_doc',        'doc');
 const nl_mostrar    = registerData('nl_mostrar',    'mostrar');
 const nl_explic     = registerData('nl_explic',     'explic');
 const nl_de_que     = registerData('nl_de_que',     'de que');
@@ -244,8 +245,8 @@ const dataSectionWat = dataEntries
   .map(e => `  (data (i32.const ${e.offset}) "${e.escaped}")`)
   .join('\n');
 
-const watContent = `;; Chattree Official GitHub Integration Plugin v1.0.9
-;; Robust Field Parsing + Dual IntentContract & Natural Language Support
+const watContent = `;; Chattree Official GitHub Integration Plugin v1.1.0
+;; Resilient Intent Promotion + Robust Field Parsing + Natural Language
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -723,6 +724,80 @@ ${dataSectionWat}
       )
     )
 
+    ;; ── 6b. Promotion: override repo_info to specific action if keywords present ──
+    (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const ${act_repo_info.offset}) (i32.const ${act_repo_info.length}))
+      (then
+        ;; Check readme / docs
+        (if (i32.or
+              (i32.or
+                (i32.or
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_readme.offset}) (i32.const ${nl_readme.length})) (i32.const 0))
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_leer.offset}) (i32.const ${nl_leer.length})) (i32.const 0))
+                )
+                (i32.or
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_lee.offset}) (i32.const ${nl_lee.length})) (i32.const 0))
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_doc.offset}) (i32.const ${nl_doc.length})) (i32.const 0))
+                )
+              )
+              (i32.or
+                (i32.or
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_explic.offset}) (i32.const ${nl_explic.length})) (i32.const 0))
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_de_que.offset}) (i32.const ${nl_de_que.length})) (i32.const 0))
+                )
+                (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_para_que.offset}) (i32.const ${nl_para_que.length})) (i32.const 0))
+              )
+            )
+          (then
+            (drop (call $copy_mem (i32.const ${act_readme.offset}) (i32.const 200000) (i32.const ${act_readme.length})))
+            (local.set $act_len (i32.const ${act_readme.length}))
+          )
+        )
+        ;; Check issues
+        (if (i32.eq (local.get $act_len) (i32.const ${act_repo_info.length}))
+          (then
+            (if (i32.or
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_issue.offset}) (i32.const ${nl_issue.length})) (i32.const 0))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_bug.offset}) (i32.const ${nl_bug.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_problema.offset}) (i32.const ${nl_problema.length})) (i32.const 0))))
+              (then
+                (drop (call $copy_mem (i32.const ${act_issues.offset}) (i32.const 200000) (i32.const ${act_issues.length})))
+                (local.set $act_len (i32.const ${act_issues.length}))
+              )
+            )
+          )
+        )
+        ;; Check prs
+        (if (i32.eq (local.get $act_len) (i32.const ${act_repo_info.length}))
+          (then
+            (if (i32.or
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_prs.offset}) (i32.const ${nl_prs.length})) (i32.const 0))
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_pulls.offset}) (i32.const ${nl_pulls.length})) (i32.const 0)))
+              (then
+                (drop (call $copy_mem (i32.const ${act_prs.offset}) (i32.const 200000) (i32.const ${act_prs.length})))
+                (local.set $act_len (i32.const ${act_prs.length}))
+              )
+            )
+          )
+        )
+        ;; Check search
+        (if (i32.eq (local.get $act_len) (i32.const ${act_repo_info.length}))
+          (then
+            (if (i32.or
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_buscar.offset}) (i32.const ${nl_buscar.length})) (i32.const 0))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_busca.offset}) (i32.const ${nl_busca.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_search.offset}) (i32.const ${nl_search.length})) (i32.const 0))))
+              (then
+                (drop (call $copy_mem (i32.const ${act_search.offset}) (i32.const 200000) (i32.const ${act_search.length})))
+                (local.set $act_len (i32.const ${act_search.length}))
+              )
+            )
+          )
+        )
+      )
+    )
+
     ;; ── 7. NATURAL LANGUAGE FALLBACK: detect action from raw text if act_len == 0
     (if (i32.eqz (local.get $act_len))
       (then
@@ -776,17 +851,23 @@ ${dataSectionWat}
           (then
             (if (i32.or
                   (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_readme.offset}) (i32.const ${nl_readme.length})) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_leer.offset}) (i32.const ${nl_leer.length})) (i32.const 0)))
-                  (i32.or
+                    (i32.or
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_readme.offset}) (i32.const ${nl_readme.length})) (i32.const 0))
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_leer.offset}) (i32.const ${nl_leer.length})) (i32.const 0))
+                    )
                     (i32.or
                       (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_lee.offset}) (i32.const ${nl_lee.length})) (i32.const 0))
-                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_mostrar.offset}) (i32.const ${nl_mostrar.length})) (i32.const 0)))
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_doc.offset}) (i32.const ${nl_doc.length})) (i32.const 0))
+                    )
+                  )
+                  (i32.or
                     (i32.or
                       (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_explic.offset}) (i32.const ${nl_explic.length})) (i32.const 0))
-                      (i32.or
-                        (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_de_que.offset}) (i32.const ${nl_de_que.length})) (i32.const 0))
-                        (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_para_que.offset}) (i32.const ${nl_para_que.length})) (i32.const 0))))))
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_de_que.offset}) (i32.const ${nl_de_que.length})) (i32.const 0))
+                    )
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_para_que.offset}) (i32.const ${nl_para_que.length})) (i32.const 0))
+                  )
+                )
               (then
                 (drop (call $copy_mem (i32.const ${act_readme.offset}) (i32.const 200000) (i32.const ${act_readme.length})))
                 (local.set $act_len (i32.const ${act_readme.length}))
@@ -1329,27 +1410,42 @@ ${dataSectionWat}
         )
         (local.set $out (call $copy_mem (i32.const 210000) (local.get $out) (global.get $repo_len)))
         (local.set $out (call $copy_mem (i32.const ${d_bracket_close.offset}) (local.get $out) (i32.const ${d_bracket_close.length})))
-        (if (i32.ge_s (local.get $body_idx) (i32.const 0))
-          (then
-            (local.set $val_start (i32.add (i32.add (local.get $res_ptr) (local.get $body_idx)) (i32.const ${needle_body_field.length})))
-            (local.set $i (i32.const 0))
-            (loop $cp_body
-              (if (i32.and
-                    (i32.lt_u (i32.add (local.get $val_start) (local.get $i)) (i32.add (local.get $res_ptr) (local.get $res_len)))
-                    (i32.lt_u (local.get $i) (i32.const 25000)))
+        (local.set $p (local.get $res_ptr))
+        (local.set $count (i32.const 0))
+        (loop $find_issues
+          (if (i32.and
+                (i32.lt_u (local.get $p) (i32.add (local.get $res_ptr) (local.get $res_len)))
+                (i32.lt_u (local.get $count) (i32.const 5)))
+            (then
+              (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
+              (local.set $pos (call $find_substring
+                (local.get $p) (local.get $rem_len)
+                (i32.const ${needle_title_field.offset}) (i32.const ${needle_title_field.length})))
+              (if (i32.ge_s (local.get $pos) (i32.const 0))
                 (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
-                  (if (i32.ne (local.get $ch) (i32.const 34))
-                    (then
-                      (i32.store8 (local.get $out) (local.get $ch))
-                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
-                      (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                      (br $cp_body)
-                    )
-                  )
+                  (local.set $p (i32.add (local.get $p) (local.get $pos)))
+                  (local.set $rem_len (i32.sub (i32.add (local.get $res_ptr) (local.get $res_len)) (local.get $p)))
+                  (local.set $out (call $copy_mem (i32.const ${d_bullet_bold.offset}) (local.get $out) (i32.const ${d_bullet_bold.length})))
+                  (local.set $extracted (call $extract_field
+                    (local.get $p) (local.get $rem_len)
+                    (i32.const ${needle_title_field.offset}) (i32.const ${needle_title_field.length})
+                    (local.get $out) (i32.const 120)))
+                  (local.set $out (i32.add (local.get $out) (local.get $extracted)))
+                  (i32.store8 (local.get $out) (i32.const 42))
+                  (i32.store8 (i32.add (local.get $out) (i32.const 1)) (i32.const 42))
+                  (i32.store8 (i32.add (local.get $out) (i32.const 2)) (i32.const 10))
+                  (local.set $out (i32.add (local.get $out) (i32.const 3)))
+                  (local.set $p (i32.add (local.get $p) (i32.add (i32.const ${needle_title_field.length}) (local.get $extracted))))
+                  (local.set $count (i32.add (local.get $count) (i32.const 1)))
+                  (br $find_issues)
                 )
               )
             )
+          )
+        )
+        (if (i32.eqz (local.get $count))
+          (then
+            (local.set $out (call $copy_mem (i32.const ${d_search_empty.offset}) (local.get $out) (i32.const ${d_search_empty.length})))
           )
         )
         (return (i32.sub (local.get $out) (i32.const 1024)))
@@ -1393,6 +1489,12 @@ ${dataSectionWat}
                               (br $cp_readme)
                             )
                           )
+                          (if (i32.eq (local.get $p) (i32.const 114))
+                            (then
+                              (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                              (br $cp_readme)
+                            )
+                          )
                           (i32.store8 (local.get $out) (local.get $p))
                           (local.set $out (i32.add (local.get $out) (i32.const 1)))
                           (local.set $i (i32.add (local.get $i) (i32.const 2)))
@@ -1400,7 +1502,6 @@ ${dataSectionWat}
                         )
                         (else
                           (i32.store8 (local.get $out) (local.get $ch))
-                          (local.set $out (i32.add (local.get $out) (local.get $extracted)))
                           (local.set $out (i32.add (local.get $out) (i32.const 1)))
                           (local.set $i (i32.add (local.get $i) (i32.const 1)))
                           (br $cp_readme)

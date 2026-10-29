@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "name": "GitHub",
   "description": "Official GitHub integration for Chattree. Inspect repositories, list your projects, view issues, read READMEs, search code, create issues, and manage tokens using fully natural language.",
   "author": "Chattree Core Team",
@@ -26,13 +26,13 @@
     "pullrequests",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.0.9",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.0.9",
-  "changelog": "1.0.9: Fixed JSON response field parsing for repository metrics (stars, forks, description, and link).",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.1.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.1.0",
+  "changelog": "1.1.0: Enhanced intent contract for README/documentation requests with fail-safe promotion in WebAssembly runtime and clean markdown rendering.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "e832e6c3bdd54ab2a5a57977fa8ccc1995e4718f7c3c16bb84a5a1cc8166d1b5",
+  "wasmSha256": "c665bacb00751513b53a4147e883596b1763d4e8935c8851d83f80e2e1f30248",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 30000,
@@ -62,13 +62,13 @@
           "config",
           "help"
         ],
-        "description": "Interactúa con GitHub para consultar repositorios, leer READMEs, ver issues o PRs, buscar código, crear issues o gestionar la cuenta.",
+        "description": "Interactúa con GitHub para consultar repositorios, leer el README completo o documentación, ver issues o PRs, buscar código, crear issues o gestionar la cuenta.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'profile', 'my_repos', 'repo_info', 'issues', 'prs', 'readme', 'search', 'create_issue', 'config', 'help'",
+            "description": "Acción a realizar: 'readme' (OBLIGATORIO si piden el readme, explicar el repo, para qué sirve, de qué trata o documentación), 'repo_info' (únicamente si piden info general, resumen básico o métricas del repo sin pedir readme), 'my_repos', 'issues', 'prs', 'search', 'create_issue', 'profile', 'config', 'help'",
             "required": true
           },
           {
@@ -102,15 +102,43 @@
         ],
         "examples": [
           {
-            "input": "dime qué repos tengo",
+            "input": "cuál es el readme del repo chattree",
             "output": {
-              "action": "my_repos"
+              "action": "readme",
+              "repo": "Ponce5/Chattree"
+            }
+          },
+          {
+            "input": "de qué trata el repo chattree",
+            "output": {
+              "action": "readme",
+              "repo": "Ponce5/Chattree"
             }
           },
           {
             "input": "explícame el README de Ponce5/Chattree",
             "output": {
               "action": "readme",
+              "repo": "Ponce5/Chattree"
+            }
+          },
+          {
+            "input": "para qué sirve Ponce5/Chattree",
+            "output": {
+              "action": "readme",
+              "repo": "Ponce5/Chattree"
+            }
+          },
+          {
+            "input": "dime qué repos tengo",
+            "output": {
+              "action": "my_repos"
+            }
+          },
+          {
+            "input": "información y estrellas de Ponce5/Chattree",
+            "output": {
+              "action": "repo_info",
               "repo": "Ponce5/Chattree"
             }
           },
