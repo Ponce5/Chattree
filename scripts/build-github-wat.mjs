@@ -91,6 +91,13 @@ const nl_pulls      = registerData('nl_pulls',      'pull');
 const nl_cambio     = registerData('nl_cambio',     'cambio');
 const nl_config     = registerData('nl_config',     'config');
 
+// ─── Stats-only keywords (when present, keep repo_info) ─────────────────────
+const nl_estrellas  = registerData('nl_estrellas',  'estrella');
+const nl_stars      = registerData('nl_stars',      'stars');
+const nl_forks      = registerData('nl_forks',      'fork');
+const nl_cuantas    = registerData('nl_cuantas',    'cuantas');
+const nl_cuantos    = registerData('nl_cuantos',    'cuantos');
+
 // ─── Status codes ───────────────────────────────────────────────────────────
 const needle_status_200 = registerData('needle_status_200', '"statusCode":200');
 const needle_status_201 = registerData('needle_status_201', '"statusCode":201');
@@ -247,8 +254,8 @@ const dataSectionWat = dataEntries
   .map(e => `  (data (i32.const ${e.offset}) "${e.escaped}")`)
   .join('\n');
 
-const watContent = `;; Chattree Official GitHub Integration Plugin v1.2.0
-;; Clean Dual-Mode Architecture (Anonymous Public / Authenticated Private)
+const watContent = `;; Chattree Official GitHub Integration Plugin v1.2.2
+;; Triple-layer README intent defense + NLP query buffer promotion
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -719,26 +726,53 @@ ${dataSectionWat}
     )
 
     ;; ── 6b. Promotion: override repo_info to specific action if keywords present ──
+    ;; Searches BOTH the full lowercased input (buf 50000) AND the extracted query (buf 220000).
+    ;; This handles the case where the device LLM chose repo_info but the user's query field
+    ;; (e.g. "cual es el readme de chattree") contains the real intent keyword.
     (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const ${act_repo_info.offset}) (i32.const ${act_repo_info.length}))
       (then
-        ;; Check readme / docs
+        ;; Check readme / docs — in JSON body (50000) OR in extracted query (220000)
         (if (i32.or
+              ;; Search in full lowercased JSON input
               (i32.or
                 (i32.or
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_readme.offset}) (i32.const ${nl_readme.length})) (i32.const 0))
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_leer.offset}) (i32.const ${nl_leer.length})) (i32.const 0))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_readme.offset}) (i32.const ${nl_readme.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_leer.offset}) (i32.const ${nl_leer.length})) (i32.const 0))
+                  )
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_lee.offset}) (i32.const ${nl_lee.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_doc.offset}) (i32.const ${nl_doc.length})) (i32.const 0))
+                  )
                 )
                 (i32.or
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_lee.offset}) (i32.const ${nl_lee.length})) (i32.const 0))
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_doc.offset}) (i32.const ${nl_doc.length})) (i32.const 0))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_explic.offset}) (i32.const ${nl_explic.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_de_que.offset}) (i32.const ${nl_de_que.length})) (i32.const 0))
+                  )
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_para_que.offset}) (i32.const ${nl_para_que.length})) (i32.const 0))
                 )
               )
+              ;; Also search in extracted query field (buf 220000) — covers case where LLM sent repo_info
+              ;; but included the user's original text in the "query" field
               (i32.or
                 (i32.or
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_explic.offset}) (i32.const ${nl_explic.length})) (i32.const 0))
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_de_que.offset}) (i32.const ${nl_de_que.length})) (i32.const 0))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_readme.offset}) (i32.const ${nl_readme.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_leer.offset}) (i32.const ${nl_leer.length})) (i32.const 0))
+                  )
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_lee.offset}) (i32.const ${nl_lee.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_doc.offset}) (i32.const ${nl_doc.length})) (i32.const 0))
+                  )
                 )
-                (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_para_que.offset}) (i32.const ${nl_para_que.length})) (i32.const 0))
+                (i32.or
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_explic.offset}) (i32.const ${nl_explic.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_de_que.offset}) (i32.const ${nl_de_que.length})) (i32.const 0))
+                  )
+                  (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_para_que.offset}) (i32.const ${nl_para_que.length})) (i32.const 0))
+                )
               )
             )
           (then
@@ -746,14 +780,20 @@ ${dataSectionWat}
             (local.set $act_len (i32.const ${act_readme.length}))
           )
         )
-        ;; Check issues
+        ;; Check issues — in JSON body OR in extracted query
         (if (i32.eq (local.get $act_len) (i32.const ${act_repo_info.length}))
           (then
             (if (i32.or
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_issue.offset}) (i32.const ${nl_issue.length})) (i32.const 0))
                   (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_bug.offset}) (i32.const ${nl_bug.length})) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_problema.offset}) (i32.const ${nl_problema.length})) (i32.const 0))))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_issue.offset}) (i32.const ${nl_issue.length})) (i32.const 0))
+                    (i32.or
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_bug.offset}) (i32.const ${nl_bug.length})) (i32.const 0))
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_problema.offset}) (i32.const ${nl_problema.length})) (i32.const 0))))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_issue.offset}) (i32.const ${nl_issue.length})) (i32.const 0))
+                    (i32.or
+                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_bug.offset}) (i32.const ${nl_bug.length})) (i32.const 0))
+                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_problema.offset}) (i32.const ${nl_problema.length})) (i32.const 0)))))
               (then
                 (drop (call $copy_mem (i32.const ${act_issues.offset}) (i32.const 200000) (i32.const ${act_issues.length})))
                 (local.set $act_len (i32.const ${act_issues.length}))
@@ -761,12 +801,16 @@ ${dataSectionWat}
             )
           )
         )
-        ;; Check prs
+        ;; Check prs — in JSON body OR in extracted query
         (if (i32.eq (local.get $act_len) (i32.const ${act_repo_info.length}))
           (then
             (if (i32.or
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_prs.offset}) (i32.const ${nl_prs.length})) (i32.const 0))
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_pulls.offset}) (i32.const ${nl_pulls.length})) (i32.const 0)))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_prs.offset}) (i32.const ${nl_prs.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_pulls.offset}) (i32.const ${nl_pulls.length})) (i32.const 0)))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_prs.offset}) (i32.const ${nl_prs.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_pulls.offset}) (i32.const ${nl_pulls.length})) (i32.const 0))))
               (then
                 (drop (call $copy_mem (i32.const ${act_prs.offset}) (i32.const 200000) (i32.const ${act_prs.length})))
                 (local.set $act_len (i32.const ${act_prs.length}))
@@ -774,19 +818,72 @@ ${dataSectionWat}
             )
           )
         )
-        ;; Check search
+        ;; Check search — in JSON body OR in extracted query
         (if (i32.eq (local.get $act_len) (i32.const ${act_repo_info.length}))
           (then
             (if (i32.or
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_buscar.offset}) (i32.const ${nl_buscar.length})) (i32.const 0))
                   (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_busca.offset}) (i32.const ${nl_busca.length})) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_search.offset}) (i32.const ${nl_search.length})) (i32.const 0))))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_buscar.offset}) (i32.const ${nl_buscar.length})) (i32.const 0))
+                    (i32.or
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_busca.offset}) (i32.const ${nl_busca.length})) (i32.const 0))
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_search.offset}) (i32.const ${nl_search.length})) (i32.const 0))))
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_buscar.offset}) (i32.const ${nl_buscar.length})) (i32.const 0))
+                    (i32.or
+                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_busca.offset}) (i32.const ${nl_busca.length})) (i32.const 0))
+                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_search.offset}) (i32.const ${nl_search.length})) (i32.const 0)))))
               (then
                 (drop (call $copy_mem (i32.const ${act_search.offset}) (i32.const 200000) (i32.const ${act_search.length})))
                 (local.set $act_len (i32.const ${act_search.length}))
               )
             )
+          )
+        )
+      )
+    )
+
+    ;; ── 6c. FINAL SAFETY NET: if action is still repo_info and no explicit stats keywords
+    ;; (estrellas/forks/stars/cuantas/cuantos) found anywhere in input or query,
+    ;; promote to readme. This covers the case where the device LLM chose repo_info
+    ;; without providing a query field — e.g. user asked "explain the chattree repo".
+    (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const ${act_repo_info.offset}) (i32.const ${act_repo_info.length}))
+      (then
+        (if (i32.eqz
+              (i32.or
+                ;; Check in full lowercased JSON
+                (i32.or
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_estrellas.offset}) (i32.const ${nl_estrellas.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_stars.offset}) (i32.const ${nl_stars.length})) (i32.const 0))
+                  )
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_forks.offset}) (i32.const ${nl_forks.length})) (i32.const 0))
+                    (i32.or
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_cuantas.offset}) (i32.const ${nl_cuantas.length})) (i32.const 0))
+                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const ${nl_cuantos.offset}) (i32.const ${nl_cuantos.length})) (i32.const 0))
+                    )
+                  )
+                )
+                ;; Also check in extracted query
+                (i32.or
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_estrellas.offset}) (i32.const ${nl_estrellas.length})) (i32.const 0))
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_stars.offset}) (i32.const ${nl_stars.length})) (i32.const 0))
+                  )
+                  (i32.or
+                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_forks.offset}) (i32.const ${nl_forks.length})) (i32.const 0))
+                    (i32.or
+                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_cuantas.offset}) (i32.const ${nl_cuantas.length})) (i32.const 0))
+                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const ${nl_cuantos.offset}) (i32.const ${nl_cuantos.length})) (i32.const 0))
+                    )
+                  )
+                )
+              )
+            )
+          (then
+            ;; No explicit stats keywords → user likely wants the README/documentation
+            (drop (call $copy_mem (i32.const ${act_readme.offset}) (i32.const 200000) (i32.const ${act_readme.length})))
+            (local.set $act_len (i32.const ${act_readme.length}))
           )
         )
       )
