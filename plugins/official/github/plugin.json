@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "name": "GitHub",
   "description": "Official GitHub integration for Chattree. Inspect repositories, list your projects, view issues, read READMEs, search code, create issues, and manage tokens using fully natural language.",
   "author": "Chattree Core Team",
@@ -28,11 +28,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.2.1",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.2.1",
-  "changelog": "1.2.2: Triple-layer readme intent defense: NLP promotion in query buffer + safety-net that converts repo_info to readme when no explicit stats keywords (estrellas/forks/stars) are present.",
+  "changelog": "1.2.3: Renamed repo_info to stats in validIntents so device LLM unambiguously routes readme/docs/explain queries to readme action. Safety-net in WASM promotes any repo_info/stats without explicit stats keywords to readme.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "655d26b23482f538f38aee3ac4df61b022245e9a414aace52502bddfa3ae4f1c",
+  "wasmSha256": "0ebfe88a0e44b6a02279c2b0910c668d60eddbf15a4a5df1c52e5d04d47e1b46",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 30000,
@@ -42,7 +42,7 @@
       "id": "com.chattree.official.github.manager",
       "command": "github",
       "displayName": "GitHub Integration",
-      "description": "Herramienta oficial de GitHub en Chattree. REGLAS ESTRICTAS PARA 'action': 1) USA SIEMPRE action='readme' cuando el usuario mencione 'readme', 'README', 'documentación', o pregunte 'qué es', 'de qué trata', 'explica' o 'para qué sirve' el repositorio. NUNCA uses action='repo_info' para el readme ni para explicar un proyecto. 2) Usa action='repo_info' ÚNICAMENTE cuando el usuario pida exclusivamente estadísticas numéricas (estrellas o forks). 3) Usa action='issues' para issues o tareas. 4) Usa action='prs' para pull requests. 5) Usa action='search' para buscar código o funciones. 6) REGLA DE REPOSITORIO: Si el usuario solo menciona 'chattree' o no incluye slash '/', usa siempre 'repo': 'Ponce5/Chattree'.",
+      "description": "Herramienta oficial de GitHub en Chattree. REGLA PRINCIPAL: usa 'readme' para CUALQUIER pregunta sobre qué es, qué hace, cómo funciona o la documentación de un repositorio. Solo usa 'stats' si el usuario pide EXPLÍCITAMENTE estrellas o forks. Otras acciones: 'issues' (listar issues), 'prs' (pull requests), 'search' (buscar código), 'create_issue', 'my_repos', 'profile', 'config'. REPOSITORIO POR DEFECTO: si el usuario menciona 'chattree' sin dueño, usa 'Ponce5/Chattree'.",
       "capabilities": [
         "network.http",
         "storage.private",
@@ -55,20 +55,20 @@
           "issues",
           "prs",
           "search",
-          "repo_info",
+          "stats",
           "create_issue",
           "my_repos",
           "profile",
           "config",
           "help"
         ],
-        "description": "Herramienta oficial para interactuar con GitHub en lenguaje 100% natural. Permite leer READMEs completos, consultar métricas e información de repositorios, listar issues o pull requests, buscar código o funciones, crear issues, consultar proyectos propios y configurar el token de GitHub.",
+        "description": "Herramienta oficial para interactuar con GitHub en lenguaje 100% natural. Permite leer READMEs completos, consultar estadísticas de repositorios, listar issues o pull requests, buscar código o funciones, crear issues, consultar proyectos propios y configurar el token de GitHub.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a ejecutar: 'readme' (OBLIGATORIO para leer el README, documentación, qué hace o para qué sirve el proyecto; SIEMPRE que digan readme o explicar el repo), 'issues' (listar issues), 'prs' (listar PRs), 'search' (buscar código), 'repo_info' (ÚNICAMENTE si piden números de estrellas o forks; NUNCA para readme), 'create_issue', 'my_repos', 'profile', 'config', 'help'",
+            "description": "Acción a ejecutar. USA 'readme' para CUALQUIER pregunta sobre qué es el proyecto, qué hace, cómo funciona, su documentación o su README. USA 'stats' SOLO si el usuario pide explícitamente números como estrellas o forks. USA 'issues' para listar issues. USA 'prs' para pull requests. USA 'search' para buscar código. USA 'create_issue' para crear un issue. USA 'my_repos' para listar los repos del usuario. USA 'profile' para ver el perfil de GitHub. USA 'config' para guardar el token.",
             "required": true
           },
           {
@@ -132,7 +132,7 @@
           {
             "input": "cuántas estrellas tiene Ponce5/Chattree",
             "output": {
-              "action": "repo_info",
+              "action": "stats",
               "repo": "Ponce5/Chattree"
             }
           },

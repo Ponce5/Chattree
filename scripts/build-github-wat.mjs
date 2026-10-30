@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+﻿import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
@@ -37,6 +37,7 @@ function registerData(name, str) {
 const act_profile      = registerData('act_profile',      'profile');
 const act_my_repos     = registerData('act_my_repos',     'my_repos');
 const act_repo_info    = registerData('act_repo_info',    'repo_info');
+const act_stats        = registerData('act_stats',        'stats');
 const act_issues       = registerData('act_issues',       'issues');
 const act_prs          = registerData('act_prs',          'prs');
 const act_readme       = registerData('act_readme',       'readme');
@@ -254,7 +255,7 @@ const dataSectionWat = dataEntries
   .map(e => `  (data (i32.const ${e.offset}) "${e.escaped}")`)
   .join('\n');
 
-const watContent = `;; Chattree Official GitHub Integration Plugin v1.2.2
+const watContent = `;; Chattree Official GitHub Integration Plugin v1.2.3
 ;; Triple-layer README intent defense + NLP query buffer promotion
 (module
   (import "chattree" "host_call"
@@ -600,6 +601,16 @@ ${dataSectionWat}
       )
     )
 
+
+    ;; ── 1b. Normalize "stats" → "repo_info" (stats is the LLM-facing action name in v1.2.3+) ──
+    ;; The device LLM sees "stats" in validIntents, which it correctly uses only for star/fork counts.
+    ;; WASM normalizes it to "repo_info" so the rest of the pipeline stays unchanged.
+    (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const ${act_stats.offset}) (i32.const ${act_stats.length}))
+      (then
+        (drop (call $copy_mem (i32.const ${act_repo_info.offset}) (i32.const 200000) (i32.const ${act_repo_info.length})))
+        (local.set $act_len (i32.const ${act_repo_info.length}))
+      )
+    )
     ;; ── 2. Extract repo from "repo":" ───────────────────────────────────────
     (local.set $repo_len_local (call $extract_field
       (local.get $in_ptr) (local.get $in_len)
