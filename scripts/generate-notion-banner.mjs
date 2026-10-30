@@ -210,3 +210,4 @@ const outPath = path.resolve(__dirname, '../plugins/official/notion/banner.png')
 const pngData = encodePng(bannerWidth, bannerHeight, banner);
 fs.writeFileSync(outPath, pngData);
 console.log('✅ Generated banner.png successfully:', outPath, 'Bytes:', pngData.length);
+

@@ -48,7 +48,7 @@ function registerData(name, str) {
 // Static user-facing messages
 const s_help = `📝 **Notion Workspace Integration**
 
-Conecta tu espacio de trabajo de Notion directamente con Chattree mediante la API oficial de Notion.
+Conecta tu espacio de trabajo de Notion directamente con Chattree mediante la API oficial de Notion con soporte total para lenguaje natural y comandos.
 
 **Comandos disponibles:**
 • \`/notion config <api_token>\` — Registra tu Integration Secret de Notion (\`secret_...\` o \`ntn_...\`)
@@ -58,18 +58,22 @@ Conecta tu espacio de trabajo de Notion directamente con Chattree mediante la AP
 • \`/notion create <título>\` — Crea una nueva página en tu espacio de trabajo
 • \`/notion disconnect\` — Desconecta y borra tu token guardado
 
+**Ejemplos en lenguaje natural:**
+• *"Busca en Notion notas sobre el proyecto"*
+• *"Crea una página en Notion llamada Lista de Pendientes"*
+• *"Verifica el estado de mi conexión a Notion"*
+
 *¿Cómo obtener tu clave?*
 1. Ve a **notion.so/profile/integrations** (My integrations).
 2. Crea una integración interna y copia el **Internal Integration Secret**.
 3. En Notion, ve a una página y en el menú **'...'** -> **Conexiones** (Add connections) añade tu integración.`;
 
-const s_key_saved_verifying = `🔄 **Token guardado. Verificando conexión con Notion...**`;
-const s_key_saved_ok = `✅ **Notion configurado y verificado exitosamente.**\n\nTu token de integración está activo y listo para usar.\n\nPrueba los siguientes comandos:\n• \`/notion search <texto>\` — Buscar en tus páginas\n• \`/notion list\` — Ver páginas recientes\n• \`/notion create <título>\` — Crear una nueva página`;
+const s_key_saved_ok = `✅ **Notion configurado y verificado exitosamente.**\n\nTu token de integración está activo y listo para usar.\n\nPrueba los siguientes comandos o pide en lenguaje natural:\n• \`/notion search <texto>\` — Buscar en tus páginas\n• \`/notion list\` — Ver páginas recientes\n• \`/notion create <título>\` — Crear una nueva página`;
 const s_key_saved_invalid = `⚠️ **Token guardado pero no se pudo validar con Notion.**\n\nNotion devolvió un error de autenticación. Verifica que tu token sea un 'Internal Integration Secret' válido creado en notion.so/profile/integrations y que esté activo.`;
 const s_key_missing = `⚠️ **Notion no está configurado.**\n\nPor favor registra tu API Token ejecutando:\n\`/notion config <tu_integration_secret>\`\n\nPuedes obtener tu clave en https://notion.so/profile/integrations`;
 const s_disconnected = `✅ **Desconectado de Notion.**\n\nSe ha eliminado tu token de integración de este dispositivo.`;
 
-const s_status_ok = `✅ **Conexión con Notion activa y saludable.**\n\n• **API:** Notion API v1 (2022-06-28)\n• **Integración:** Autenticada y lista\n• **Funcionalidades:** Búsqueda, lectura y creación de páginas\n\nPuedes buscar contenido con \`/notion search\` o crear páginas con \`/notion create <título>\`.`;
+const s_status_ok = `✅ **Conexión con Notion activa y saludable.**\n\n• **API:** Notion API v1 (2022-06-28)\n• **Integración:** Autenticada y lista\n• **Funcionalidades:** Búsqueda, lectura y creación de páginas\n• **Lenguaje Natural:** Habilitado con IA de Chattree\n\nPuedes buscar contenido con \`/notion search\` o crear páginas con \`/notion create <título>\`.`;
 const s_status_error = `❌ **No se pudo conectar a Notion.**\n\nEl token guardado no es válido o ha expirado. Configura uno nuevo con:\n\`/notion config <tu_token>\``;
 
 const s_search_header = `📝 **Resultados en Notion:**\n\n`;
@@ -145,31 +149,45 @@ const d_http_search_empty_body = registerData('http_search_empty_body', s_http_s
 const d_http_parent_search_body = registerData('http_parent_search_body', s_http_parent_search_body);
 
 const d_http_create_prefix = registerData('http_create_prefix', s_http_create_prefix);
-const d_http_create_mid1 = registerData('http_create_mid1', d_create_ok_mid ? s_http_create_mid1 : '');
+const d_http_create_mid1 = registerData('http_create_mid1', s_http_create_mid1);
 const d_http_create_mid2 = registerData('http_create_mid2', s_http_create_mid2);
 const d_http_create_suffix = registerData('http_create_suffix', s_http_create_suffix);
 
-// Needles for parsing
+// Needles for parsing CLI and Natural Language triggers
 const needle_secret = registerData('needle_secret', 'secret_');
 const needle_ntn = registerData('needle_ntn', 'ntn_');
 const needle_config = registerData('needle_config', 'config');
 const needle_token = registerData('needle_token', 'token');
 const needle_status = registerData('needle_status', 'status');
+const needle_estado = registerData('needle_estado', 'estado');
 const needle_test = registerData('needle_test', 'test');
 const needle_me = registerData('needle_me', 'me');
 const needle_disconnect = registerData('needle_disconnect', 'disconnect');
 const needle_desconectar = registerData('needle_desconectar', 'desconectar');
 const needle_search = registerData('needle_search', 'search');
 const needle_buscar = registerData('needle_buscar', 'buscar');
+const needle_busca = registerData('needle_busca', 'busca');
+const needle_encuentra = registerData('needle_encuentra', 'encuentra');
+const needle_consulta = registerData('needle_consulta', 'consulta');
 const needle_list = registerData('needle_list', 'list');
 const needle_pages = registerData('needle_pages', 'pages');
+const needle_paginas = registerData('needle_paginas', 'paginas');
+const needle_notas = registerData('needle_notas', 'notas');
 const needle_create = registerData('needle_create', 'create');
 const needle_crear = registerData('needle_crear', 'crear');
+const needle_crea = registerData('needle_crea', 'crea');
+const needle_anota = registerData('needle_anota', 'anota');
 const needle_nueva = registerData('needle_nueva', 'nueva');
+const needle_nuevo = registerData('needle_nuevo', 'nuevo');
 const needle_help = registerData('needle_help', 'help');
 
-// JSON parsing needles
+// AI Intent JSON parsing needles
 const needle_val_field = registerData('needle_val_field', '"value":"');
+const needle_json_query = registerData('needle_json_query', '"query":"');
+const needle_json_title = registerData('needle_json_title', '"title":"');
+const needle_json_op = registerData('needle_json_op', '"operation":"');
+const needle_json_action = registerData('needle_json_action', '"action":"');
+
 const needle_status_200 = registerData('needle_status_200', '"statusCode":200');
 const needle_results_empty = registerData('needle_results_empty', '"results":[]');
 const needle_results_open = registerData('needle_results_open', '"results":[');
@@ -192,7 +210,7 @@ const dataSectionWat = dataEntries
   .map(e => `  (data (i32.const ${e.offset}) "${e.escaped}")`)
   .join('\n');
 
-const watContent = `;; Chattree Official Notion Integration Plugin
+const watContent = `;; Chattree Official Notion Integration Plugin with AI Intent & Natural Language
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -343,6 +361,40 @@ ${dataSectionWat}
     (local.get $i)
   )
 
+  ;; Extracts JSON field value into 1002000 (returns length, or -1 if field not found)
+  (func $extract_json_field (param $src i32) (param $src_len i32) (param $needle_ptr i32) (param $needle_len i32) (result i32)
+    (local $pos i32)
+    (local $val_start i32)
+    (local $i i32)
+    (local $ch i32)
+    (local.set $pos (call $find_substring (local.get $src) (local.get $src_len) (local.get $needle_ptr) (local.get $needle_len)))
+    (if (i32.lt_s (local.get $pos) (i32.const 0))
+      (then (return (i32.const -1)))
+    )
+    (local.set $val_start (i32.add (i32.add (local.get $src) (local.get $pos)) (local.get $needle_len)))
+    (local.set $i (i32.const 0))
+    (loop $scan_val
+      (if (i32.lt_u (i32.add (local.get $val_start) (local.get $i)) (i32.add (local.get $src) (local.get $src_len)))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
+          (if (i32.ne (local.get $ch) (i32.const 34))
+            (then
+              (if (i32.lt_u (local.get $i) (i32.const 500))
+                (then
+                  (i32.store8 (i32.add (i32.const 1002000) (local.get $i)) (local.get $ch))
+                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                  (br $scan_val)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+    (global.set $arg_len (local.get $i))
+    (local.get $i)
+  )
+
   ;; Main entrypoint
   (func (export "notion_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
     (local $pos i32)
@@ -352,6 +404,7 @@ ${dataSectionWat}
     (local $req_len i32)
     (local $i i32)
     (local $ch i32)
+    (local $has_json_field i32)
 
     ;; 1. Check for empty input -> return Help
     (if (i32.eqz (local.get $in_len))
@@ -364,16 +417,85 @@ ${dataSectionWat}
     ;; Lowercase input into 1003000 for keyword detection
     (call $to_lower (local.get $in_ptr) (i32.const 1003000) (local.get $in_len))
 
-    ;; 2. Check for "help"
-    (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_help.offset}) (i32.const ${needle_help.length})))
-    (if (i32.ge_s (local.get $pos) (i32.const 0))
+    ;; 2. Check for structured JSON intent from AI interpreter
+    ;; First check for "query":" or "title":"
+    (local.set $has_json_field (call $extract_json_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_json_query.offset}) (i32.const ${needle_json_query.length})))
+    (if (i32.lt_s (local.get $has_json_field) (i32.const 0))
+      (then
+        (local.set $has_json_field (call $extract_json_field (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_json_title.offset}) (i32.const ${needle_json_title.length})))
+      )
+    )
+
+    ;; If JSON field was found, check if action is create
+    (if (i32.ge_s (local.get $has_json_field) (i32.const 0))
+      (then
+        (if (i32.or
+              (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_create.offset}) (i32.const ${needle_create.length})) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_crear.offset}) (i32.const ${needle_crear.length})) (i32.const 0)))
+          (then
+            ;; Direct AI Create flow!
+            (local.set $raw_len (call $load_api_token))
+            (if (i32.eqz (local.get $raw_len))
+              (then
+                (drop (call $copy_mem (i32.const ${d_key_missing.offset}) (i32.const 1024) (i32.const ${d_key_missing.length})))
+                (return (i32.const ${d_key_missing.length}))
+              )
+            )
+
+            ;; Step 4A: Search for parent page
+            (local.set $p (call $copy_mem (i32.const ${d_http_search_prefix.offset}) (i32.const 100000) (i32.const ${d_http_search_prefix.length})))
+            (local.set $p (call $copy_mem (i32.const 1001000) (local.get $p) (global.get $token_len)))
+            (local.set $p (call $copy_mem (i32.const ${d_http_parent_search_body.offset}) (local.get $p) (i32.const ${d_http_parent_search_body.length})))
+            (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+
+            (global.set $phase (i32.const 4)) ;; Phase 4: Find Parent Page for create
+            (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 300000) (i32.const 400000)))
+            (return (i32.const 0))
+          )
+          (else
+            ;; Direct AI Search flow!
+            (local.set $raw_len (call $load_api_token))
+            (if (i32.eqz (local.get $raw_len))
+              (then
+                (drop (call $copy_mem (i32.const ${d_key_missing.offset}) (i32.const 1024) (i32.const ${d_key_missing.length})))
+                (return (i32.const ${d_key_missing.length}))
+              )
+            )
+
+            ;; Build Search Request with extracted JSON query
+            (local.set $p (call $copy_mem (i32.const ${d_http_search_prefix.offset}) (i32.const 100000) (i32.const ${d_http_search_prefix.length})))
+            (local.set $p (call $copy_mem (i32.const 1001000) (local.get $p) (global.get $token_len)))
+            (if (i32.gt_u (global.get $arg_len) (i32.const 0))
+              (then
+                (local.set $p (call $copy_mem (i32.const ${d_http_search_mid1.offset}) (local.get $p) (i32.const ${d_http_search_mid1.length})))
+                (local.set $p (call $copy_mem (i32.const 1002000) (local.get $p) (global.get $arg_len)))
+                (local.set $p (call $copy_mem (i32.const ${d_http_search_mid2.offset}) (local.get $p) (i32.const ${d_http_search_mid2.length})))
+              )
+              (else
+                (local.set $p (call $copy_mem (i32.const ${d_http_search_empty_body.offset}) (local.get $p) (i32.const ${d_http_search_empty_body.length})))
+              )
+            )
+            (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+
+            (global.set $phase (i32.const 3)) ;; Phase 3: Search
+            (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 300000) (i32.const 400000)))
+            (return (i32.const 0))
+          )
+        )
+      )
+    )
+
+    ;; 3. Check for "help" / "ayuda"
+    (if (i32.or
+          (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_help.offset}) (i32.const ${needle_help.length})) (i32.const 0))
+          (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 63))) ;; '?'
       (then
         (drop (call $copy_mem (i32.const ${d_help.offset}) (i32.const 1024) (i32.const ${d_help.length})))
         (return (i32.const ${d_help.length}))
       )
     )
 
-    ;; 3. Check for "disconnect" / "desconectar"
+    ;; 4. Check for "disconnect" / "desconectar"
     (if (i32.or
           (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_disconnect.offset}) (i32.const ${needle_disconnect.length})) (i32.const 0))
           (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_desconectar.offset}) (i32.const ${needle_desconectar.length})) (i32.const 0)))
@@ -384,7 +506,7 @@ ${dataSectionWat}
       )
     )
 
-    ;; 4. Check for direct secret_ or ntn_ or "config" / "token"
+    ;; 5. Check for direct secret_ or ntn_ or "config" / "token"
     (local.set $token_start (i32.const -1))
     (local.set $pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${needle_secret.offset}) (i32.const ${needle_secret.length})))
     (if (i32.ge_s (local.get $pos) (i32.const 0))
@@ -472,12 +594,14 @@ ${dataSectionWat}
       )
     )
 
-    ;; 5. Check for "status" / "me" / "test"
+    ;; 6. Check for "status" / "estado" / "me" / "test"
     (if (i32.or
           (i32.or
             (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_status.offset}) (i32.const ${needle_status.length})) (i32.const 0))
-            (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_me.offset}) (i32.const ${needle_me.length})) (i32.const 0)))
-          (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_test.offset}) (i32.const ${needle_test.length})) (i32.const 0)))
+            (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_estado.offset}) (i32.const ${needle_estado.length})) (i32.const 0)))
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_me.offset}) (i32.const ${needle_me.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_test.offset}) (i32.const ${needle_test.length})) (i32.const 0))))
       (then
         (local.set $raw_len (call $load_api_token))
         (if (i32.eqz (local.get $raw_len))
@@ -499,11 +623,21 @@ ${dataSectionWat}
       )
     )
 
-    ;; 6. Check for "create" / "crear" / "nueva"
+    ;; 7. Check for "create" / "crear" / "crea" / "anota" / "nueva" / "nuevo"
     (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_create.offset}) (i32.const ${needle_create.length})))
     (if (i32.lt_s (local.get $pos) (i32.const 0))
       (then
         (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_crear.offset}) (i32.const ${needle_crear.length})))
+      )
+    )
+    (if (i32.lt_s (local.get $pos) (i32.const 0))
+      (then
+        (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_crea.offset}) (i32.const ${needle_crea.length})))
+      )
+    )
+    (if (i32.lt_s (local.get $pos) (i32.const 0))
+      (then
+        (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_anota.offset}) (i32.const ${needle_anota.length})) )
       )
     )
     (if (i32.lt_s (local.get $pos) (i32.const 0))
@@ -523,7 +657,7 @@ ${dataSectionWat}
         )
 
         ;; Extract title after trigger word
-        (local.set $token_start (i32.add (local.get $in_ptr) (i32.add (local.get $pos) (i32.const 6))))
+        (local.set $token_start (i32.add (local.get $in_ptr) (i32.add (local.get $pos) (i32.const 5))))
         (loop $skip_lead_create
           (if (i32.lt_u (local.get $token_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
             (then
@@ -561,7 +695,7 @@ ${dataSectionWat}
       )
     )
 
-    ;; 7. Default or Search / List action
+    ;; 8. Default or Search / List action (matches search, buscar, busca, encuentra, consulta, list, paginas)
     (local.set $raw_len (call $load_api_token))
     (if (i32.eqz (local.get $raw_len))
       (then
@@ -570,17 +704,32 @@ ${dataSectionWat}
       )
     )
 
-    ;; Check if search or list keyword present
+    ;; Check if search or natural language query keyword present
     (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_search.offset}) (i32.const ${needle_search.length})))
     (if (i32.lt_s (local.get $pos) (i32.const 0))
       (then
         (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_buscar.offset}) (i32.const ${needle_buscar.length})))
       )
     )
+    (if (i32.lt_s (local.get $pos) (i32.const 0))
+      (then
+        (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_busca.offset}) (i32.const ${needle_busca.length})))
+      )
+    )
+    (if (i32.lt_s (local.get $pos) (i32.const 0))
+      (then
+        (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_encuentra.offset}) (i32.const ${needle_encuentra.length})))
+      )
+    )
+    (if (i32.lt_s (local.get $pos) (i32.const 0))
+      (then
+        (local.set $pos (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_consulta.offset}) (i32.const ${needle_consulta.length})))
+      )
+    )
 
     (if (i32.ge_s (local.get $pos) (i32.const 0))
       (then
-        ;; Extract query after "search" or "buscar"
+        ;; Extract query after verb
         (local.set $token_start (i32.add (local.get $in_ptr) (i32.add (local.get $pos) (i32.const 6))))
         (loop $skip_lead_search
           (if (i32.lt_u (local.get $token_start) (i32.add (local.get $in_ptr) (local.get $in_len)))
@@ -606,15 +755,17 @@ ${dataSectionWat}
         )
       )
       (else
-        ;; Check if input is list / pages
+        ;; Check if input is list / pages / notas
         (if (i32.or
               (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_list.offset}) (i32.const ${needle_list.length})) (i32.const 0))
-              (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_pages.offset}) (i32.const ${needle_pages.length})) (i32.const 0)))
+              (i32.or
+                (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_pages.offset}) (i32.const ${needle_pages.length})) (i32.const 0))
+                (i32.ge_s (call $find_substring (i32.const 1003000) (local.get $in_len) (i32.const ${needle_paginas.offset}) (i32.const ${needle_paginas.length})) (i32.const 0))))
           (then
             (global.set $arg_len (i32.const 0))
           )
           (else
-            ;; Entire input is query if not a command
+            ;; Entire natural language input is treated as query
             (drop (call $sanitize_text (local.get $in_ptr) (local.get $in_len)))
           )
         )
@@ -920,9 +1071,9 @@ const manifest = {
   $schema: "../../../schemas/plugin.manifest.v1.schema.json",
   schemaVersion: 1,
   id: "com.chattree.official.notion",
-  version: "1.0.0",
+  version: "1.0.1",
   name: "Notion Integration",
-  description: "Official Notion workspace integration. Connect your Notion workspace to search pages and databases, create new notes, and check connection status directly in chat.",
+  description: "Official Notion workspace integration with natural language and AI tool calling support. Connect your workspace to search notes, create pages, and inspect recent updates.",
   author: "Chattree Core Team",
   primaryCommand: "notion",
   aliases: [
@@ -943,9 +1094,9 @@ const manifest = {
     "database",
     "official"
   ],
-  iconUrl: "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.0.0",
-  bannerUrl: "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.0.0",
-  changelog: "1.0.0: Official initial release of the Notion workspace plugin for Chattree. Integrates Notion API v1 for searching pages, creating new notes, and verifying connection status.",
+  iconUrl: "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.0.1",
+  bannerUrl: "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.0.1",
+  changelog: "1.0.1: Added full AI intent contract and dual-mode natural language interpretation for conversational invocation and direct queries.",
   runtime: "wasm",
   entrypoint: "notion_entry",
   wasmPath: "plugin.wasm",
@@ -959,7 +1110,7 @@ const manifest = {
       "id": "com.chattree.official.notion.workspace",
       "command": "notion",
       "displayName": "Notion Workspace",
-      "description": "Conecta tu espacio de trabajo de Notion para buscar páginas y bases de datos, consultar contenidos y crear nuevas páginas o notas. Invoca con /notion, /notion config <api_token>, /notion status, /notion search <término>, o /notion create <título>.",
+      "description": "Herramienta oficial de Notion con soporte total para lenguaje natural. Busca páginas y bases de datos, consulta notas o crea nuevas páginas en tu espacio de trabajo. Comandos: /notion, /notion config <api_token>, /notion status, /notion search <término>, /notion create <título>. En lenguaje natural: 'busca mis notas en Notion sobre...', 'crea una página en Notion que se llame...'.",
       "capabilities": [
         "network.http",
         "storage.private"
@@ -980,13 +1131,19 @@ const manifest = {
           {
             "name": "action",
             "type": "string",
-            "description": "Acción a realizar: 'search', 'create', 'status', 'config', 'list', 'disconnect' o 'help'",
-            "required": false
+            "description": "Acción a realizar: 'search' para buscar, 'create' para crear página, 'list' para ver páginas recientes, 'status' para verificar conexión, o 'config' para guardar token",
+            "required": true
           },
           {
             "name": "query",
             "type": "string",
-            "description": "Término de búsqueda o título de la nueva página",
+            "description": "Término de búsqueda, texto o título de la página",
+            "required": false
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "description": "Título de la nueva página a crear en Notion",
             "required": false
           }
         ]

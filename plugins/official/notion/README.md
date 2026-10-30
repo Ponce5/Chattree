@@ -59,3 +59,4 @@ Plugin oficial para Chattree que integra la API v1 de Notion. Permite conectar t
 También puedes invocar a Notion directamente en tus conversaciones con la IA de Chattree:
 - *"Busca mis notas de proyectos en Notion"*
 - *"Crea una página en Notion con el título Plan de Marketing"*
+

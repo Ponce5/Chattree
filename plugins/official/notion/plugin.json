@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.notion",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Notion Integration",
-  "description": "Official Notion workspace integration. Connect your Notion workspace to search pages and databases, create new notes, and check connection status directly in chat.",
+  "description": "Official Notion workspace integration with natural language and AI tool calling support. Connect your workspace to search notes, create pages, and inspect recent updates.",
   "author": "Chattree Core Team",
   "primaryCommand": "notion",
   "aliases": [
@@ -25,13 +25,13 @@
     "database",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.0.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.0.0",
-  "changelog": "1.0.0: Official initial release of the Notion workspace plugin for Chattree. Integrates Notion API v1 for searching pages, creating new notes, and verifying connection status.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.0.1",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.0.1",
+  "changelog": "1.0.1: Added full AI intent contract and dual-mode natural language interpretation for conversational invocation and direct queries.",
   "runtime": "wasm",
   "entrypoint": "notion_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "559d6075c67de7b52b74136a5b01ba4ae1ff80ef162f1899dfda31ea63b42572",
+  "wasmSha256": "d3f4287c821a15a75d43a6efb3a50c19948bc564f10c8ad329d12eb008d798c7",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 35000,
@@ -41,7 +41,7 @@
       "id": "com.chattree.official.notion.workspace",
       "command": "notion",
       "displayName": "Notion Workspace",
-      "description": "Conecta tu espacio de trabajo de Notion para buscar páginas y bases de datos, consultar contenidos y crear nuevas páginas o notas. Invoca con /notion, /notion config <api_token>, /notion status, /notion search <término>, o /notion create <título>.",
+      "description": "Herramienta oficial de Notion con soporte total para lenguaje natural. Busca páginas y bases de datos, consulta notas o crea nuevas páginas en tu espacio de trabajo. Comandos: /notion, /notion config <api_token>, /notion status, /notion search <término>, /notion create <título>. En lenguaje natural: 'busca mis notas en Notion sobre...', 'crea una página en Notion que se llame...'.",
       "capabilities": [
         "network.http",
         "storage.private"
@@ -62,13 +62,19 @@
           {
             "name": "action",
             "type": "string",
-            "description": "Acción a realizar: 'search', 'create', 'status', 'config', 'list', 'disconnect' o 'help'",
-            "required": false
+            "description": "Acción a realizar: 'search' para buscar, 'create' para crear página, 'list' para ver páginas recientes, 'status' para verificar conexión, o 'config' para guardar token",
+            "required": true
           },
           {
             "name": "query",
             "type": "string",
-            "description": "Término de búsqueda o título de la nueva página",
+            "description": "Término de búsqueda, texto o título de la página",
+            "required": false
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "description": "Título de la nueva página a crear en Notion",
             "required": false
           }
         ]
