@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "name": "GitHub",
   "description": "Official GitHub integration for Chattree. Inspect repositories, list your projects, view issues, read READMEs, search code, create issues, and manage tokens using fully natural language.",
   "author": "Chattree Core Team",
@@ -28,11 +28,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.2.1",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.2.1",
-  "changelog": "1.2.4: Removed ambiguous stats/repo_info from LLM validIntents. readme is now the only action for any repository content query. WASM NLP handles stats detection internally.",
+  "changelog": "1.2.5: Inverted repository action routing — readme is now the official default for all repository queries, while stats is reserved for explicit star/fork counts. Full natural language synonym normalization.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "634df056d6701e055061f631498caddd9594be18de2de4460cfcb60c8786f9fb",
+  "wasmSha256": "5a7e8f41d669c95245673401acea9e5f96d5e98eb4907a2f08d9da794af164c9",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 30000,
@@ -42,7 +42,7 @@
       "id": "com.chattree.official.github.manager",
       "command": "github",
       "displayName": "GitHub Integration",
-      "description": "Herramienta oficial de GitHub en Chattree. Acciones disponibles: 'readme' (para VER el README, entender el proyecto, explicar qué hace, documentación — usa esto para cualquier pregunta sobre un repo), 'issues' (listar issues abiertos), 'prs' (listar pull requests), 'search' (buscar código), 'create_issue' (crear issue), 'my_repos' (listar mis repos), 'profile' (ver mi perfil), 'config' (guardar token). Si el usuario menciona 'chattree' sin owner, usa 'Ponce5/Chattree'.",
+      "description": "Herramienta oficial de GitHub en Chattree. Acciones disponibles: 'readme' (VER el README, contenido del proyecto, documentación o qué hace — usa esto para cualquier pregunta sobre un repo), 'stats' (estrellas y forks), 'issues' (listar issues), 'prs' (listar pull requests), 'search' (buscar código), 'create_issue' (crear issue), 'my_repos' (mis repos), 'profile' (mi perfil), 'config' (guardar token). Si el usuario menciona 'chattree' sin owner, usa 'Ponce5/Chattree'.",
       "capabilities": [
         "network.http",
         "storage.private",
@@ -52,6 +52,7 @@
         "intent": "github_action",
         "validIntents": [
           "readme",
+          "stats",
           "issues",
           "prs",
           "search",
@@ -67,7 +68,7 @@
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción: 'readme' para ver README/documentación/qué hace el repo, 'issues' para listar issues, 'prs' para pull requests, 'search' para buscar código, 'create_issue' para crear issue, 'my_repos' para mis repos, 'profile' para mi perfil, 'config' para token",
+            "description": "Acción: 'readme' para ver el README/documentación/qué hace el repo (usa esto por defecto si pregunta sobre un repo), 'stats' para saber cuántas estrellas o forks tiene, 'issues' para issues, 'prs' para PRs, 'search' para buscar código, 'create_issue' para crear issue, 'my_repos' para mis repos, 'profile' para mi perfil, 'config' para token",
             "required": true
           },
           {

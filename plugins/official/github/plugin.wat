@@ -1,4 +1,4 @@
-;; Chattree Official GitHub Integration Plugin v1.2.4
+;; Chattree Official GitHub Integration Plugin v1.2.5
 ;; Triple-layer README intent defense + NLP query buffer promotion
 (module
   (import "chattree" "host_call"
@@ -92,7 +92,7 @@
   (data (i32.const 13167) "},\22timeoutMs\22:15000}}")
   (data (i32.const 13204) "},\22body\22:\22{\5c\22title\5c\22:\5c\22")
   (data (i32.const 13243) "\5c\22}\22,\22timeoutMs\22:15000}}")
-  (data (i32.const 13283) "\f0\9f\90\99 **GitHub Integration v1.2.4 para Chattree**\0a\0aPuedes consultarme en lenguaje natural o con comandos:\0a\e2\80\a2 \22dime qu\c3\a9 repos tengo\22 o \22mis repos\22\0a\e2\80\a2 \22qui\c3\a9n soy en GitHub\22 o \22mi cuenta\22\0a\e2\80\a2 \22expl\c3\adcame el README de Ponce5/Chattree\22\0a\e2\80\a2 \22issues abiertos en Ponce5/Chattree\22\0a\e2\80\a2 \22pull requests en Ponce5/Chattree\22\0a\e2\80\a2 \22busca la funci\c3\b3n login en Ponce5/Chattree\22\0a\e2\80\a2 \22crea un issue en Ponce5/Chattree: El bot\c3\b3n no funciona\22\0a\e2\80\a2 \22configura mi token: ghp_abc123\22\0a\0a*Genera un Personal Access Token en: https://github.com/settings/tokens*")
+  (data (i32.const 13283) "\f0\9f\90\99 **GitHub Integration v1.2.5 para Chattree**\0a\0aPuedes consultarme en lenguaje natural o con comandos:\0a\e2\80\a2 \22dime qu\c3\a9 repos tengo\22 o \22mis repos\22\0a\e2\80\a2 \22qui\c3\a9n soy en GitHub\22 o \22mi cuenta\22\0a\e2\80\a2 \22expl\c3\adcame el README de Ponce5/Chattree\22\0a\e2\80\a2 \22issues abiertos en Ponce5/Chattree\22\0a\e2\80\a2 \22pull requests en Ponce5/Chattree\22\0a\e2\80\a2 \22busca la funci\c3\b3n login en Ponce5/Chattree\22\0a\e2\80\a2 \22crea un issue en Ponce5/Chattree: El bot\c3\b3n no funciona\22\0a\e2\80\a2 \22configura mi token: ghp_abc123\22\0a\0a*Genera un Personal Access Token en: https://github.com/settings/tokens*")
   (data (i32.const 13834) "\e2\9c\85 **Token de GitHub guardado exitosamente.**\0a\0aYa puedes interactuar con tus repositorios en lenguaje natural.")
   (data (i32.const 13961) "\e2\9a\a0\ef\b8\8f **No hay un token de GitHub configurado.**\0a\0aPor favor config\c3\baralo diciendo:\0a\22configura mi token de GitHub: ghp_tutoken\22\0a\0aPuedes generar uno en https://github.com/settings/tokens")
   (data (i32.const 14162) "\e2\9c\85 **Conectado a GitHub exitosamente**\0a\0a\e2\80\a2 **Usuario:** @")
@@ -466,15 +466,30 @@
     )
 
 
-    ;; ── 1b. Normalize "stats" → "repo_info" (stats is the LLM-facing action name in v1.2.3+) ──
-    ;; The device LLM sees "stats" in validIntents, which it correctly uses only for star/fork counts.
-    ;; WASM normalizes it to "repo_info" so the rest of the pipeline stays unchanged.
-    (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const 10072) (i32.const 5))
+    ;; ── 1b. Check if action or query explicitly asks for repository statistics (stars, forks) ──
+    ;; If explicit stats keywords (estrella, stars, fork, cuantas, cuantos) appear, mark as "stats".
+    (if (i32.or
+          (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const 10072) (i32.const 5))
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11185) (i32.const 8)) (i32.const 0))
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11209) (i32.const 5)) (i32.const 0))
+              (i32.or
+                (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11230) (i32.const 4)) (i32.const 0))
+                (i32.or
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11250) (i32.const 7)) (i32.const 0))
+                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11273) (i32.const 7)) (i32.const 0))
+                )
+              )
+            )
+          )
+        )
       (then
-        (drop (call $copy_mem (i32.const 10047) (i32.const 200000) (i32.const 9)))
-        (local.set $act_len (i32.const 9))
+        (drop (call $copy_mem (i32.const 10072) (i32.const 200000) (i32.const 5)))
+        (local.set $act_len (i32.const 5))
       )
     )
+
     ;; ── 2. Extract repo from "repo":" ───────────────────────────────────────
     (local.set $repo_len_local (call $extract_field
       (local.get $in_ptr) (local.get $in_len)
@@ -600,170 +615,40 @@
       )
     )
 
-    ;; ── 6b. Promotion: override repo_info to specific action if keywords present ──
-    ;; Searches BOTH the full lowercased input (buf 50000) AND the extracted query (buf 220000).
-    ;; This handles the case where the device LLM chose repo_info but the user's query field
-    ;; (e.g. "cual es el readme de chattree") contains the real intent keyword.
-    (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const 10047) (i32.const 9))
+    ;; ── 6b. NLP Promotion for issues / prs / search ──
+    (if (i32.or
+          (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10951) (i32.const 5)) (i32.const 0))
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11083) (i32.const 3)) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11038) (i32.const 8)) (i32.const 0))
+          )
+        )
       (then
-        ;; Check readme / docs — in JSON body (50000) OR in extracted query (220000)
-        (if (i32.or
-              ;; Search in full lowercased JSON input
-              (i32.or
-                (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10694) (i32.const 6)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10716) (i32.const 4)) (i32.const 0))
-                  )
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10736) (i32.const 3)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10755) (i32.const 3)) (i32.const 0))
-                  )
-                )
-                (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10797) (i32.const 6)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10819) (i32.const 6)) (i32.const 0))
-                  )
-                  (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10841) (i32.const 8)) (i32.const 0))
-                )
-              )
-              ;; Also search in extracted query field (buf 220000) — covers case where LLM sent repo_info
-              ;; but included the user's original text in the "query" field
-              (i32.or
-                (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10694) (i32.const 6)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10716) (i32.const 4)) (i32.const 0))
-                  )
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10736) (i32.const 3)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10755) (i32.const 3)) (i32.const 0))
-                  )
-                )
-                (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10797) (i32.const 6)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10819) (i32.const 6)) (i32.const 0))
-                  )
-                  (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10841) (i32.const 8)) (i32.const 0))
-                )
-              )
-            )
-          (then
-            (drop (call $copy_mem (i32.const 10134) (i32.const 200000) (i32.const 6)))
-            (local.set $act_len (i32.const 6))
-          )
-        )
-        ;; Check issues — in JSON body OR in extracted query
-        (if (i32.eq (local.get $act_len) (i32.const 9))
-          (then
-            (if (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10951) (i32.const 5)) (i32.const 0))
-                    (i32.or
-                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11083) (i32.const 3)) (i32.const 0))
-                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11038) (i32.const 8)) (i32.const 0))))
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10951) (i32.const 5)) (i32.const 0))
-                    (i32.or
-                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11083) (i32.const 3)) (i32.const 0))
-                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11038) (i32.const 8)) (i32.const 0)))))
-              (then
-                (drop (call $copy_mem (i32.const 10093) (i32.const 200000) (i32.const 6)))
-                (local.set $act_len (i32.const 6))
-              )
-            )
-          )
-        )
-        ;; Check prs — in JSON body OR in extracted query
-        (if (i32.eq (local.get $act_len) (i32.const 9))
-          (then
-            (if (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11102) (i32.const 3)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11121) (i32.const 4)) (i32.const 0)))
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11102) (i32.const 3)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11121) (i32.const 4)) (i32.const 0))))
-              (then
-                (drop (call $copy_mem (i32.const 10115) (i32.const 200000) (i32.const 3)))
-                (local.set $act_len (i32.const 3))
-              )
-            )
-          )
-        )
-        ;; Check search — in JSON body OR in extracted query
-        (if (i32.eq (local.get $act_len) (i32.const 9))
-          (then
-            (if (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10865) (i32.const 6)) (i32.const 0))
-                    (i32.or
-                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10887) (i32.const 5)) (i32.const 0))
-                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10908) (i32.const 6)) (i32.const 0))))
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10865) (i32.const 6)) (i32.const 0))
-                    (i32.or
-                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10887) (i32.const 5)) (i32.const 0))
-                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 10908) (i32.const 6)) (i32.const 0)))))
-              (then
-                (drop (call $copy_mem (i32.const 10156) (i32.const 200000) (i32.const 6)))
-                (local.set $act_len (i32.const 6))
-              )
-            )
-          )
-        )
+        (drop (call $copy_mem (i32.const 10093) (i32.const 200000) (i32.const 6)))
+        (local.set $act_len (i32.const 6))
       )
     )
-
-    ;; ── 6c. FINAL SAFETY NET: if action is still repo_info and no explicit stats keywords
-    ;; (estrellas/forks/stars/cuantas/cuantos) found anywhere in input or query,
-    ;; promote to readme. This covers the case where the device LLM chose repo_info
-    ;; without providing a query field — e.g. user asked "explain the chattree repo".
-    (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const 10047) (i32.const 9))
-      (then
-        (if (i32.eqz
-              (i32.or
-                ;; Check in full lowercased JSON
-                (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11185) (i32.const 8)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11209) (i32.const 5)) (i32.const 0))
-                  )
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11230) (i32.const 4)) (i32.const 0))
-                    (i32.or
-                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11250) (i32.const 7)) (i32.const 0))
-                      (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11273) (i32.const 7)) (i32.const 0))
-                    )
-                  )
-                )
-                ;; Also check in extracted query
-                (i32.or
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11185) (i32.const 8)) (i32.const 0))
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11209) (i32.const 5)) (i32.const 0))
-                  )
-                  (i32.or
-                    (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11230) (i32.const 4)) (i32.const 0))
-                    (i32.or
-                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11250) (i32.const 7)) (i32.const 0))
-                      (i32.ge_s (call $find_substring (i32.const 220000) (local.get $q_len) (i32.const 11273) (i32.const 7)) (i32.const 0))
-                    )
-                  )
-                )
-              )
-            )
-          (then
-            ;; No explicit stats keywords → user likely wants the README/documentation
-            (drop (call $copy_mem (i32.const 10134) (i32.const 200000) (i32.const 6)))
-            (local.set $act_len (i32.const 6))
-          )
+    (if (i32.or
+          (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11102) (i32.const 3)) (i32.const 0))
+          (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 11121) (i32.const 4)) (i32.const 0))
         )
+      (then
+        (drop (call $copy_mem (i32.const 10115) (i32.const 200000) (i32.const 3)))
+        (local.set $act_len (i32.const 3))
       )
     )
-
+    (if (i32.or
+          (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10865) (i32.const 6)) (i32.const 0))
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10887) (i32.const 5)) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 50000) (local.get $in_len) (i32.const 10908) (i32.const 6)) (i32.const 0))
+          )
+        )
+      (then
+        (drop (call $copy_mem (i32.const 10156) (i32.const 200000) (i32.const 6)))
+        (local.set $act_len (i32.const 6))
+      )
+    )
     ;; ── 7. NATURAL LANGUAGE FALLBACK: detect action from raw text if act_len == 0
     (if (i32.eqz (local.get $act_len))
       (then
@@ -1132,14 +1017,33 @@
     )
 
     ;; ════════════════════════════════════════════════════════════════════════
-    ;; ACTION: repo_info (default)
+    ;; ACTION: stats / repo_info (EXPLICIT STATS ONLY)
+    ;; ════════════════════════════════════════════════════════════════════════
+    (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const 10072) (i32.const 5))
+      (then
+        (local.set $p (call $copy_mem (i32.const 12057) (i32.const 100000) (i32.const 91)))
+        (local.set $p (call $copy_mem (i32.const 210000) (local.get $p) (global.get $repo_len)))
+        (local.set $p (call $copy_mem (i32.const 12461) (local.get $p) (i32.const 104)))
+        (local.set $p (call $append_auth (local.get $p)))
+        (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
+        (global.set $phase (i32.const 4))
+        (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 3000000)))
+        (return (i32.const 0))
+      )
+    )
+
+    ;; ════════════════════════════════════════════════════════════════════════
+    ;; DEFAULT REPOSITORY ACTION: README!
+    ;; When a repository is identified and no specific sub-action (issues, prs,
+    ;; search, stats) was explicitly requested, the primary user intent is
+    ;; ALWAYS to view documentation / README.
     ;; ════════════════════════════════════════════════════════════════════════
     (local.set $p (call $copy_mem (i32.const 12057) (i32.const 100000) (i32.const 91)))
     (local.set $p (call $copy_mem (i32.const 210000) (local.get $p) (global.get $repo_len)))
-    (local.set $p (call $copy_mem (i32.const 12461) (local.get $p) (i32.const 104)))
+    (local.set $p (call $copy_mem (i32.const 12581) (local.get $p) (i32.const 110)))
     (local.set $p (call $append_auth (local.get $p)))
     (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
-    (global.set $phase (i32.const 4))
+    (global.set $phase (i32.const 6))
     (drop (call $host_call (i32.const 100000) (local.get $req_len) (i32.const 1000000) (i32.const 3000000)))
     (i32.const 0)
   )
@@ -1444,6 +1348,10 @@
                     (i32.lt_u (local.get $i) (i32.const 8000)))
                 (then
                   (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
+                  ;; Terminate clean on unescaped quote (closing JSON string)
+                  (if (i32.eq (local.get $ch) (i32.const 34))
+                    (then (return (i32.sub (local.get $out) (i32.const 1024))))
+                  )
                   (if (i32.ne (local.get $ch) (i32.const 34))
                     (then
                       (if (i32.eq (local.get $ch) (i32.const 92))
