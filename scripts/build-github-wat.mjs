@@ -192,6 +192,7 @@ const s_issue_created_suffix = '/issues';
 const s_issue_need_token     = '⚠️ **Se requiere un token de GitHub para crear issues.**\n\nConfigúralo diciendo: "configura mi token: ghp_tutoken"';
 
 const s_auth_error    = '❌ **Error de autenticación con GitHub.**\n\nEl token es inválido o ha expirado. Configura uno nuevo diciendo:\n"configura mi token: ghp_nuevotoken"';
+const s_private_repo  = '🔒 **Repositorio privado o acceso restringido.**\n\nEste repositorio requiere autenticación para acceder. Configura tu token diciendo:\n"configura mi token: ghp_tutoken"';
 const s_not_found     = '❌ **Repositorio o recurso no encontrado en GitHub.**\n\nVerifica que el nombre `owner/repo` sea correcto y que tu token tenga los permisos necesarios.';
 const s_generic_error = '❌ **Error al consultar la API de GitHub.**\n\nPor favor verifica tu conexión o intenta nuevamente.';
 
@@ -226,6 +227,7 @@ const d_issue_created_mid    = registerData('issue_created_mid',    s_issue_crea
 const d_issue_created_suffix = registerData('issue_created_suffix', s_issue_created_suffix);
 const d_issue_need_token     = registerData('issue_need_token',     s_issue_need_token);
 const d_auth_error           = registerData('auth_error',           s_auth_error);
+const d_private_repo         = registerData('private_repo',         s_private_repo);
 const d_not_found            = registerData('not_found',            s_not_found);
 const d_generic_error        = registerData('generic_error',        s_generic_error);
 
@@ -245,8 +247,8 @@ const dataSectionWat = dataEntries
   .map(e => `  (data (i32.const ${e.offset}) "${e.escaped}")`)
   .join('\n');
 
-const watContent = `;; Chattree Official GitHub Integration Plugin v1.1.0
-;; Resilient Intent Promotion + Robust Field Parsing + Natural Language
+const watContent = `;; Chattree Official GitHub Integration Plugin v1.2.0
+;; Clean Dual-Mode Architecture (Anonymous Public / Authenticated Private)
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -494,46 +496,38 @@ ${dataSectionWat}
   ;; ── load_api_key ─────────────────────────────────────────────────────────
   (func $load_api_key (result i32)
     (local $res_len i32)
-    (local $val_idx i32)
-    (local $val_start i32)
-    (local $i i32)
-    (local $ch i32)
+    (local $extracted i32)
 
     (local.set $res_len (call $host_call
       (i32.const ${d_storage_get.offset}) (i32.const ${d_storage_get.length})
       (i32.const 3000500) (i32.const 1024)))
     (if (i32.le_s (local.get $res_len) (i32.const 0))
-      (then (return (i32.const 0)))
-    )
-    (local.set $val_idx (call $find_substring
-      (i32.const 3000500) (local.get $res_len)
-      (i32.const ${needle_val_field.offset}) (i32.const ${needle_val_field.length})))
-    (if (i32.lt_s (local.get $val_idx) (i32.const 0))
-      (then (return (i32.const 0)))
-    )
-    (local.set $val_start (i32.add (i32.const 3000500) (i32.add (local.get $val_idx) (i32.const ${needle_val_field.length}))))
-    (local.set $i (i32.const 0))
-    (loop $copy_key
-      (if (i32.lt_u (local.get $i) (i32.const 120))
-        (then
-          (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
-          (if (i32.and (i32.ne (local.get $ch) (i32.const 34)) (i32.ne (local.get $ch) (i32.const 0)))
-            (then
-              (i32.store8 (i32.add (i32.const 3000000) (local.get $i)) (local.get $ch))
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $copy_key)
-            )
-          )
-        )
+      (then
+        (global.set $key_len (i32.const 0))
+        (return (i32.const 0))
       )
     )
-    (global.set $key_len (local.get $i))
-    (local.get $i)
+    (local.set $extracted (call $extract_field
+      (i32.const 3000500) (local.get $res_len)
+      (i32.const ${needle_val_field.offset}) (i32.const ${needle_val_field.length})
+      (i32.const 3000000) (i32.const 120)))
+
+    ;; Only consider token valid if at least 10 chars (e.g. ghp_... or github_pat_...)
+    (if (i32.ge_u (local.get $extracted) (i32.const 10))
+      (then
+        (global.set $key_len (local.get $extracted))
+        (return (local.get $extracted))
+      )
+    )
+    (global.set $key_len (i32.const 0))
+    (i32.const 0)
   )
 
   ;; ── append_auth ──────────────────────────────────────────────────────────
+  ;; Only injects Authorization header if a valid token (>= 10 chars) is present.
+  ;; Public repositories execute cleanly without Authorization header.
   (func $append_auth (param $p i32) (result i32)
-    (if (i32.gt_u (global.get $key_len) (i32.const 0))
+    (if (i32.ge_u (global.get $key_len) (i32.const 10))
       (then
         (local.set $p (call $copy_mem
           (i32.const ${d_http_auth_prefix.offset}) (local.get $p)
@@ -999,7 +993,7 @@ ${dataSectionWat}
     ;; ════════════════════════════════════════════════════════════════════════
     (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const ${act_profile.offset}) (i32.const ${act_profile.length}))
       (then
-        (if (i32.eqz (global.get $key_len))
+        (if (i32.lt_u (global.get $key_len) (i32.const 10))
           (then
             (drop (call $copy_mem (i32.const ${d_key_missing.offset}) (i32.const 1024) (i32.const ${d_key_missing.length})))
             (return (i32.const ${d_key_missing.length}))
@@ -1019,7 +1013,7 @@ ${dataSectionWat}
     ;; ════════════════════════════════════════════════════════════════════════
     (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const ${act_my_repos.offset}) (i32.const ${act_my_repos.length}))
       (then
-        (if (i32.eqz (global.get $key_len))
+        (if (i32.lt_u (global.get $key_len) (i32.const 10))
           (then
             (drop (call $copy_mem (i32.const ${d_key_missing.offset}) (i32.const 1024) (i32.const ${d_key_missing.length})))
             (return (i32.const ${d_key_missing.length}))
@@ -1125,7 +1119,7 @@ ${dataSectionWat}
     ;; ════════════════════════════════════════════════════════════════════════
     (if (call $str_eq (i32.const 200000) (local.get $act_len) (i32.const ${act_create_issue.offset}) (i32.const ${act_create_issue.length}))
       (then
-        (if (i32.eqz (global.get $key_len))
+        (if (i32.lt_u (global.get $key_len) (i32.const 10))
           (then
             (drop (call $copy_mem (i32.const ${d_issue_need_token.offset}) (i32.const 1024) (i32.const ${d_issue_need_token.length})))
             (return (i32.const ${d_issue_need_token.length}))
@@ -1199,8 +1193,16 @@ ${dataSectionWat}
           (i32.const ${needle_status_401.offset}) (i32.const ${needle_status_401.length}))
          (i32.const 0))
       (then
-        (drop (call $copy_mem (i32.const ${d_auth_error.offset}) (i32.const 1024) (i32.const ${d_auth_error.length})))
-        (return (i32.const ${d_auth_error.length}))
+        (if (i32.ge_u (global.get $key_len) (i32.const 10))
+          (then
+            (drop (call $copy_mem (i32.const ${d_auth_error.offset}) (i32.const 1024) (i32.const ${d_auth_error.length})))
+            (return (i32.const ${d_auth_error.length}))
+          )
+          (else
+            (drop (call $copy_mem (i32.const ${d_private_repo.offset}) (i32.const 1024) (i32.const ${d_private_repo.length})))
+            (return (i32.const ${d_private_repo.length}))
+          )
+        )
       )
     )
 
