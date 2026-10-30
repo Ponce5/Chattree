@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "name": "GitHub",
   "description": "Official GitHub integration for Chattree. Inspect repositories, list your projects, view issues, read READMEs, search code, create issues, and manage tokens using fully natural language.",
   "author": "Chattree Core Team",
@@ -28,11 +28,11 @@
   ],
   "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.2.1",
   "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.2.1",
-  "changelog": "1.2.3: Renamed repo_info to stats in validIntents so device LLM unambiguously routes readme/docs/explain queries to readme action. Safety-net in WASM promotes any repo_info/stats without explicit stats keywords to readme.",
+  "changelog": "1.2.4: Removed ambiguous stats/repo_info from LLM validIntents. readme is now the only action for any repository content query. WASM NLP handles stats detection internally.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "0ebfe88a0e44b6a02279c2b0910c668d60eddbf15a4a5df1c52e5d04d47e1b46",
+  "wasmSha256": "634df056d6701e055061f631498caddd9594be18de2de4460cfcb60c8786f9fb",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 30000,
@@ -42,7 +42,7 @@
       "id": "com.chattree.official.github.manager",
       "command": "github",
       "displayName": "GitHub Integration",
-      "description": "Herramienta oficial de GitHub en Chattree. REGLA PRINCIPAL: usa 'readme' para CUALQUIER pregunta sobre qué es, qué hace, cómo funciona o la documentación de un repositorio. Solo usa 'stats' si el usuario pide EXPLÍCITAMENTE estrellas o forks. Otras acciones: 'issues' (listar issues), 'prs' (pull requests), 'search' (buscar código), 'create_issue', 'my_repos', 'profile', 'config'. REPOSITORIO POR DEFECTO: si el usuario menciona 'chattree' sin dueño, usa 'Ponce5/Chattree'.",
+      "description": "Herramienta oficial de GitHub en Chattree. Acciones disponibles: 'readme' (para VER el README, entender el proyecto, explicar qué hace, documentación — usa esto para cualquier pregunta sobre un repo), 'issues' (listar issues abiertos), 'prs' (listar pull requests), 'search' (buscar código), 'create_issue' (crear issue), 'my_repos' (listar mis repos), 'profile' (ver mi perfil), 'config' (guardar token). Si el usuario menciona 'chattree' sin owner, usa 'Ponce5/Chattree'.",
       "capabilities": [
         "network.http",
         "storage.private",
@@ -55,48 +55,47 @@
           "issues",
           "prs",
           "search",
-          "stats",
           "create_issue",
           "my_repos",
           "profile",
           "config",
           "help"
         ],
-        "description": "Herramienta oficial para interactuar con GitHub en lenguaje 100% natural. Permite leer READMEs completos, consultar estadísticas de repositorios, listar issues o pull requests, buscar código o funciones, crear issues, consultar proyectos propios y configurar el token de GitHub.",
+        "description": "Herramienta oficial para interactuar con GitHub en lenguaje 100% natural.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a ejecutar. USA 'readme' para CUALQUIER pregunta sobre qué es el proyecto, qué hace, cómo funciona, su documentación o su README. USA 'stats' SOLO si el usuario pide explícitamente números como estrellas o forks. USA 'issues' para listar issues. USA 'prs' para pull requests. USA 'search' para buscar código. USA 'create_issue' para crear un issue. USA 'my_repos' para listar los repos del usuario. USA 'profile' para ver el perfil de GitHub. USA 'config' para guardar el token.",
+            "description": "Acción: 'readme' para ver README/documentación/qué hace el repo, 'issues' para listar issues, 'prs' para pull requests, 'search' para buscar código, 'create_issue' para crear issue, 'my_repos' para mis repos, 'profile' para mi perfil, 'config' para token",
             "required": true
           },
           {
             "name": "repo",
             "key": "repo",
             "type": "string",
-            "description": "Repositorio en formato owner/repo (ej. Ponce5/Chattree). Si el usuario solo menciona 'chattree' o 'el repo', asume 'Ponce5/Chattree'. NUNCA dejes este campo vacío si la acción es readme, repo_info, issues, prs, search o create_issue.",
+            "description": "Repositorio formato owner/repo (ej. Ponce5/Chattree). Si el usuario dice solo 'chattree', usa 'Ponce5/Chattree'.",
             "required": false
           },
           {
             "name": "query",
             "key": "query",
             "type": "string",
-            "description": "Texto de la consulta del usuario o término de búsqueda (ej. 'cual es el readme de chattree' o 'login')",
+            "description": "Consulta del usuario o término de búsqueda",
             "required": false
           },
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Título descriptivo del issue a crear. Requerido solo si action=create_issue",
+            "description": "Título del issue. Solo para action=create_issue",
             "required": false
           },
           {
             "name": "token",
             "key": "token",
             "type": "string",
-            "description": "Personal Access Token de GitHub (ghp_... o github_pat_...). Requerido solo si action=config",
+            "description": "Personal Access Token de GitHub. Solo para action=config",
             "required": false
           }
         ],
@@ -126,13 +125,6 @@
             "input": "explícame el README de Ponce5/Chattree",
             "output": {
               "action": "readme",
-              "repo": "Ponce5/Chattree"
-            }
-          },
-          {
-            "input": "cuántas estrellas tiene Ponce5/Chattree",
-            "output": {
-              "action": "stats",
               "repo": "Ponce5/Chattree"
             }
           },

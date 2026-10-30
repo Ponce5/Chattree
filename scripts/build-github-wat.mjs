@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
@@ -148,7 +148,7 @@ const d_http_issue_body_open   = registerData('http_issue_body_open',   s_http_i
 const d_http_issue_body_close  = registerData('http_issue_body_close',  s_http_issue_body_close);
 
 // ─── Response message strings ───────────────────────────────────────────────
-const s_help = `🐙 **GitHub Integration para Chattree**
+const s_help = `🐙 **GitHub Integration v1.2.4 para Chattree**
 
 Puedes consultarme en lenguaje natural o con comandos:
 • "dime qué repos tengo" o "mis repos"
@@ -255,7 +255,7 @@ const dataSectionWat = dataEntries
   .map(e => `  (data (i32.const ${e.offset}) "${e.escaped}")`)
   .join('\n');
 
-const watContent = `;; Chattree Official GitHub Integration Plugin v1.2.3
+const watContent = `;; Chattree Official GitHub Integration Plugin v1.2.4
 ;; Triple-layer README intent defense + NLP query buffer promotion
 (module
   (import "chattree" "host_call"
