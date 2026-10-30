@@ -24,4 +24,4 @@ Every official plugin maintained here adheres to strict security, performance, a
 | [`mail/`](./mail/) | `/mail <command>` | Official IMAP/SMTP mail integration for inbox inspection and message composition. | `email.read`, `email.send` |
 | [`pdf/`](./pdf/) | `/pdf <command>` | Official PDF processing and extraction plugin. | `files.read`, `files.write` |
 | [`elevenlabs/`](./elevenlabs/) | `/elevenlabs <text>` | Official ElevenLabs AI voice & speech synthesis plugin. | `network.http`, `storage.private`, `files.write` |
-| [`github/`](./github/) | `/github <command>` | Official GitHub integration for inspecting repos, managing issues, and viewing PRs. | `network.http`, `storage.private`, `open.url` |
+| [`notion/`](./notion/) | `/notion <command>` | Official Notion workspace integration for searching pages, databases, and creating notes. | `network.http`, `storage.private` |

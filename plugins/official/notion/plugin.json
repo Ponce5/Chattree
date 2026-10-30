@@ -1,0 +1,78 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.notion",
+  "version": "1.0.0",
+  "name": "Notion Integration",
+  "description": "Official Notion workspace integration. Connect your Notion workspace to search pages and databases, create new notes, and check connection status directly in chat.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "notion",
+  "aliases": [
+    "notes-notion",
+    "workspace"
+  ],
+  "type": "imported",
+  "category": "productivity",
+  "capabilities": [
+    "network.http",
+    "storage.private"
+  ],
+  "tags": [
+    "notion",
+    "notes",
+    "workspace",
+    "productivity",
+    "database",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.0.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.0.0",
+  "changelog": "1.0.0: Official initial release of the Notion workspace plugin for Chattree. Integrates Notion API v1 for searching pages, creating new notes, and verifying connection status.",
+  "runtime": "wasm",
+  "entrypoint": "notion_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "559d6075c67de7b52b74136a5b01ba4ae1ff80ef162f1899dfda31ea63b42572",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 64,
+  "timeoutMs": 35000,
+  "fuelLimit": 100000000,
+  "tools": [
+    {
+      "id": "com.chattree.official.notion.workspace",
+      "command": "notion",
+      "displayName": "Notion Workspace",
+      "description": "Conecta tu espacio de trabajo de Notion para buscar páginas y bases de datos, consultar contenidos y crear nuevas páginas o notas. Invoca con /notion, /notion config <api_token>, /notion status, /notion search <término>, o /notion create <título>.",
+      "capabilities": [
+        "network.http",
+        "storage.private"
+      ],
+      "intentContract": {
+        "intent": "notion_action",
+        "validIntents": [
+          "search",
+          "create",
+          "status",
+          "config",
+          "list",
+          "disconnect",
+          "help"
+        ],
+        "description": "Interactúa con el espacio de trabajo de Notion para buscar páginas, crear notas, comprobar la conexión o configurar el token de integración.",
+        "fields": [
+          {
+            "name": "action",
+            "type": "string",
+            "description": "Acción a realizar: 'search', 'create', 'status', 'config', 'list', 'disconnect' o 'help'",
+            "required": false
+          },
+          {
+            "name": "query",
+            "type": "string",
+            "description": "Término de búsqueda o título de la nueva página",
+            "required": false
+          }
+        ]
+      }
+    }
+  ]
+}
