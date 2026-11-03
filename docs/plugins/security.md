@@ -73,7 +73,7 @@ The `pluginId` is **always injected by the runtime** — the plugin cannot forge
 | Execution timeout | 5 seconds by default | Current manifest validators accept up to 60000 ms; enforced per invocation by runtime |
 | CPU fuel | 50 000 000 instructions | Yes — `fuelLimit` |
 | Async iterations | 10 round-trips | No |
-| Max concurrent HTTP per plugin | 2 | No |
+| Max concurrent HTTP per plugin | 20 | No |
 | HTTP request body | 64 KB | No |
 | HTTP response body | 128 KB | No |
 | Notification rate | 5 per session | No |
