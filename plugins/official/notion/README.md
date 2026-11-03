@@ -55,8 +55,9 @@ Plugin oficial para Chattree que integra la API v1 de Notion. Permite conectar t
   ```
   Elimina el token de integración almacenado en tu dispositivo.
 
-## Lenguaje Natural
-También puedes invocar a Notion directamente en tus conversaciones con la IA de Chattree:
+## Lenguaje Natural y Generación de Contenido con IA
+Puedes invocar a Notion directamente en tus conversaciones con la IA de Chattree tanto para buscar como para crear notas y páginas completas con su cuerpo/explicación:
 - *"Busca mis notas de proyectos en Notion"*
 - *"Crea una página en Notion con el título Plan de Marketing"*
+- *"Crea una nota en Notion donde me expliques qué es la fotosíntesis"* (La IA redacta la explicación completa y la escribe directamente como contenido en los bloques de la página en Notion).
 

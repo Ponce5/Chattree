@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.notion",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "name": "Notion Integration",
   "description": "Official Notion workspace integration with natural language and AI tool calling support. Connect your workspace to search notes, create pages, and inspect recent updates.",
   "author": "Chattree Core Team",
@@ -25,13 +25,13 @@
     "database",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.0.2",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.0.2",
-  "changelog": "1.0.2: Fixed JSON response unescaping so parent page discovery, page creation, and search results parse Notion responses accurately.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.1.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.1.0",
+  "changelog": "1.1.0: Pages now created with full content body (paragraph blocks). When AI generates content (e.g. 'create a note explaining photosynthesis'), the explanation is written as the page body, not just the title. Also adds 'content' field to intentContract for structured AI intents.",
   "runtime": "wasm",
   "entrypoint": "notion_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "48bb6464bc98402efecbcb39d27d8cec1f533bed58f95e4c6c9e2a1f72857346",
+  "wasmSha256": "a7286bb58991e89a914e51df5939f2b44b0d10ff8ce2fa54e22ec8dcb66f9756",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 35000,
@@ -41,7 +41,7 @@
       "id": "com.chattree.official.notion.workspace",
       "command": "notion",
       "displayName": "Notion Workspace",
-      "description": "Herramienta oficial de Notion con soporte total para lenguaje natural. Busca páginas y bases de datos, consulta notas o crea nuevas páginas en tu espacio de trabajo. Comandos: /notion, /notion config <api_token>, /notion status, /notion search <término>, /notion create <título>, /notion parent <page_id>. En lenguaje natural: 'busca mis notas en Notion sobre...', 'crea una página en Notion que se llame...'.",
+      "description": "Herramienta oficial de Notion con soporte total para lenguaje natural. Busca páginas y bases de datos, consulta notas o crea nuevas páginas en tu espacio de trabajo con contenido completo generado por IA. Al crear una página, incluye el contenido/explicación completa en el campo 'content' — no solo el título. Comandos: /notion, /notion config <api_token>, /notion status, /notion search <término>, /notion create <título>, /notion parent <page_id>. En lenguaje natural: 'busca mis notas en Notion sobre...', 'crea una página en Notion que explique qué es la fotosíntesis', 'anota en Notion las ventajas del café'.",
       "capabilities": [
         "network.http",
         "storage.private"
@@ -76,6 +76,12 @@
             "name": "title",
             "type": "string",
             "description": "Título de la nueva página a crear en Notion",
+            "required": false
+          },
+          {
+            "name": "content",
+            "type": "string",
+            "description": "Contenido completo a escribir en el cuerpo de la página de Notion. El AI debe generar aquí el texto, explicación, lista o nota solicitada por el usuario. Ejemplo: si el usuario dice 'crea una nota que explique la fotosíntesis', este campo debe contener la explicación completa.",
             "required": false
           }
         ]
