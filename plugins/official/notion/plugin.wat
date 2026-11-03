@@ -102,11 +102,8 @@
   ;; After parent_id: properties.title open
   (data (i32.const 75807) "\\\"},\\\"properties\\\":{\\\"title\\\":[{\\\"text\\\":{\\\"content\\\":\\\"")
 
-  ;; After title text: close properties, open children paragraph block
-  (data (i32.const 75879) "\\\"}]}],\\\"children\\\":[{\\\"object\\\":\\\"block\\\",\\\"type\\\":\\\"paragraph\\\",\\\"paragraph\\\":{\\\"rich_text\\\":[{\\\"type\\\":\\\"text\\\",\\\"text\\\":{\\\"content\\\":\\\"")
-
-  ;; Close children + body JSON string + request close
-  (data (i32.const 75980) "\\\"}}]}}]}\",\"timeoutMs\":25000}}")
+  ;; Close title only (no body / children)
+  (data (i32.const 75879) "\\\"}]}]}}\",\"timeoutMs\":25000}}")
 
   ;; ── Keyword literals ──────────────────────────────────────────────────────
   (data (i32.const 75923) "secret_")
@@ -153,6 +150,12 @@
   (data (i32.const 76830) "](")
   (data (i32.const 76848) ")\0a")
   (data (i32.const 76870) "\"content\":\"")
+
+  ;; ── Page body / children templates (relocated to 80000 to avoid keyword overlap) ──
+  ;; After title text: close properties, open children paragraph block (139 bytes)
+  (data (i32.const 80000) "\\\"}]}],\\\"children\\\":[{\\\"object\\\":\\\"block\\\",\\\"type\\\":\\\"paragraph\\\",\\\"paragraph\\\":{\\\"rich_text\\\":[{\\\"type\\\":\\\"text\\\",\\\"text\\\":{\\\"content\\\":\\\"")
+  ;; Close children + body JSON string + request close (30 bytes)
+  (data (i32.const 80200) "\\\"}}]}}]}\",\"timeoutMs\":25000}}")
 
   ;; ── Utility functions ─────────────────────────────────────────────────────
 
@@ -416,23 +419,53 @@
     (local $val_start i32)
     (local $i i32)
     (local $ch i32)
+    (local $esc i32)
     (local.set $pos (call $find_substring (local.get $src) (local.get $src_len) (local.get $needle_ptr) (local.get $needle_len)))
     (if (i32.lt_s (local.get $pos) (i32.const 0))
       (then (return (i32.const -1)))
     )
     (local.set $val_start (i32.add (i32.add (local.get $src) (local.get $pos)) (local.get $needle_len)))
     (local.set $i (i32.const 0))
+    (local.set $esc (i32.const 0))
     (loop $scan_val
       (if (i32.lt_u (i32.add (local.get $val_start) (local.get $i)) (i32.add (local.get $src) (local.get $src_len)))
         (then
           (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
-          (if (i32.ne (local.get $ch) (i32.const 34))
+          (if (local.get $esc)
             (then
+              (local.set $esc (i32.const 0))
               (if (i32.lt_u (local.get $i) (i32.const 2000))
                 (then
                   (i32.store8 (i32.add (i32.const 1002000) (local.get $i)) (local.get $ch))
                   (local.set $i (i32.add (local.get $i) (i32.const 1)))
                   (br $scan_val)
+                )
+              )
+            )
+            (else
+              (if (i32.eq (local.get $ch) (i32.const 92))
+                (then
+                  (local.set $esc (i32.const 1))
+                  (if (i32.lt_u (local.get $i) (i32.const 2000))
+                    (then
+                      (i32.store8 (i32.add (i32.const 1002000) (local.get $i)) (local.get $ch))
+                      (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                      (br $scan_val)
+                    )
+                  )
+                )
+                (else
+                  (if (i32.ne (local.get $ch) (i32.const 34))
+                    (then
+                      (if (i32.lt_u (local.get $i) (i32.const 2000))
+                        (then
+                          (i32.store8 (i32.add (i32.const 1002000) (local.get $i)) (local.get $ch))
+                          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                          (br $scan_val)
+                        )
+                      )
+                    )
+                  )
                 )
               )
             )
@@ -450,23 +483,53 @@
     (local $val_start i32)
     (local $i i32)
     (local $ch i32)
+    (local $esc i32)
     (local.set $pos (call $find_substring (local.get $src) (local.get $src_len) (local.get $needle_ptr) (local.get $needle_len)))
     (if (i32.lt_s (local.get $pos) (i32.const 0))
       (then (return (i32.const -1)))
     )
     (local.set $val_start (i32.add (i32.add (local.get $src) (local.get $pos)) (local.get $needle_len)))
     (local.set $i (i32.const 0))
+    (local.set $esc (i32.const 0))
     (loop $scan_body
       (if (i32.lt_u (i32.add (local.get $val_start) (local.get $i)) (i32.add (local.get $src) (local.get $src_len)))
         (then
           (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
-          (if (i32.ne (local.get $ch) (i32.const 34))
+          (if (local.get $esc)
             (then
+              (local.set $esc (i32.const 0))
               (if (i32.lt_u (local.get $i) (i32.const 30000))
                 (then
                   (i32.store8 (i32.add (i32.const 1200000) (local.get $i)) (local.get $ch))
                   (local.set $i (i32.add (local.get $i) (i32.const 1)))
                   (br $scan_body)
+                )
+              )
+            )
+            (else
+              (if (i32.eq (local.get $ch) (i32.const 92))
+                (then
+                  (local.set $esc (i32.const 1))
+                  (if (i32.lt_u (local.get $i) (i32.const 30000))
+                    (then
+                      (i32.store8 (i32.add (i32.const 1200000) (local.get $i)) (local.get $ch))
+                      (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                      (br $scan_body)
+                    )
+                  )
+                )
+                (else
+                  (if (i32.ne (local.get $ch) (i32.const 34))
+                    (then
+                      (if (i32.lt_u (local.get $i) (i32.const 30000))
+                        (then
+                          (i32.store8 (i32.add (i32.const 1200000) (local.get $i)) (local.get $ch))
+                          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                          (br $scan_body)
+                        )
+                      )
+                    )
+                  )
                 )
               )
             )
@@ -492,20 +555,22 @@
     (local.set $p (call $copy_mem (i32.const 75807) (local.get $p) (i32.const 56)))
     ;; title text
     (local.set $p (call $copy_mem (i32.const 1002000) (local.get $p) (global.get $arg_len)))
-    ;; close title, open children paragraph block
-    (local.set $p (call $copy_mem (i32.const 75879) (local.get $p) (i32.const 93)))
-    ;; body / content text
+
     (if (i32.gt_u (global.get $body_len) (i32.const 0))
       (then
+        ;; open children paragraph block (139 bytes at 80000)
+        (local.set $p (call $copy_mem (i32.const 80000) (local.get $p) (i32.const 139)))
+        ;; body / content text
         (local.set $p (call $copy_mem (i32.const 1200000) (local.get $p) (global.get $body_len)))
+        ;; close children + body JSON + request (30 bytes at 80200)
+        (local.set $p (call $copy_mem (i32.const 80200) (local.get $p) (i32.const 30)))
       )
       (else
-        ;; no content provided — use title as body too
-        (local.set $p (call $copy_mem (i32.const 1002000) (local.get $p) (global.get $arg_len)))
+        ;; close title only, no children (28 bytes at 75879)
+        (local.set $p (call $copy_mem (i32.const 75879) (local.get $p) (i32.const 28)))
       )
     )
-    ;; close children + body JSON + request
-    (local.set $p (call $copy_mem (i32.const 75980) (local.get $p) (i32.const 27)))
+
     (local.set $req_len (i32.sub (local.get $p) (i32.const 100000)))
 
     (global.set $phase (i32.const 5))
