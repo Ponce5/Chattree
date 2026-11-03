@@ -8,17 +8,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+- **Inbound Webhooks Management UI (`PluginDetailScreen`)**: Added the *Webhooks Entrantes* panel in **Settings → Plugins → [Plugin]** for plugins declaring `inboundWebhooks` or `network.webhook_inbound`. Users can inspect active local endpoint URLs (`http://127.0.0.1:<port><path>`), copy the URL, copy the active Bearer/HMAC secret from `WebhookSecretStore`, and rotate secrets with one tap (`beginRotation` + `finalizeRotation`).
+- **Automatic Conversational Vector RAG**: Connected `RAGService.instance.buildContextForQuery` directly to `ChatController.sendMessage` so conversational turns automatically retrieve and inject relevant semantic context from Notes whenever RAG is enabled and initialized.
+- **In-Memory Vector Search Cache (`SqliteVectorStore`)**: Added a decoded float vector cache (`_memoryCache`) for zero-I/O cosine similarity search across notes, with deterministic invalidation on insert, update, delete, and clear operations.
+- **Bounded WASM Module LRU Cache (`PluginRuntime`)**: Added an in-memory compiled module cache (`maxCachedModules = 8`) while instantiating a fresh, isolated linear memory per execution.
+- **Production Readiness Audit Test Suite**: Added unit and regression tests (`test/audit_production_readiness_test.dart`) covering `EmailApiHandler` capability checks, `PluginStateStore` secret encryption, `PluginStorageStore` per-plugin quotas, and `SqliteVectorStore` cache invalidation.
+
 ### Changed
-- **App core (ChatController):** All user-facing strings, internal log tags, doc-comments, and system-prompt messages translated to English for consistency across the codebase.
-  - Error messages (`Provider not active`, `No model selected`, `Permission denied`, etc.) are now English.
-  - Confirmation flow prompts updated (`"Please reply \"yes\" to confirm or \"no\" to cancel."`).
-  - Visual design status labels (`🎨 Designing graphic elements…`, `🎨 Refining visual design…`) now English.
-  - Fallback `[Generation stopped]` / `[Design generation stopped]` labels now English.
-  - Unknown command hint (`Unknown command "/$command". Available commands:`) now English.
-  - System prompts sent to the LLM (`[Tool Result]:…`, `"You are the Chattree intelligent assistant."`) now English.
-  - `cancelPermissionRequest` message (`"Permission not granted. Operation was not executed."`) now English.
+- **Hardened `EmailApiHandler` Security**:
+  - Enforced `email.read` (for `inbox`, `list`, `events`, `read`), `email.send` (for `send`, `create`), and either capability (for `config`, `setup`, `disconnect`, `logout`) via `PermissionGateway.instance.hasCapability`.
+  - Encrypted email app passwords at rest in `FlutterSecureStorage` (`EncryptedSharedPreferences` / Keychain) with automatic migration and cleanup of legacy plaintext keys from `PluginStorageStore`.
+- **Zero-Trust Permission Default & Reserved Internal IDs**:
+  - Removed automatic permission pre-approval for external `com.chattree.official.*` plugin IDs; only built-in `PluginType.internal` tools receive pre-approved internal capabilities.
+  - Expanded reserved internal IDs in `PluginPackageManager.validatePackage` (`com.chattree.note`, `com.chattree.reminder`, `com.chattree.visual`, `com.chattree.weather`, `com.chattree.translate`, `com.chattree.calendar`, `com.chattree.internal`) to prevent third-party spoofing.
+- **Encrypted Secret Plugin Settings (`PluginStateStore`)**: Settings declared with `isSecret: true` (or matching secret/token/password/api_key identifiers) are now encrypted in `FlutterSecureStorage`, storing only a `__SECURE_STORED__` sentinel in `SharedPreferences`.
+- **Per-Plugin Storage Quotas (`PluginStorageStore`)**: Enforced strict quotas per plugin (`maxKeysPerPlugin = 200`, `maxValueLength = 65,536` bytes / 64 KB, and `maxTotalBytesPerPlugin = 524,288` bytes / 512 KB) to prevent storage exhaustion.
+- **Strict Disabled-Plugin Dispatch Guard**: Blocked `ChatController` fallback to `ToolRegistry.instance.dispatch` when the owning plugin is disabled in `PluginRegistry`.
+- **Clean WASM Payload Forwarding**: Scoped legacy calendar field normalization in `WasmMarketplaceTool.handle` strictly to calendar commands so general-purpose WASM plugins receive unmodified `operation` and `payload` structures.
+- **Persistent HTTP Client Reuse for Cloud Providers**: `OpenAiProvider`, `GeminiProvider`, and `ClaudeProvider` now reuse persistent `HttpClient` instances (60s idle timeout, 15s connection timeout) to avoid repeated TCP/TLS handshakes, with clean re-creation on `cancelGeneration()`.
+- **Startup & UI Streaming Optimization**:
+  - Parallelized essential startup stores with `Future.wait` in `main.dart` and deferred heavy background services (`EmbeddingService`, `RAGService`, `ReminderExecutor`, `EventRuntime`, `InboundHttpServer`) until after the first frame (`addPostFrameCallback`).
+  - Scoped token-streaming rebuilds in `ChatScreen` using `ListenableBuilder` around the message list and input bar so the outer `Scaffold`, `ChatDrawer`, and `AppBar` do not rebuild on every token tick.
+  - Sequenced `EmbeddingService.embedNote` and `RAGService.onNoteChanged` in `NotesService` to eliminate concurrent ONNX isolate contention.
+- **Localized `ChatController` Messages**: System status and error messages in `ChatController` (`switchModel`, `stopGeneration`, `handleUnknownCommand`) dynamically adapt to the user's selected language (`es` / `en`).
+- **Android Production Packaging**: Configured `applicationId = "com.chattree.app"`, `android:fullBackupContent="false"`, and release signing via `key.properties` with safe debug fallback.
 - **App core (VisualDesignTool):** `refine` / `new` English keyword aliases added alongside existing Spanish aliases so both languages are accepted as `/visual` subcommands.
-- **Tests:** Updated `plugin_permission_ui_test.dart` to accept the new English cancel-permission message via a bilingual matcher.
+- Synchronized SDK documentation, schemas, and website reference docs with the production runtime implementation.
 
 ---
 

@@ -40,7 +40,10 @@ private keyspace. No other plugin or user can read it.
 
 **Limitations:**
 - Values are stored as strings.
-- No size limit per key, but total storage is limited by device.
+- Maximum key length: **256 characters**.
+- Maximum value size per key: **64 KB (`65,536` bytes)**.
+- Maximum keys per plugin: **200 keys**.
+- Maximum total storage quota per plugin: **512 KB (`524,288` bytes)**.
 - Data persists across plugin reinstalls (tied to plugin ID).
 
 **Example:**
@@ -577,14 +580,16 @@ This is strictly limited — it does NOT expose full chat history or all previou
 **Permission required:** User consent  
 **Host API namespace:** `email`
 
-Allows the plugin to read email accounts, inspect inbox messages, and fetch message bodies via secure IMAP.
+Allows the plugin to read email accounts, inspect inbox messages, and fetch message bodies via secure IMAP. App passwords configured via `email.config` / `email.setup` are encrypted at rest in `FlutterSecureStorage` (`EncryptedSharedPreferences` on Android / Keychain on iOS) and never stored in plaintext in `PluginStorageStore`.
 
 **Operations:**
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `email.inbox` | `{}` | `{ status, account, unread_count, total_count, emails: [...] }` |
+| `email.inbox` / `email.list` / `email.events` | `{}` | `{ status, account, unread_count, total_count, emails: [...] }` |
 | `email.read` | `{ id: string }` | `{ id, from, to, subject, date, body }` |
+| `email.config` / `email.setup` | `{ email, password, imapHost?, imapPort? }` | `{ configured: true, email, provider, message }` |
+| `email.disconnect` / `email.logout` | `{}` | `{ disconnected: true, message }` |
 
 ---
 
@@ -595,13 +600,41 @@ Allows the plugin to read email accounts, inspect inbox messages, and fetch mess
 **Permission required:** User consent  
 **Host API namespace:** `email`
 
-Allows the plugin to dispatch outgoing emails via secure SMTP.
+Allows the plugin to dispatch outgoing emails via secure SMTP. Both `email.read` and `email.send` are strictly verified by `PermissionGateway` before any operation executes.
 
 **Operations:**
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `email.send` | `{ to: string, subject: string, body: string }` | `{ sent: true, to, subject, response }` |
+| `email.send` / `email.create` | `{ to: string, subject: string, body: string }` | `{ sent: true, to, subject, response }` |
+
+---
+
+### 🟡 network.webhook_inbound
+
+**Category:** Network & Automation  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** Inbound Webhook Pipeline (`InboundHttpServer` / `EventRuntime`)
+
+Allows the plugin to register local loopback HTTP webhook endpoints (`127.0.0.1`) and receive authenticated inbound events (via Bearer token or `HMAC-SHA256` signature). Users can inspect the local endpoint URL, copy the active secret, and rotate endpoint secrets at any time from **Settings → Plugins → [Plugin] → Webhooks Entrantes**.
+
+---
+
+### 🟡 clipboard.read / 🟢 clipboard.write
+
+**Category:** Device  
+**Status:** ✅ Available  
+**Permission required:** User consent (`clipboard.read`) / Normal (`clipboard.write`)  
+**Host API namespace:** `clipboard`
+
+Allows reading text from (`clipboard.read`, max 100 KB) or copying text to (`clipboard.write`, max 100 KB) the system clipboard.
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `clipboard.read` / `clipboard.get` | `{}` | `{ text: string, hasContent: boolean, length: number }` |
+| `clipboard.write` / `clipboard.set` | `{ text: string }` | `{ copied: true, length: number }` |
+| `clipboard.has` | `{}` | `{ hasContent: boolean }` |
 
 ---
 

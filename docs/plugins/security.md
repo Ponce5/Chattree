@@ -61,26 +61,33 @@ NotesApiHandler._handleCreate(...)
 
 The `pluginId` is **always injected by the runtime** — the plugin cannot forge it.
 
+### Zero-Trust Permission Policy & Reserved Internal IDs
+- **No external auto-grants:** Every imported or Marketplace plugin (`type: "imported"`) starts with zero sensitive/critical capabilities granted, regardless of its reverse-domain prefix (including `com.chattree.*` or `com.chattree.official.*`). Only built-in `PluginType.internal` tools shipped inside the application binary receive pre-approved internal capabilities.
+- **Reserved internal IDs:** Third-party packages cannot use reserved system identifiers (`com.chattree.note`, `com.chattree.reminder`, `com.chattree.visual`, `com.chattree.weather`, `com.chattree.translate`, `com.chattree.calendar`, `com.chattree.internal`).
+
 ---
 
 ## Memory limits
 
 | Resource | Default | Configurable? |
 |----------|---------|---------------|
-| WASM linear memory | 32 MB default | Yes — `maxMemoryPages`; runtime enforces strict byte boundary |
+| WASM linear memory | 32 MB default | Yes — `maxMemoryPages` (up to 1024 pages / 64 MB); fresh isolated linear memory per call |
+| Compiled WASM module cache | 8 modules (LRU) | Bounded in-memory LRU cache (`maxCachedModules = 8`) in `PluginRuntime` |
 | ABI v1 Input Buffer | 1,024 bytes default | Yes — Configurable via `"outputOffset"` in `plugin.json` (capacity = `outputOffset - inputOffset`) |
 | ABI v2 Dynamic Payload | 2 MB default | Yes — Configurable up to 16 MB via `"maxPayloadSizeBytes"` in `plugin.json` |
 | Execution timeout | 5 seconds by default | Current manifest validators accept up to 60000 ms; enforced per invocation by runtime |
 | CPU fuel | 50 000 000 instructions | Yes — `fuelLimit` |
 | Async iterations | 10 round-trips | No |
-| Max concurrent HTTP per plugin | 20 | No |
-| HTTP request body | 64 KB | No |
-| HTTP response body | 128 KB | No |
+| Max concurrent HTTP per plugin | 2 | No |
+| HTTP request body | 4 MB | No |
+| HTTP response body | 8 MB | No |
 | Notification rate | 5 per session | No |
 | File read limit | 4 MB | No |
 | File write limit | 2 MB | No |
 | Note content max | 50 000 chars | No |
-| Storage key max | 300 chars (by convention) | No |
+| Private storage key max | 256 chars | No |
+| Private storage value max | 64 KB (`65,536` bytes) | No |
+| Private storage quota per plugin | 200 keys / 512 KB total | No |
 
 ---
 

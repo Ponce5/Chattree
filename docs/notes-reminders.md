@@ -62,10 +62,10 @@ Reminders handle time-sensitive tasks with scheduled notifications on Android:
 
 When chatting, if a user query might benefit from saved notes, Chattree can automatically augment the AI prompt with relevant context:
 
-1. **Automatic Embedding Generation:** Every time a note is created or updated, Chattree generates vector embeddings locally using the on-device embedding model.
-2. **Local Vector Storage:** Embeddings are indexed in a local vector database on the Android device.
-3. **Semantic Cosine Search:** When a prompt is submitted, semantic similarity against stored note vectors is computed in milliseconds.
-4. **Context Injection:** Relevant note excerpts are injected into the prompt context window before inference.
+1. **Automatic Embedding Generation:** Every time a note is created or updated, Chattree generates vector embeddings locally using the on-device ONNX embedding model (`EmbeddingService` and `RAGService` index notes sequentially in the background to avoid isolate contention).
+2. **Local Vector Storage & In-Memory Cache:** Embeddings are persisted in SQLite (`SqliteVectorStore`) and cached in memory (`_memoryCache`) for zero-I/O cosine similarity lookups, with deterministic cache invalidation whenever notes are inserted, updated, or deleted.
+3. **Semantic Cosine Search:** When a conversational prompt is submitted (`ChatController.sendMessage`) while RAG is enabled and initialized, semantic similarity against stored note vectors is computed in milliseconds.
+4. **Context Injection:** Relevant note excerpts are automatically injected into the prompt context window before local or remote LLM inference.
 5. **Zero Data Leakage:** Vectors, notes, and queries never leave the device. When a note is deleted, its vector embeddings are purged synchronously.
 6. **Fallback:** If RAG is disabled in Settings or returns no high-confidence matches, standard conversation continues without interruption.
 

@@ -62,8 +62,8 @@ Chattree reads it before executing any WASM code.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `schemaVersion` | `integer` | ✅ | Must be `1`. |
-| `id` | `string` | ✅ | Reverse-domain unique ID. E.g. `"com.example.my-plugin"`. Must be globally unique. |
+| `schemaVersion` | `integer` | ✅ | Manifest schema version (`1` for standard plugins, or `2` when declaring `inboundWebhooks` / `eventConsumers`). |
+| `id` | `string` | ✅ | Reverse-domain unique ID. E.g. `"com.example.my-plugin"`. Must be globally unique and not match a reserved internal ID. |
 | `version` | `string` | ✅ | Semantic version: `"MAJOR.MINOR.PATCH"`. E.g. `"1.0.0"`. |
 | `minAppVersion` | `string` | ❌ | Minimum Chattree version required. Omit if unknown. |
 
@@ -71,6 +71,7 @@ Chattree reads it before executing any WASM code.
 - Lowercase letters, digits, dots, hyphens only.
 - Must contain at least one dot (e.g. `com.you.plugin`).
 - Cannot start or end with a dot.
+- Cannot use reserved internal IDs (`com.chattree.note`, `com.chattree.reminder`, `com.chattree.visual`, `com.chattree.weather`, `com.chattree.translate`, `com.chattree.calendar`, `com.chattree.internal`).
 
 ---
 
@@ -184,7 +185,7 @@ Plugins can declare an optional `intentContract` inside any tool definition. Whe
 
 ### Settings (optional)
 
-The manifest parser accepts a `settings` array with declarative field metadata, but the current app does not display these fields in plugin details and provides no Host API for reading their values. Do not rely on this field for user configuration until the app implements that behavior.
+The manifest parser accepts an optional `settings` array with declarative field metadata (`key`, `label`, `type`, `defaultValue`, `description`, `options`, `isSecret`) rendered in **Settings → Plugins → [Plugin]** when configured.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -194,9 +195,7 @@ The manifest parser accepts a `settings` array with declarative field metadata, 
 | `settings[].defaultValue` | `string` | ❌ | Default value string. |
 | `settings[].description` | `string` | ❌ | Help text shown under the field. |
 | `settings[].options` | `string[]` | ❌ | Required when `type == "select"`. |
-| `settings[].isSecret` | `boolean` | ❌ | Metadata flag only in the current app; it does not provide a secret-input UI or secure storage for plugin settings. |
-
-Settings are currently parsed metadata only; no plugin settings UI or value-reading API is implemented. Do not place credentials in these fields.
+| `settings[].isSecret` | `boolean` | ❌ | Masks the input in the UI and encrypts the stored value at rest in `FlutterSecureStorage` (`EncryptedSharedPreferences` / Keychain), writing only a `__SECURE_STORED__` sentinel in `SharedPreferences`. |
 
 ---
 
@@ -204,8 +203,8 @@ Settings are currently parsed metadata only; no plugin settings UI or value-read
 
 When you import a plugin, Chattree validates:
 
-1. `schemaVersion` == 1
-2. `id` matches `^[a-z0-9][a-z0-9._-]*[a-z0-9]$` with at least one dot
+1. `schemaVersion` is `1` or `2`
+2. `id` matches `^[a-z0-9][a-z0-9._-]*[a-z0-9]$` with at least one dot and is not a reserved internal ID
 3. `version` is valid semver (`MAJOR.MINOR.PATCH`)
 4. `primaryCommand` matches `^[a-z0-9-]+$`
 5. All declared `capabilities` exist in the capability registry

@@ -84,6 +84,7 @@ Your WASM module must declare this import to use any Host API:
 | `contacts` | Address book | ❌ Async | `contacts.read`/`.create`/`.update` |
 | `calendar` | Device calendar | ❌ Async | `calendar.read`/`.create`/`.update`/`.delete` |
 | `email` | Native IMAP/SMTP email & inbox | ❌ Async | `email.read`/`email.send` |
+| `clipboard` | System clipboard read/write | ❌ Async | `clipboard.read`/`clipboard.write` |
 | `share` | Share sheet | ❌ Async | `share.text`/`share.file` |
 | `open` | Launch URLs and apps | ❌ Async | `open.url`/`open.app` |
 | `chattree.notes` | Chattree Notes CRUD | ❌ Async | `chattree.notes.*` |
@@ -131,6 +132,12 @@ Your WASM module must declare this import to use any Host API:
 | `storage.delete` | ✅ | `{ key }` | `{ deleted: boolean, key }` |
 | `storage.has` | ✅ | `{ key }` | `{ exists: boolean, key }` |
 | `storage.keys` | ✅ | `{}` | `{ keys: string[], count: number }` |
+
+**Quotas enforced by `PluginStorageStore`:**
+- Max key length: **256 chars**
+- Max value size: **64 KB (`65,536` bytes)**
+- Max keys per plugin: **200 keys**
+- Max total storage per plugin: **512 KB (`524,288` bytes)**
 
 ---
 
@@ -232,14 +239,26 @@ If you return an unknown, unavailable, or another plugin’s handle, Chattree dr
 ### email.*
 
 The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL encryption for reading inboxes, inspecting message content, and sending emails.
+- **Capability enforcement:** `email.read` is strictly required for `inbox`, `list`, `events`, and `read`; `email.send` is required for `send` and `create`; either `email.read` or `email.send` is required for `config`, `setup`, `disconnect`, and `logout`.
+- **Credential security:** Email app passwords are encrypted at rest in `FlutterSecureStorage` (`EncryptedSharedPreferences` / Keychain) and are never stored in plaintext inside `PluginStorageStore`.
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `email.config` | ❌ | `{ email, password, imapHost?, imapPort? }` | `{ configured: true, email, provider, message }` |
-| `email.inbox` | ❌ | `{}` | `{ status: "success", account, unread_count, total_count, emails: [...] }` |
+| `email.config` / `email.setup` | ❌ | `{ email, password, imapHost?, imapPort? }` | `{ configured: true, email, provider, message }` |
+| `email.inbox` / `email.list` / `email.events` | ❌ | `{}` | `{ status: "success", account, unread_count, total_count, emails: [...] }` |
 | `email.read` | ❌ | `{ id }` | `{ id, from, to, subject, date, body }` |
-| `email.send` | ❌ | `{ to, subject, body }` | `{ sent: true, to, subject, response }` |
-| `email.disconnect` | ❌ | `{}` | `{ disconnected: true, message }` |
+| `email.send` / `email.create` | ❌ | `{ to, subject, body }` | `{ sent: true, to, subject, response }` |
+| `email.disconnect` / `email.logout` | ❌ | `{}` | `{ disconnected: true, message }` |
+
+---
+
+### clipboard.*
+
+| Operation | Sync | Input | Output |
+|-----------|------|-------|--------|
+| `clipboard.read` / `clipboard.get` | ❌ | `{}` | `{ text: string, hasContent: boolean, length: number }` |
+| `clipboard.write` / `clipboard.set` | ❌ | `{ text: string }` | `{ copied: true, length: number }` |
+| `clipboard.has` | ❌ | `{}` | `{ hasContent: boolean }` |
 
 ---
 

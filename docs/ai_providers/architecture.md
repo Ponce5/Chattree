@@ -9,7 +9,8 @@ Chattree provides working client integrations for OpenAI, Google Gemini, Anthrop
 - **API Keys Belong Exclusively to the User:** Keys are entered directly by the user on their device.
 - **Zero Intermediary Servers:** Chattree never transmits API keys or prompts through Chattree backend servers. Requests route directly from the client to the provider's HTTPS endpoint.
 - **Hardware-Backed Secure Storage:** Keys are stored exclusively in operating system secure keystores (`EncryptedSharedPreferences` backed by AES-256 Android Keystore on Android, and Keychain on iOS).
-- **Zero Logging Guarantee:** Diagnostic logs never print keys, tokens, or authorization headers.
+- **Persistent Connection Pooling:** Provider adapters (`OpenAiProvider`, `GeminiProvider`, `ClaudeProvider`) reuse persistent `HttpClient` instances (60s idle timeout, 15s connection timeout) to avoid repeated TCP/TLS handshakes across chat turns, while cleanly closing and recreating the client when `cancelGeneration()` is invoked.
+- **Zero Logging Guarantee:** Diagnostic logs (`ProviderDiagnostics`) are strictly guarded by `kDebugMode` (completely disabled in release builds) and never print API keys, tokens, authorization headers, or raw conversation bodies.
 - **Chat Layer Independence:** The conversational chat interface and UI controllers interact with an abstract interface and remain agnostic of provider-specific API nuances.
 
 ---

@@ -9,6 +9,16 @@ const SEMVER_REGEX = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
 const COMMAND_REGEX = /^[a-z0-9-]+$/;
 const HEX64_REGEX = /^[0-9a-f]{64}$/;
 
+const RESERVED_INTERNAL_IDS = new Set([
+  "com.chattree.note",
+  "com.chattree.reminder",
+  "com.chattree.visual",
+  "com.chattree.weather",
+  "com.chattree.translate",
+  "com.chattree.calendar",
+  "com.chattree.internal",
+]);
+
 const VALID_CAPABILITIES = new Set([
   "storage.private",
   "share.text",
@@ -16,6 +26,7 @@ const VALID_CAPABILITIES = new Set([
   "open.url",
   "open.app",
   "network.http",
+  "network.webhook_inbound",
   "notifications.send",
   "files.pick",
   "files.read",
@@ -27,6 +38,10 @@ const VALID_CAPABILITIES = new Set([
   "contacts.read",
   "contacts.create",
   "contacts.update",
+  "email.read",
+  "email.send",
+  "clipboard.read",
+  "clipboard.write",
   "location.current",
   "camera.capture",
   "chattree.notes.read",
@@ -166,11 +181,13 @@ export function validatePlugin(targetPath) {
   }
 
   if (manifest) {
-    if (manifest.schemaVersion !== 1) {
-      errors.push(`Invalid schemaVersion (${manifest.schemaVersion}). Must be 1.`);
+    if (manifest.schemaVersion !== 1 && manifest.schemaVersion !== 2) {
+      errors.push(`Invalid schemaVersion (${manifest.schemaVersion}). Must be 1 or 2.`);
     }
     if (!manifest.id || !ID_REGEX.test(manifest.id) || !manifest.id.includes(".")) {
       errors.push(`Invalid 'id' ("${manifest.id}"). Must be reverse-domain formatted with lowercase alphanumeric chars, dots, and hyphens.`);
+    } else if (RESERVED_INTERNAL_IDS.has(manifest.id)) {
+      errors.push(`Invalid 'id' ("${manifest.id}"). Reserved internal Chattree identifier cannot be used by third-party plugins.`);
     }
     if (!manifest.version || !SEMVER_REGEX.test(manifest.version)) {
       errors.push(`Invalid 'version' ("${manifest.version}"). Must adhere to SemVer (MAJOR.MINOR.PATCH).`);

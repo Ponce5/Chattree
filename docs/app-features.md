@@ -24,16 +24,15 @@ The model catalog manages chat models. The embedding model is a separate downloa
 
 ## Notes, semantic search, and embeddings
 
-Chattree Notes and Reminders are built-in chat features; see the [Notes and Reminders guide](./notes-reminders.md) for their commands and behavior. A separate ONNX embedding model supports semantic note search. After it is installed, Settings can enable or disable RAG, show indexing progress, rebuild the index, and clear the vector index. Notes and their local embedding index are stored on the device. RAG availability depends on the embedding model being installed and initialized.
+Chattree Notes and Reminders are built-in chat features; see the [Notes and Reminders guide](./notes-reminders.md) for their commands and behavior. A separate ONNX embedding model supports semantic note search. After it is installed, Settings can enable or disable RAG, show indexing progress, rebuild the index, and clear the vector index. When RAG is enabled and initialized, conversational chat (`sendMessage`) automatically retrieves and injects relevant note context via an in-memory vector cache (`SqliteVectorStore`) for fast zero-I/O cosine similarity search. Notes and their local embedding index are stored on the device.
 
 ## Inbound webhooks and local events
 
-Chattree includes a foreground loopback HTTP listener (`InboundHttpServer`) that allows local desktop tools, command-line scripts, and automations to push events to the app via `http://127.0.0.1:<port>`. In **Settings → Inbound Webhooks**, users can:
-- Enable or disable the listener with persistent state across app restarts.
-- Configure a custom loopback port (default `8765`).
-- Inspect live listener status and diagnostics.
+Chattree includes a foreground loopback HTTP listener (`InboundHttpServer`) that allows local desktop tools, command-line scripts, and automations to push events to the app via `http://127.0.0.1:<port>`.
+- In **Settings → Inbound Webhooks**, users can enable or disable the listener with persistent state across app restarts, configure a custom loopback port (default `8765`), and inspect live listener status and diagnostics.
+- In **Settings → Plugins → [Plugin] → Webhooks Entrantes**, users can inspect each registered plugin endpoint URL, copy the active Bearer/HMAC secret from `WebhookSecretStore`, and rotate endpoint secrets with a single tap (`beginRotation` + `finalizeRotation`).
 
-All payloads are authenticated via HMAC-SHA256 signatures (`X-Chattree-Signature-256`), protected against loopback SSRF bypasses, and deduplicated in an embedded SQLite journal before dispatching to subscribed WebAssembly plugin handlers. See the [Inbound Webhooks guide](./inbound-webhooks.md) for full architecture and protocol specifications.
+All payloads are authenticated via Bearer tokens (`Authorization: Bearer <token>`) or HMAC-SHA256 signatures (`X-Chattree-Signature-256`), protected against loopback SSRF bypasses, and deduplicated in an embedded SQLite journal before dispatching to subscribed WebAssembly plugin handlers. See the [Inbound Webhooks guide](./inbound-webhooks.md) for full architecture and protocol specifications.
 
 ## Background execution and Android services model
 
@@ -56,4 +55,4 @@ The built-in `/visual` tool generates and refines SVG artwork and provides previ
 
 ## Current implementation boundary
 
-The app parses plugin `settings` entries in `plugin.json`, but the current plugin detail screen does not provide a settings editor or a Host API for reading those values. Do not rely on manifest-declared plugin settings for user configuration until that support is implemented and documented.
+Plugin `settings` declared in `plugin.json` are rendered in the plugin detail screen (**Settings → Plugins → [Plugin]**), and any setting marked with `isSecret: true` (or matching secret/token/password/api_key keys) is encrypted at rest via `FlutterSecureStorage` (`EncryptedSharedPreferences` / Keychain), storing only a `__SECURE_STORED__` sentinel in `SharedPreferences`.

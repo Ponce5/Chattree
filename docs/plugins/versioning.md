@@ -21,7 +21,8 @@ not the plugin's own version.
 
 | `schemaVersion` | Status |
 |-----------------|--------|
-| `1` | ✅ Current (only supported version) |
+| `1` | ✅ Current standard manifest schema |
+| `2` | ✅ Supported extended schema (adds declarative `inboundWebhooks` and `eventConsumers`) |
 
 Chattree will refuse to install a plugin with an unknown `schemaVersion`.
 
@@ -52,7 +53,7 @@ a version bump — they are backward compatible.
 
 | Chattree version | Supported `schemaVersion` | Supported `runtimeApiVersion` |
 |-----------------|--------------------------|-------------------------------|
-| 1.0.x | 1 | 1.0.0 |
+| 1.0.x | 1, 2 | 1.0.0 |
 | Future | 1 (minimum) | 1.0.0+ |
 
 ### `minAppVersion`

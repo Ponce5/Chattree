@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.notion",
-  "version": "1.1.3",
+  "version": "1.2.0",
   "name": "Notion Integration",
-  "description": "Official Notion workspace integration with natural language and AI tool calling support. Connect your workspace to search notes, create pages, and inspect recent updates.",
+  "description": "Official Notion workspace integration powered 100% by natural language and AI tool calling. Ask in natural language to generate and save complete, structured pages, search notes, or inspect recent workspace updates.",
   "author": "Chattree Core Team",
   "primaryCommand": "notion",
   "aliases": [
@@ -25,13 +25,13 @@
     "database",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.1.3",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.1.3",
-  "changelog": "1.1.3: Fix Notion properties schema structure for title ({title: {title: [...]}}) and balance JSON child blocks to eliminate 400 'Error parsing JSON body' from Notion API.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.2.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.2.0",
+  "changelog": "1.2.0: 100% natural-language AI workflow. Fixed intentContract field keys, removed rigid keyword slicing, added multi-block paragraph content generation with real line breaks, and rich chat preview.",
   "runtime": "wasm",
   "entrypoint": "notion_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "bbd5492a070f44dfae1d02652bbbe554259e00870330581b4f5ae33d79bbcc7d",
+  "wasmSha256": "d194f7a7fcca37be69fd5c98c53eb0be4f8c9ced3d373509b6fd6c74615ad463",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 35000,
@@ -44,7 +44,7 @@
       "id": "com.chattree.official.notion.workspace",
       "command": "notion",
       "displayName": "Notion Workspace",
-      "description": "Herramienta oficial de Notion con soporte total para lenguaje natural. Busca páginas y bases de datos, consulta notas o crea nuevas páginas en tu espacio de trabajo con contenido completo generado por IA. Al crear una página, incluye el contenido/explicación completa en el campo 'content' — no solo el título. Comandos: /notion, /notion config <api_token>, /notion status, /notion search <término>, /notion create <título>, /notion parent <page_id>. En lenguaje natural: 'busca mis notas en Notion sobre...', 'crea una página en Notion que explique qué es la fotosíntesis', 'anota en Notion las ventajas del café'.",
+      "description": "Integración oficial de Notion que funciona 100% con lenguaje natural. Cuando el usuario pida crear una página, nota, lista de ideas, resumen, guía o documento en Notion (con action='create'), tú DEBES redactar y desarrollar por completo todo el contenido solicitado en el campo 'content' (entre 300 y 700 palabras bien estructuradas con puntos, listas numeradas y secciones separadas por saltos de línea \\n\\n) y poner un título atractivo y breve en 'title'. NUNCA dejes 'content' vacío ni copies simplemente la instrucción del usuario como título. No uses comillas dobles literales dentro de 'content' (usa comillas simples '). Emite únicamente la llamada JSON válida sin texto adicional fuera del JSON.",
       "capabilities": [
         "network.http",
         "storage.private"
@@ -52,42 +52,90 @@
       "intentContract": {
         "intent": "notion_action",
         "validIntents": [
-          "search",
           "create",
+          "search",
+          "list",
           "status",
           "config",
-          "list",
           "parent",
           "disconnect",
           "help"
         ],
-        "description": "Interactúa con el espacio de trabajo de Notion para buscar páginas, crear notas, comprobar la conexión o configurar el token de integración.",
+        "description": "Interpreta cualquier petición en lenguaje natural para Notion y devuelve UNA SOLA llamada JSON válida. Si el usuario pide crear o redactar una página (action='create'), genera un 'title' claro y redacta todo el desarrollo completo, ideas, puntos o explicación detallada en 'content' usando saltos de línea \\n\\n y sin comillas dobles literales dentro del texto.",
         "fields": [
           {
             "name": "action",
+            "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'search' para buscar, 'create' para crear página, 'list' para ver páginas recientes, 'status' para verificar conexión, 'config' para guardar token, o 'parent' para configurar página padre",
+            "description": "Acción a ejecutar: 'create' (crear una página nueva desarrollando todo el tema solicitado), 'search' (buscar páginas en Notion), 'list' (listar páginas recientes), 'status' (verificar estado de conexión), 'config' (guardar API token secret_ o ntn_), 'parent' (configurar ID de página padre), 'disconnect' (desconectar cuenta) o 'help' (mostrar ayuda).",
             "required": true
           },
           {
-            "name": "query",
-            "type": "string",
-            "description": "Término de búsqueda, texto o título de la página",
-            "required": false
-          },
-          {
             "name": "title",
+            "key": "title",
             "type": "string",
-            "description": "Título de la nueva página a crear en Notion",
+            "description": "Título claro, atractivo y conciso de la página a crear en Notion (máximo 80 caracteres). Ejemplo: 'Mejores Ideas de Apps para 2027'. NUNCA copies la oración literal del usuario como título.",
             "required": false
           },
           {
             "name": "content",
+            "key": "content",
             "type": "string",
-            "description": "Contenido completo a escribir en el cuerpo de la página de Notion. El AI debe generar aquí el texto, explicación, lista o nota solicitada por el usuario. Ejemplo: si el usuario dice 'crea una nota que explique la fotosíntesis', este campo debe contener la explicación completa.",
+            "description": "Cuerpo completo, extenso y bien estructurado de la página de Notion (obligatorio cuando action='create'). Redacta aquí todas las ideas, listas numeradas, viñetas (•), explicaciones y secciones solicitadas por el usuario (300 a 700 palabras). Separa los párrafos y puntos con \\n\\n. No uses comillas dobles literales dentro de content; usa comillas simples (').",
+            "required": false
+          },
+          {
+            "name": "query",
+            "key": "query",
+            "type": "string",
+            "description": "Término clave de búsqueda (cuando action='search'), o el token de integración secret_/ntn_ (cuando action='config'), o el ID de la página padre (cuando action='parent').",
             "required": false
           }
-        ]
+        ],
+        "examples": [
+          {
+            "input": "creame una pagina de ideas de app donde enliste las mejores ideas para este 2027 de app",
+            "output": {
+              "tool": "notion",
+              "action": "create",
+              "title": "Mejores Ideas de Apps para 2027",
+              "content": "Aquí tienes una selección de las mejores ideas de aplicaciones móviles y web con mayor potencial para 2027:\n\n1. Copiloto Financiero Personal con IA Local\n• Análisis automático de gastos e inversiones directamente en el dispositivo sin subir datos bancarios a la nube.\n• Alertas predictivas de suscripciones y optimización de ahorro mensual.\n\n2. Tutor Educativo Adaptativo Multimodal\n• Aprende el estilo de estudio de cada alumno y genera resúmenes, cuestionarios interactivos y explicaciones por voz en tiempo real.\n• Ideal para preparación universitaria, idiomas y certificaciones técnicas.\n\n3. Plataforma de Salud Preventiva y Longevidad\n• Integración con wearables para analizar sueño, variabilidad cardíaca y hábitos diarios.\n• Recomendaciones personalizadas de nutrición, descanso y entrenamiento.\n\n4. Asistente de Productividad y Automatización por Voz\n• Conecta calendario, notas, correo y tareas mediante comandos en lenguaje natural.\n• Ejecuta flujos de trabajo complejos sin necesidad de configurar reglas manuales.\n\n5. Marketplace Local de Economía Circular con Verificación IA\n• Permite vender, intercambiar o alquilar artículos cercanos con tasación automática de estado y precio mediante cámara."
+            }
+          },
+          {
+            "input": "crea una nota en notion que explique qué es la fotosíntesis y sus etapas",
+            "output": {
+              "tool": "notion",
+              "action": "create",
+              "title": "La Fotosíntesis: Proceso y Etapas",
+              "content": "La fotosíntesis es el proceso metabólico mediante el cual las plantas, algas y cianobacterias transforman la energía luminosa del sol en energía química almacenada en moléculas orgánicas como la glucosa.\n\n1. Importancia Biológica\n• Produce el oxígeno molecular indispensable para la respiración de la mayoría de los seres vivos.\n• Es la base de las cadenas tróficas y captura dióxido de carbono atmosférico.\n\n2. Fase Luminosa (Reacciones dependientes de la luz)\n• Ocurre en las membranas de los tilacoides dentro de los cloroplastos.\n• La clorofila absorbe fotones, provocando la fotólisis del agua (liberando oxígeno) y generando ATP y NADPH.\n\n3. Fase Oscura o Ciclo de Calvin\n• Se lleva a cabo en el estroma del cloroplasto.\n• Utiliza el ATP y NADPH producidos en la fase luminosa para fijar el CO2 y sintetizar glucosa.\n\n4. Ecuación General\n6 CO2 + 6 H2O + Energía Lumínica -> C6H12O6 (Glucosa) + 6 O2"
+            }
+          },
+          {
+            "input": "busca mis notas sobre arquitectura de software",
+            "output": {
+              "tool": "notion",
+              "action": "search",
+              "query": "arquitectura de software"
+            }
+          },
+          {
+            "input": "muéstrame mis páginas recientes de notion",
+            "output": {
+              "tool": "notion",
+              "action": "list"
+            }
+          },
+          {
+            "input": "configura mi token de notion ntn_1234567890abcdef",
+            "output": {
+              "tool": "notion",
+              "action": "config",
+              "query": "ntn_1234567890abcdef"
+            }
+          }
+        ],
+        "maxResponseTokens": 3000
       }
     }
   ]

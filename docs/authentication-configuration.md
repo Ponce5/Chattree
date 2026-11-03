@@ -37,9 +37,9 @@ When users configure cloud providers (OpenAI, Google Gemini, Anthropic Claude), 
 
 ---
 
-## 2. Plugin Manifest Settings Support
+## 2. Plugin Manifest Settings & Secret Encryption
 
-The plugin manifest schema accepts an optional `settings` array with declarative fields such as `key`, `label`, `type`, `defaultValue`, `options`, and `isSecret`. In the current app implementation, the plugin details screen does not render a settings editor, and the plugin Host API does not expose these values. Treat `settings` as parsed metadata only; plugin developers must not rely on the app to collect or provide these values. See the [manifest reference](./plugins/plugin-manifest.md) for the current boundary.
+The plugin manifest schema accepts an optional `settings` array with declarative fields (`key`, `label`, `type`, `defaultValue`, `options`, and `isSecret`) rendered in **Settings → Plugins → [Plugin]**. When a field is marked with `isSecret: true` (or uses a secret/token/password/api_key key identifier), `PluginStateStore` encrypts its value at rest in `FlutterSecureStorage` (`EncryptedSharedPreferences` on Android / Keychain on iOS) and writes only a `__SECURE_STORED__` sentinel in `SharedPreferences`. See the [manifest reference](./plugins/plugin-manifest.md) for full details.
 
 Chattree's own user preferences (theme, language, inference parameters, local model optimization, RAG controls, provider credentials, and history deletion) are managed in the app's Settings screens. See [Chattree App Features](./app-features.md).
 

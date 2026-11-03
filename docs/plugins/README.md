@@ -77,6 +77,9 @@ Native service (Notes, Network, Storage, …)
 | `calendar.read` / `calendar.create` / `calendar.update` / `calendar.delete` | ✅ Available |
 | `share.text` / `share.file` | ✅ Available |
 | `open.url` / `open.app` | ✅ Available |
+| `email.read` / `email.send` | ✅ Available |
+| `clipboard.read` / `clipboard.write` | ✅ Available |
+| `network.webhook_inbound` | ✅ Available |
 | `chattree.notes.*` | ✅ Available (Phase 3G) |
 | `chattree.reminders.*` | ✅ Available (Phase 3G) |
 | `chattree.context.read` | ✅ Available (Phase 3G) |
@@ -108,9 +111,10 @@ Users can inspect `plugin.json` before granting any permissions.
 | Requirement | Value |
 |---|---|
 | WASM spec | WebAssembly 1.0 MVP + `memory.copy` (bulk-memory proposal) |
-| Memory (default) | 16 MB max (`maxMemoryPages` × 64 KB) |
+| Memory (default) | 32 MB max (`maxMemoryPages` × 64 KB, up to 64 MB / 1024 pages) |
+| Module cache | Bounded LRU cache (`maxCachedModules = 8`), isolated linear memory per call |
 | Fuel limit | 50 000 000 instructions |
 | Execution timeout | 5 seconds by default; manifest values are accepted up to 60 seconds by current validators |
 | Async iterations | 10 max (for Host API round-trips) |
-| Min `schemaVersion` | 1 |
+| Supported `schemaVersion` | `1` or `2` |
 | Min `runtimeApiVersion` | 1.0.0 |

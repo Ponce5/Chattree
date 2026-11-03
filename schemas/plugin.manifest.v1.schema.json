@@ -27,8 +27,8 @@
     },
     "schemaVersion": {
       "type": "integer",
-      "const": 1,
-      "description": "Version of the manifest specification format. Must be 1."
+      "enum": [1, 2],
+      "description": "Version of the manifest specification format. Must be 1 or 2."
     },
     "id": {
       "type": "string",
@@ -233,6 +233,7 @@
         "open.url",
         "open.app",
         "network.http",
+        "network.webhook_inbound",
         "notifications.send",
         "files.pick",
         "files.read",
@@ -244,6 +245,10 @@
         "contacts.read",
         "contacts.create",
         "contacts.update",
+        "email.read",
+        "email.send",
+        "clipboard.read",
+        "clipboard.write",
         "location.current",
         "camera.capture",
         "chattree.notes.read",
