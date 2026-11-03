@@ -99,11 +99,11 @@
   ;; After token: headers + body open (parent_id placeholder)
   (data (i32.const 75689) "\",\"Notion-Version\":\"2022-06-28\",\"Content-Type\":\"application/json\"},\"body\":\"{\\\"parent\\\":{\\\"page_id\\\":\\\"")
 
-  ;; After parent_id: properties.title open
-  (data (i32.const 75807) "\\\"},\\\"properties\\\":{\\\"title\\\":[{\\\"text\\\":{\\\"content\\\":\\\"")
+  ;; After parent_id: properties.title open (67 bytes)
+  (data (i32.const 75807) "\\\"},\\\"properties\\\":{\\\"title\\\":{\\\"title\\\":[{\\\"text\\\":{\\\"content\\\":\\\"")
 
-  ;; Close title only (no body / children)
-  (data (i32.const 75879) "\\\"}]}]}}\",\"timeoutMs\":25000}}")
+  ;; Close title only, no children (29 bytes)
+  (data (i32.const 75880) "\\\"}}]}}}\",\"timeoutMs\":25000}}")
 
   ;; ── Keyword literals ──────────────────────────────────────────────────────
   (data (i32.const 75923) "secret_")
@@ -152,8 +152,8 @@
   (data (i32.const 76870) "\"content\":\"")
 
   ;; ── Page body / children templates (relocated to 80000 to avoid keyword overlap) ──
-  ;; After title text: close properties, open children paragraph block (139 bytes)
-  (data (i32.const 80000) "\\\"}]}],\\\"children\\\":[{\\\"object\\\":\\\"block\\\",\\\"type\\\":\\\"paragraph\\\",\\\"paragraph\\\":{\\\"rich_text\\\":[{\\\"type\\\":\\\"text\\\",\\\"text\\\":{\\\"content\\\":\\\"")
+  ;; After title text: close properties, open children paragraph block (140 bytes)
+  (data (i32.const 80000) "\\\"}}]}},\\\"children\\\":[{\\\"object\\\":\\\"block\\\",\\\"type\\\":\\\"paragraph\\\",\\\"paragraph\\\":{\\\"rich_text\\\":[{\\\"type\\\":\\\"text\\\",\\\"text\\\":{\\\"content\\\":\\\"")
   ;; Close children + body JSON string + request close (30 bytes)
   (data (i32.const 80200) "\\\"}}]}}]}\",\"timeoutMs\":25000}}")
 
@@ -382,15 +382,20 @@
     (local.get $i)
   )
 
-  ;; Sanitizes content/body text into 1200000
+  ;; Sanitizes content/body text into 1200000 (capped at 1950 bytes to respect Notion 2000-char block limit)
   (func $sanitize_body (param $src i32) (param $len i32) (result i32)
     (local $i i32)
     (local $ch i32)
     (local $out_ptr i32)
+    (local $max_len i32)
     (local.set $i (i32.const 0))
     (local.set $out_ptr (i32.const 1200000))
+    (local.set $max_len (local.get $len))
+    (if (i32.gt_u (local.get $max_len) (i32.const 1950))
+      (then (local.set $max_len (i32.const 1950)))
+    )
     (loop $b_loop
-      (if (i32.lt_u (local.get $i) (local.get $len))
+      (if (i32.lt_u (local.get $i) (local.get $max_len))
         (then
           (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
           (if (i32.eq (local.get $ch) (i32.const 34))
@@ -552,22 +557,22 @@
     (local.set $p (call $copy_mem (i32.const 1001000) (local.get $p) (global.get $token_len)))
     (local.set $p (call $copy_mem (i32.const 75689) (local.get $p) (i32.const 102)))
     (local.set $p (call $copy_mem (i32.const 1004000) (local.get $p) (global.get $parent_len)))
-    (local.set $p (call $copy_mem (i32.const 75807) (local.get $p) (i32.const 56)))
+    (local.set $p (call $copy_mem (i32.const 75807) (local.get $p) (i32.const 67)))
     ;; title text
     (local.set $p (call $copy_mem (i32.const 1002000) (local.get $p) (global.get $arg_len)))
 
     (if (i32.gt_u (global.get $body_len) (i32.const 0))
       (then
-        ;; open children paragraph block (139 bytes at 80000)
-        (local.set $p (call $copy_mem (i32.const 80000) (local.get $p) (i32.const 139)))
+        ;; open children paragraph block (140 bytes at 80000)
+        (local.set $p (call $copy_mem (i32.const 80000) (local.get $p) (i32.const 140)))
         ;; body / content text
         (local.set $p (call $copy_mem (i32.const 1200000) (local.get $p) (global.get $body_len)))
         ;; close children + body JSON + request (30 bytes at 80200)
         (local.set $p (call $copy_mem (i32.const 80200) (local.get $p) (i32.const 30)))
       )
       (else
-        ;; close title only, no children (28 bytes at 75879)
-        (local.set $p (call $copy_mem (i32.const 75879) (local.get $p) (i32.const 28)))
+        ;; close title only, no children (29 bytes at 75880)
+        (local.set $p (call $copy_mem (i32.const 75880) (local.get $p) (i32.const 29)))
       )
     )
 
@@ -594,8 +599,8 @@
     ;; 1. Empty input → Help (output written at 65536)
     (if (i32.eqz (local.get $in_len))
       (then
-        (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1200)))
-        (return (i32.const 1200))
+        (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1548)))
+        (return (i32.const 1548))
       )
     )
 
@@ -748,8 +753,8 @@
           (i32.ge_s (call $find_substring (i32.const 1100000) (local.get $in_len) (i32.const 76512) (i32.const 4)) (i32.const 0))
           (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 63)))
       (then
-        (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1200)))
-        (return (i32.const 1200))
+        (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1548)))
+        (return (i32.const 1548))
       )
     )
 
@@ -917,8 +922,8 @@
         (local.set $raw_len (i32.sub (i32.add (local.get $in_ptr) (local.get $in_len)) (local.get $token_start)))
         (if (i32.le_s (local.get $raw_len) (i32.const 0))
           (then
-            (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1200)))
-            (return (i32.const 1200))
+            (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1548)))
+            (return (i32.const 1548))
           )
         )
 
@@ -1076,8 +1081,8 @@
       (then
         (if (local.get $is_200)
           (then
-            (drop (call $copy_mem (i32.const 72133) (i32.const 65536) (i32.const 350)))
-            (return (i32.const 350))
+            (drop (call $copy_mem (i32.const 72133) (i32.const 65536) (i32.const 364)))
+            (return (i32.const 364))
           )
           (else
             (drop (call $copy_mem (i32.const 72499) (i32.const 65536) (i32.const 138)))
@@ -1326,7 +1331,7 @@
       )
     )
 
-    (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1200)))
-    (i32.const 1200)
+    (drop (call $copy_mem (i32.const 70000) (i32.const 65536) (i32.const 1548)))
+    (i32.const 1548)
   )
 )
