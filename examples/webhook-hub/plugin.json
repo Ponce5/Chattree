@@ -1,0 +1,90 @@
+{
+  "$schema": "https://chattree.chat/schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 2,
+  "id": "com.developer.webhook.hub",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "name": "Webhook Hub & Alert Bridge",
+  "description": "Receptor, procesador y monitor de webhooks entrantes locales y alertas push en Chattree.",
+  "author": "Chattree Plugin Developer",
+  "primaryCommand": "webhook",
+  "aliases": [
+    "wh",
+    "hook"
+  ],
+  "type": "imported",
+  "capabilities": [
+    "network.webhook_inbound",
+    "storage.private",
+    "notifications.send"
+  ],
+  "tags": [
+    "webhook",
+    "automation",
+    "alerts",
+    "inbound",
+    "iot",
+    "monitoring"
+  ],
+  "changelog": "1.0.0: Versión inicial con receptor inbound, deduplicación de idempotencia, notificaciones locales e historial.",
+  "runtime": "wasm",
+  "entrypoint": "webhook_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "4e04c88cb1964c9fbea1487f2dfc76faec3e8b13c7b6adcf14e7bb655daef01d",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 8,
+  "outputOffset": 32768,
+  "timeoutMs": 10000,
+  "fuelLimit": 50000000,
+  "inboundWebhooks": [
+    {
+      "id": "alert_endpoint",
+      "path": "/plugins/com.developer.webhook.hub/alerts",
+      "authType": "bearer",
+      "eventType": "webhook.alert",
+      "idempotencyHeader": "X-Chattree-Delivery-Id",
+      "requiredPermissions": [
+        "network.webhook_inbound"
+      ]
+    }
+  ],
+  "eventConsumers": [
+    {
+      "id": "alert_consumer",
+      "eventTypes": [
+        "webhook.alert"
+      ],
+      "targetAction": "com.developer.webhook.hub.webhook",
+      "requiredPermissions": [
+        "storage.private",
+        "notifications.send"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "id": "com.developer.webhook.hub.webhook",
+      "command": "webhook",
+      "displayName": "Webhook Hub",
+      "description": "Inspecciona y prueba el servidor webhook entrante: /webhook [status|last|test|curl|clear]",
+      "entrypoint": "webhook_entry",
+      "capabilities": [
+        "storage.private",
+        "notifications.send"
+      ],
+      "intentContract": {
+        "intent": "webhook_status",
+        "description": "Permite al modelo consultar el estado de webhooks entrantes o probar el servidor local",
+        "fields": [
+          {
+            "name": "action",
+            "type": "string",
+            "description": "Acción opcional: status, test, last, curl o clear",
+            "required": false
+          }
+        ],
+        "maxResponseTokens": 800
+      }
+    }
+  ]
+}

@@ -9,6 +9,16 @@ const SEMVER_REGEX = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
 const COMMAND_REGEX = /^[a-z0-9-]+$/;
 const HEX64_REGEX = /^[0-9a-f]{64}$/;
 
+const RESERVED_INTERNAL_IDS = new Set([
+  "com.chattree.note",
+  "com.chattree.reminder",
+  "com.chattree.visual",
+  "com.chattree.weather",
+  "com.chattree.translate",
+  "com.chattree.calendar",
+  "com.chattree.internal",
+]);
+
 const VALID_CAPABILITIES = new Set([
   "storage.private",
   "share.text",
@@ -16,6 +26,8 @@ const VALID_CAPABILITIES = new Set([
   "open.url",
   "open.app",
   "network.http",
+  "network.local",
+  "network.webhook_inbound",
   "notifications.send",
   "files.pick",
   "files.read",
@@ -27,6 +39,10 @@ const VALID_CAPABILITIES = new Set([
   "contacts.read",
   "contacts.create",
   "contacts.update",
+  "email.read",
+  "email.send",
+  "clipboard.read",
+  "clipboard.write",
   "location.current",
   "camera.capture",
   "chattree.notes.read",
@@ -133,13 +149,13 @@ export function validatePlugin(targetPath) {
   }
 
   // 1. Check root structure (enforce strict root whitelist for archives)
-  const ALLOWED_ROOT_FILES = new Set(["plugin.json", "plugin.wasm", "icon.png", "readme.md", "license"]);
+  const ALLOWED_ROOT_FILES = new Set(["plugin.json", "plugin.wasm", "icon.png", "readme.md", "license", "license.txt", "license.md"]);
   if (isArchive) {
     for (const name of Object.keys(files)) {
       if (name.includes("/") || name.includes("\\")) {
         errors.push(`File '${name}' is in a subdirectory. All plugin files must be in the archive root.`);
       } else if (!ALLOWED_ROOT_FILES.has(name.toLowerCase())) {
-        errors.push(`Disallowed file in package root: '${name}'. Allowed files are: plugin.json, plugin.wasm, icon.png, README.md, LICENSE.`);
+        errors.push(`Disallowed file in package root: '${name}'. Allowed files are: plugin.json, plugin.wasm, icon.png, README.md, LICENSE, LICENSE.txt, LICENSE.md.`);
       }
     }
   }
@@ -166,11 +182,13 @@ export function validatePlugin(targetPath) {
   }
 
   if (manifest) {
-    if (manifest.schemaVersion !== 1) {
-      errors.push(`Invalid schemaVersion (${manifest.schemaVersion}). Must be 1.`);
+    if (manifest.schemaVersion !== 1 && manifest.schemaVersion !== 2) {
+      errors.push(`Invalid schemaVersion (${manifest.schemaVersion}). Must be 1 or 2.`);
     }
     if (!manifest.id || !ID_REGEX.test(manifest.id) || !manifest.id.includes(".")) {
       errors.push(`Invalid 'id' ("${manifest.id}"). Must be reverse-domain formatted with lowercase alphanumeric chars, dots, and hyphens.`);
+    } else if (RESERVED_INTERNAL_IDS.has(manifest.id)) {
+      errors.push(`Invalid 'id' ("${manifest.id}"). Reserved internal Chattree identifier cannot be used by third-party plugins.`);
     }
     if (!manifest.version || !SEMVER_REGEX.test(manifest.version)) {
       errors.push(`Invalid 'version' ("${manifest.version}"). Must adhere to SemVer (MAJOR.MINOR.PATCH).`);
@@ -217,8 +235,8 @@ export function validatePlugin(targetPath) {
     if (manifest.timeoutMs && (manifest.timeoutMs <= 0 || manifest.timeoutMs > 60000)) {
       errors.push(`timeoutMs (${manifest.timeoutMs}) exceeds safety threshold (100 - 60000 ms).`);
     }
-    if (manifest.maxMemoryPages && (manifest.maxMemoryPages <= 0 || manifest.maxMemoryPages > 256)) {
-      errors.push(`maxMemoryPages (${manifest.maxMemoryPages}) exceeds allowed maximum of 256 pages (16 MB).`);
+    if (manifest.maxMemoryPages && (manifest.maxMemoryPages <= 0 || manifest.maxMemoryPages > 1024)) {
+      errors.push(`maxMemoryPages (${manifest.maxMemoryPages}) exceeds allowed maximum of 1024 pages (64 MB).`);
     }
     if (manifest.maxPayloadSizeBytes && (manifest.maxPayloadSizeBytes <= 0 || manifest.maxPayloadSizeBytes > 16777216)) {
       errors.push(`maxPayloadSizeBytes (${manifest.maxPayloadSizeBytes}) exceeds maximum allowed of 16 MB (16777216 bytes).`);

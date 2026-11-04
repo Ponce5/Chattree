@@ -69,6 +69,7 @@ Native service (Notes, Network, Storage, …)
 |---|---|
 | `storage.private` | ✅ Available |
 | `network.http` | ✅ Available |
+| `network.local` | ✅ Available |
 | `notifications.send` | ✅ Available |
 | `files.pick` / `files.read` / `files.write` | ✅ Available |
 | `location.current` | ✅ Available |
@@ -83,8 +84,8 @@ Native service (Notes, Network, Storage, …)
 | `chattree.notes.*` | ✅ Available (Phase 3G) |
 | `chattree.reminders.*` | ✅ Available (Phase 3G) |
 | `chattree.context.read` | ✅ Available (Phase 3G) |
-| `chat.history.read` | 🔒 Prepared — not yet available from WASM |
-| `ai.context` / `ai.embeddings` | 🔒 Prepared — not yet available from WASM |
+| `chat.history.read` | ✅ Available |
+| `ai.context` / `ai.embeddings` | ✅ Available |
 
 See [capabilities.md](capabilities.md) for full details.
 
@@ -115,6 +116,6 @@ Users can inspect `plugin.json` before granting any permissions.
 | Module cache | Bounded LRU cache (`maxCachedModules = 8`), isolated linear memory per call |
 | Fuel limit | 50 000 000 instructions |
 | Execution timeout | 5 seconds by default; manifest values are accepted up to 60 seconds by current validators |
-| Async iterations | 10 max (for Host API round-trips) |
+| Async iterations | 50 max (for Host API round-trips) |
 | Supported `schemaVersion` | `1` or `2` |
 | Min `runtimeApiVersion` | 1.0.0 |

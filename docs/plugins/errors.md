@@ -48,7 +48,6 @@ the required capability being granted.
 **Probable cause:**
 - Typo in the capability name.
 - Using a capability from a newer version of Chattree.
-- Using `chat.history.read`, `ai.context`, or `ai.embeddings` (registered but not yet available).
 
 **How to fix:**
 - Review [capabilities.md](capabilities.md) for the exact capability ID.
@@ -204,7 +203,7 @@ El módulo WASM no exporta la memoria ("memory").
 - `outputOffset` was left at default (1024).
 
 **How to fix:**
-1. **Recommended (Universal ABI v2):** Upgrade the plugin to Universal ABI v2 by exporting `chattree_allocate`, `chattree_deallocate`, and `chattree_dispatch`. This unlocks dynamic memory allocation and supports payloads up to 16 MB (2 MB by default). See [getting-started.md](getting-started.md).
+1. **Recommended (Universal ABI v2):** Upgrade the plugin to Universal ABI v2 by exporting `chattree_allocate`, `chattree_deallocate`, and `chattree_dispatch`. This unlocks dynamic memory allocation and supports payloads up to 16 MB (12 MB by default). See [getting-started.md](getting-started.md).
 2. **Quick fix for ABI v1:** Set `"outputOffset": 32768` (or another offset) in `plugin.json` to allocate a larger static input window.
 
 ---
@@ -235,8 +234,8 @@ the URL violates allowed schemes.
 - HTTP method not allowed (only GET, POST, PUT, DELETE).
 
 **How to fix:**
-- Use only public `https://` or `http://` URLs.
-- Don't connect to `localhost`, `192.168.x.x`, `10.x.x.x`, etc.
+- Use only public `https://` or `http://` URLs by default.
+- If your plugin genuinely needs to connect to `localhost`, `192.168.x.x`, `10.x.x.x`, or `.local` services on the user's LAN, declare the critical `network.local` capability alongside `network.http` in `plugin.json`.
 - Use only supported HTTP methods.
 
 ---

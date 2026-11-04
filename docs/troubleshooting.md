@@ -88,8 +88,8 @@ When a plugin behaves unexpectedly, verify these items first:
   3. Ensure the capability name is spelled correctly according to the [Capabilities Catalogue](./plugins/capabilities.md).
 
 ### Error: Network Request Blocked (SSRF Protection)
-- **Cause:** The URL targets `localhost`, `127.0.0.1`, `192.168.x.x`, or another private IP range.
-- **Solution:** Chattree blocks connections to local networks and loopback addresses to prevent server-side request forgery. Use public HTTPS endpoints only.
+- **Cause:** The URL targets `localhost`, `127.0.0.1`, `192.168.x.x`, or another private IP range without the `network.local` capability.
+- **Solution:** Chattree blocks connections to local networks and loopback addresses by default to prevent server-side request forgery. Use public HTTPS endpoints, or declare the critical `network.local` capability alongside `network.http` in `plugin.json` if your plugin integrates with local LAN/loopback services.
 
 ### Error: File Handle Expired or Invalid
 - **Cause:** Calling `files.read` with a fabricated or expired handle.

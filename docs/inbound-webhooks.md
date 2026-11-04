@@ -49,7 +49,7 @@ External Source (e.g., Local CLI / Dev Tool / Service)
 The local webhook listener is powered by `InboundHttpServer`.
 
 ### Key Characteristics:
-- **Loopback-Only Binding:** The server binds strictly to `127.0.0.1` (`InternetAddress.loopbackIPv4`). It is never reachable from the Internet or other machines on the local Wi-Fi/LAN, preventing external network probing.
+- **Loopback by Default + Optional LAN Mode:** By default, the server binds strictly to `127.0.0.1` (`InternetAddress.loopbackIPv4`). Users can optionally enable **LAN / Wi-Fi connections (`0.0.0.0`)** in **Settings → Plugins → [Plugin] → Webhooks Entrantes** to receive authenticated webhooks from desktop machines, Home Assistant, or IoT devices on the same local network.
 - **Configurable Port:** The default listening port is `8765`. Users can configure any custom port (0–65535) in **Settings → Inbound Webhooks**.
 - **Foreground Operation:** To respect mobile battery life and avoid requiring a permanent, intrusive foreground service notification in Android, the server operates while Chattree is active.
 - **Graceful Pause and Resume:**
@@ -104,6 +104,7 @@ Users have full control over both the global listener and per-plugin webhook end
 
 ### Per-Plugin Endpoint Management (**Settings → Plugins → [Plugin] → Webhooks Entrantes**)
 For any plugin that declares `inboundWebhooks` or `network.webhook_inbound`, the plugin detail screen displays a dedicated **Webhooks Entrantes** section where users can:
+- Toggle **Permitir conexiones desde red local (LAN / Wi-Fi)** to switch `InboundHttpServer` between loopback-only (`127.0.0.1`) and local network binding (`0.0.0.0`).
 - View the complete local URL for each endpoint (`http://127.0.0.1:<port><path>`) and copy it to the clipboard.
 - Inspect the authentication mode (`Bearer` or `HMAC-SHA256`) and copy the active secret token stored in `WebhookSecretStore`.
 - Rotate the endpoint secret with a single tap (`beginRotation` + `finalizeRotation`), immediately generating a fresh 256-bit secret.
@@ -154,3 +155,111 @@ WASM plugins consume inbound webhooks by declaring `schemaVersion: 2` (or `1`), 
 
 ### In WebAssembly Binary:
 When an event arrives, Chattree invokes the plugin's exported `handle_alert` function passing the deserialized event payload. The plugin can then interact with the Chattree Host API (e.g., creating a note, scheduling a reminder, or updating conversational context).
+
+---
+
+## 6. 24/7 Cloud Webhooks (Cloudflare Worker Relay + Google FCM)
+
+To receive webhooks 24/7 from external cloud platforms (such as GitHub, Stripe, GitLab, CI/CD pipelines, or remote IoT servers) without running battery-draining foreground services or violating Google Play background socket policies, Chattree introduces the **FCM + Cloudflare Worker Relay Architecture**:
+
+```text
+External Cloud Emitter (GitHub / Stripe / IoT / CLI)
+                        │
+                        ▼ HTTPS POST https://<worker>.<subdomain>.workers.dev/plugins/<pluginId>/<path>
+┌─────────────────────────────────────────────────────────────┐
+│              Personal Cloudflare Worker (Free)              │
+│  - Receives standard HTTP webhooks over the public web      │
+│  - Reads encrypted secrets (FCM_TOKEN, SERVICE_ACCOUNT)    │
+│  - Signs OAuth2 JWT and forwards via Google FCM HTTP v1     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼ FCM Data Push Message
+┌─────────────────────────────────────────────────────────────┐
+│                Google Play Services (FCM Push)              │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼ High-Priority Wake Signal
+┌─────────────────────────────────────────────────────────────┐
+│                 Chattree on Android (Closed)                │
+│  - Lightweight isolate: fcmBackgroundHandler (entry point) │
+│  - Zero heavy AI / WASM engine overhead                     │
+│  - Appends raw message to pending inbox (SQLite/Prefs)      │
+│  - Fires native Android status bar notification             │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ User taps notification / opens app
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 FcmInboundRelayService                      │
+│  - drainPendingInbox() runs on app resume / launch          │
+│  - Validates authentication token & idempotency key         │
+│  - Ingests into InboundWebhookService & EventJournal        │
+│  - Dispatches event to registered WASM plugin runtime       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Technical Properties:
+1. **100% Free & Open Source:** Uses Cloudflare Workers free tier (up to 100,000 requests/day) and Google Firebase Cloud Messaging free Spark tier.
+2. **Strict Google Play Compliance:** Does not keep persistent TCP sockets open in the background. Android wakes the app briefly via FCM data push only when an actual event arrives.
+3. **Guaranteed Delivery:** If the app is closed, events are queued safely in the persistent pending inbox. Once Chattree opens, `drainPendingInbox()` processes every pending event through the full validation and WASM dispatch pipeline.
+
+---
+
+## 7. Automated Cloudflare Worker Deployment
+
+Chattree features an automated in-app deployment workflow (`CloudflareDeployService`) allowing users to deploy their personal relay Worker in seconds:
+
+1. **In-App Deployment Dialog (**Settings → Inbound Webhooks → Auto-desplegar en Cloudflare**):**
+   - The user creates a Cloudflare API Token using the official `Edit Cloudflare Workers` template.
+   - The user pastes their token into the single-field dialog and taps **Desplegar Worker ahora**.
+2. **Automated Provisioning Sequence:**
+   - **Account Verification:** Authenticates against `GET /client/v4/accounts` and resolves the account identifier.
+   - **Subdomain Resolution:** Checks `GET /client/v4/accounts/{id}/workers/subdomain`.
+   - **Script Upload:** Bundles `tools/cloudflare-relay-worker.js` as an ES Module multipart payload and uploads it to `PUT /client/v4/accounts/{id}/workers/scripts/chattree-webhook-relay`.
+   - **Secret Binding:** Automatically configures Cloudflare secrets via `PUT /scripts/{name}/secrets`:
+     - `FCM_TOKEN`: The device's unique FCM registration token.
+     - `FIREBASE_SERVICE_ACCOUNT`: Secure relay credentials.
+   - **Subdomain Routing:** Enables the public route via `POST /scripts/{name}/subdomain`.
+3. **One-Tap Verification:** The resulting URL (`https://chattree-webhook-relay.<subdomain>.workers.dev`) is saved to app preferences, and the user can test the end-to-end pipeline with the **Probar conexión en la nube** button.
+
+---
+
+## 8. Testing Inbound Webhooks with PowerShell & cURL
+
+### A. Local Testing (USB / Wi-Fi LAN)
+```powershell
+# Forward local port if Android is connected via USB:
+adb forward tcp:8765 tcp:8765
+
+$headers = @{
+    "Content-Type"           = "application/json"
+    "Authorization"          = "Bearer <TU_SECRET_COPIADO_DE_AJUSTES>"
+    "X-Chattree-Delivery-Id" = [System.Guid]::NewGuid().ToString()
+}
+$body = @{
+    event   = "webhook.alert"
+    title   = "Prueba Local"
+    message = "Enviando alerta local a Chattree"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://127.0.0.1:8765/plugins/com.developer.webhook.hub/alerts" -Method Post -Headers $headers -Body $body
+```
+
+### B. Remote Cloud Testing (24/7 Cloudflare Relay)
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+$url = "https://chattree-webhook-relay.<tu-subdominio>.workers.dev/plugins/com.developer.webhook.hub/alerts"
+
+$headers = @{
+    "Content-Type"           = "application/json"
+    "Authorization"          = "Bearer <TU_SECRET_COPIADO_DE_AJUSTES>"
+    "X-Chattree-Delivery-Id" = [System.Guid]::NewGuid().ToString()
+}
+$body = @{
+    event   = "webhook.alert"
+    title   = "Alerta Cloud 24/7"
+    message = "Webhook recibido exitosamente a traves de Cloudflare y FCM!"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
+```

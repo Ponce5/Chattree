@@ -41,9 +41,9 @@ private keyspace. No other plugin or user can read it.
 **Limitations:**
 - Values are stored as strings.
 - Maximum key length: **256 characters**.
-- Maximum value size per key: **64 KB (`65,536` bytes)**.
-- Maximum keys per plugin: **200 keys**.
-- Maximum total storage quota per plugin: **512 KB (`524,288` bytes)**.
+- Maximum value size per key: **256 KB (`262,144` bytes)**.
+- Maximum keys per plugin: **500 keys**.
+- Maximum total storage quota per plugin: **2 MB (`2,097,152` bytes)**.
 - Data persists across plugin reinstalls (tied to plugin ID).
 
 **Example:**
@@ -82,10 +82,10 @@ Allows the plugin to make outbound **HTTP/HTTPS** requests.
 
 **Limitations:**
 - Only `http` and `https` schemes allowed.
-- Loopback, private LAN, link-local addresses blocked (SSRF protection).
+- Loopback and private LAN addresses are blocked by default (SSRF protection) unless the plugin also holds the critical `network.local` capability.
 - Max request body: 4 MB. Max response body: 8 MB.
 - Default timeout: 30 seconds (configurable up to 60s per call via `timeoutMs`).
-- Max concurrent requests per plugin: 2.
+- Max concurrent requests per plugin: **20**.
 - Allowed methods: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS.
 
 **Possible errors:**
@@ -95,6 +95,19 @@ Allows the plugin to make outbound **HTTP/HTTPS** requests.
 - `Método HTTP no permitido` — unsupported method
 - `La respuesta HTTP excedió el tamaño máximo` — response > 8 MB
 - `Tiempo de espera agotado` — timeout
+
+---
+
+### 🔴 network.local
+
+**Category:** Network  
+**Status:** ✅ Available  
+**Permission required:** Critical user consent  
+**Host API namespace:** `network` (used together with `network.http`)
+
+Allows outbound HTTP/HTTPS requests through `network.http_request` to private LAN IPv4 addresses (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), IPv6 Unique Local Addresses (`fc00::/7`), loopback (`localhost` / `127.0.0.1` / `::1`), and local mDNS/LAN domains (`.local`, `.lan`, `.home`). Ideal for integrating local services such as Ollama, LM Studio, Home Assistant, or NAS devices.
+
+**Security boundaries:** Even when `network.local` is granted, cloud metadata endpoints (`169.254.0.0/16`, `fe80::/10`), multicast addresses, and `0.0.0.0` remain strictly blocked.
 
 ---
 
@@ -117,9 +130,9 @@ Allows sending and cancelling **local device notifications**.
 **Limitations:**
 - Max title: 100 characters.
 - Max body: 500 characters.
-- Rate limit: **5 notifications per plugin per session**.
+- Rate limit: **15 notifications per plugin per hour** (sliding 60-minute window).
 - A plugin can only cancel its own notifications.
-- Android only (iOS not yet tested on physical hardware).
+- Supported on Android, iOS, and macOS.
 
 ---
 
@@ -351,7 +364,7 @@ Opens the **native system share sheet** to share text or a URL.
 |-----------|-------|--------|
 | `share.text` | `{ text, subject? }` | `{ shared: true }` |
 
-**Limitations:** Max 4000 characters.
+**Limitations:** Max **32,768 characters (32 KB)**.
 
 ---
 
@@ -617,7 +630,7 @@ Allows the plugin to dispatch outgoing emails via secure SMTP. Both `email.read`
 **Permission required:** User consent  
 **Host API namespace:** Inbound Webhook Pipeline (`InboundHttpServer` / `EventRuntime`)
 
-Allows the plugin to register local loopback HTTP webhook endpoints (`127.0.0.1`) and receive authenticated inbound events (via Bearer token or `HMAC-SHA256` signature). Users can inspect the local endpoint URL, copy the active secret, and rotate endpoint secrets at any time from **Settings → Plugins → [Plugin] → Webhooks Entrantes**.
+Allows the plugin to register HTTP webhook endpoints (`127.0.0.1` by default, or LAN `0.0.0.0` when explicitly enabled by the user in Settings) and receive authenticated inbound events (via Bearer token or `HMAC-SHA256` signature). Users can inspect the endpoint URL, toggle LAN/Wi-Fi access, copy the active secret, and rotate endpoint secrets at any time from **Settings → Plugins → [Plugin] → Webhooks Entrantes**.
 
 ---
 
@@ -638,15 +651,70 @@ Allows reading text from (`clipboard.read`, max 100 KB) or copying text to (`cli
 
 ---
 
-## Not yet available from WASM
+### 🟡 chat.history.read
 
-These capabilities are registered in the system but not yet routed through the WASM runtime:
+**Category:** AI & Conversation  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `chattree.context` (`chat` / `chat.history`)
 
-| Capability | Status |
-|---|---|
-| `chat.history.read` | 🔒 Prepared — not yet available |
-| `ai.context` | 🔒 Prepared — not yet available |
-| `ai.embeddings` | 🔒 Prepared — not yet available |
+Allows reading a bounded window of recent messages from the active conversation so plugins can summarize threads, extract tasks, or maintain multi-turn context.
 
-Do not declare these in `plugin.json` — Chattree will reject plugins that request
-capabilities that cannot be fulfilled.
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `chattree.context.history` / `chattree.context.messages` | `{ limit?: number }` | `{ messages: [{ role, content, timestamp }], count: number, maxLimit: 20, restricted: boolean, timestamp: string }` |
+
+**Limitations:**
+- Returns at most **20 recent messages** (`limit` clamped between 1 and 20, default 10).
+- Individual message `content` is truncated at **4 000 characters**.
+- Returns an empty list if the conversation is in restricted mode.
+
+---
+
+### 🟡 ai.context
+
+**Category:** AI  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `ai` (`ai.context`)
+
+Allows the plugin to request a bounded, single-turn text completion from the active AI model (either a configured remote provider or the loaded on-device GGUF model) without recursive tool execution.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | `{ prompt: string, systemPrompt?: string, maxTokens?: number, temperature?: number }` | `{ text: string, engine: "remote" \| "local", providerId?: string, modelId: string }` |
+
+**Limitations:**
+- `prompt` max **16 000 characters**; `systemPrompt` max **4 000 characters**.
+- `maxTokens` clamped between **1 and 2 048** (default 512).
+- Single-turn inference only; plugins cannot trigger nested tool calls.
+
+---
+
+### 🟡 ai.embeddings
+
+**Category:** AI & Vector RAG  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `ai` (`ai.embeddings`)
+
+Allows the plugin to generate on-device vector embeddings, perform semantic search over the local vector store, and index or remove custom plugin-scoped text documents.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `ai.embed` / `ai.embeddings` | `{ text: string }` | `{ embedding: number[], dimensions: number, modelId: string }` |
+| `ai.search` / `ai.rag_search` | `{ query: string, topK?: number, minSimilarity?: number }` | `{ results: [{ noteId, noteTitle, chunkText, similarity, chunkIndex }], count: number }` |
+| `ai.index_document` / `ai.index` | `{ id: string, title: string, content: string }` | `{ indexed: true, documentId: string, originalId: string, chunksCount: number }` |
+| `ai.remove_document` / `ai.remove` | `{ id: string }` | `{ removed: true, documentId: string }` |
+
+**Limitations:**
+- Requires the on-device embedding model (`RagService`) to be downloaded and initialized.
+- Input text/content max **50 000 characters** per call.
+- `topK` clamped between **1 and 20** (default 5).
+- Indexed documents are automatically namespaced as `plugin_<pluginId>_<id>` so a plugin can only overwrite or remove its own indexed documents.

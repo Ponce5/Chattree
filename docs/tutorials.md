@@ -294,5 +294,5 @@ Each WebAssembly memory page represents **64 KB**. If your plugin processes larg
 }
 ```
 
-In Rust, the default allocator (`wee_alloc` or standard `dlmalloc`) will grow linear memory via the `memory.grow` instruction automatically within the limit defined by `maxMemoryPages` (up to 256 pages / 16 MB).
+In Rust, the default allocator (`wee_alloc` or standard `dlmalloc`) will grow linear memory via the `memory.grow` instruction automatically within the limit defined by `maxMemoryPages` (up to 1024 pages / 64 MB).
 

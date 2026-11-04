@@ -103,13 +103,14 @@ Compare the SHA-256 with the `wasmSha256` field in `plugin.json`.
 
 ## Size limits
 
-Limits differ between the mobile importer, repository CLI, and web submission service. A package accepted by the web service may still exceed the app’s 10 MB compressed import limit. Keep packages below 10 MB for broad compatibility.
+Limits are aligned across the mobile importer, repository CLI, and web submission service:
 
 | Resource | Limit |
 |----------|-------|
-| Compressed archive for in-app import | 10 MB maximum |
-| Total uncompressed archive contents | 25 MB maximum in app import |
+| Compressed archive for in-app import | 25 MB maximum |
+| Total uncompressed archive contents | 50 MB maximum in app import |
 | Archive entries | 50 maximum in app import |
 | Marketplace submission package | 25 MB maximum |
-| WASM linear memory | 16 MB default; bounded by runtime configuration |
+| WASM linear memory | 32 MB default (up to 64 MB / 1024 pages) |
 | `icon.png` | Optional; web validator warns above 1 MB (512×512 recommended) |
+| Root files | `plugin.json`, `plugin.wasm`, `icon.png`, `readme.md`, `license`, `license.txt`, `license.md` |

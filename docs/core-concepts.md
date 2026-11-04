@@ -60,10 +60,10 @@ At the core of Chattree is its local inference engine:
 ## 2. Vector Retrieval-Augmented Generation (RAG)
 
 Chattree incorporates an on-device vector search pipeline:
-- **Local Embeddings:** When a note is created or edited, an on-device embedding model produces a dense vector representation.
-- **Vector Index:** Vectors are indexed in an embedded database alongside note content.
-- **Context Augmentation:** During conversation, relevant notes matching the user's query via cosine similarity are retrieved and injected into the model's context window.
-- **Deterministic Removal:** Deleting a note automatically deletes its corresponding vector index entries.
+- **Local Embeddings:** When a note is created or edited (or when a plugin indexes a document via `ai.embeddings`), an on-device embedding model produces a dense vector representation.
+- **Vector Index:** Vectors are indexed in an embedded database alongside note and plugin document content.
+- **Context Augmentation:** During conversation, relevant notes and indexed documents matching the user's query via cosine similarity are retrieved and injected into the model's context window.
+- **Deterministic Removal:** Deleting a note or plugin document automatically deletes its corresponding vector index entries.
 
 ---
 
@@ -120,9 +120,9 @@ For full architectural details and developer APIs, refer to the [Visual Design A
 
 ## 7. Inbound Webhooks & Local Event Pipeline
 
-Chattree incorporates a secure, loopback-only event pipeline for integrating local workflows, terminal tools, and external automation:
-- **Foreground Loopback HTTP Listener:** Binds strictly to `127.0.0.1` (`InboundHttpServer`) with configurable port and persistent user preferences.
-- **HMAC-SHA256 Signatures & SSRF Guard:** Payload integrity and authenticity verified with timing-safe HMAC checks; SSRF protection prevents network loopback abuse.
+Chattree incorporates a secure event pipeline for integrating local workflows, terminal tools, and external automation:
+- **Foreground HTTP Listener:** Binds to `127.0.0.1` by default (`InboundHttpServer`) with an optional user-enabled LAN/Wi-Fi mode (`0.0.0.0`), configurable port, and persistent user preferences.
+- **HMAC-SHA256 Signatures & SSRF Guard:** Payload integrity and authenticity verified with timing-safe HMAC checks; SSRF protection prevents network abuse.
 - **Persistent Event Journal:** Events and delivery receipts are committed to SQLite (`EventJournal`) with deduplication by idempotency keys, guaranteeing delivery even across app restarts.
 - **Decoupled Consumer Dispatch:** Events are published via `HostEventBus` and routed to registered WebAssembly plugin handlers without blocking the UI.
 

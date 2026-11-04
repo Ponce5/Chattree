@@ -108,7 +108,7 @@ Users can import the new `.chattree-plugin` manually. Marketplace updates depend
 ## Distributing updates
 
 Plugin updates can be distributed through two channels:
-1. **Marketplace:** Publish a new unique version record using the portal/API in the publishing guide. The submit endpoint rejects an already registered `(plugin id, version)` pair; it does not itself guarantee the new version is semantically greater. Verify in-app update discovery in the target app release.
+1. **Marketplace:** Publish a new unique version record using the portal/API in the publishing guide. The submit endpoint enforces strict SemVer monotonicity (`409 VERSION_NOT_NEWER` if the submitted version is lower than or equal to an existing version) and rejects duplicate `(plugin id, version)` pairs (`409 VERSION_ALREADY_EXISTS`). Verify in-app update discovery in the target app release.
 2. **Direct distribution:** Share the updated `.chattree-plugin`; users import it through the app plugin import flow. Update/reinstall UX depends on current app version.
 
 

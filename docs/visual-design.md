@@ -183,7 +183,7 @@ SVG vector code is token-dense due to floating-point coordinates and XML attribu
 * **Thinking Suppression:**  
   Internal reasoning (`<think>...</think>`) is explicitly deactivated during `/visual` invocations (`toolThinking = false`). This guarantees that 100% of the token allocation is reserved for the vector XML output.
 * **User Configurable:**  
-  Users can adjust the global token limit from **128 up to 4096 tokens** directly in **Settings** or the in-chat **Chat Options Sheet**.
+  Users can adjust the global token limit from **128 up to 8192 tokens** directly in **Settings** or the in-chat **Chat Options Sheet**.
 
 ---
 

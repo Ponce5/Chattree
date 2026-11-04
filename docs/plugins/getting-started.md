@@ -87,7 +87,7 @@ The simplest way to start is **WebAssembly Text format (WAT)**.
 Chattree supports two ABI architectures for communicating with plugins via linear memory:
 
 #### 1. Universal ABI v2 (Recommended for modern plugins & large payloads)
-ABI v2 provides dynamic memory allocation and supports payloads up to **16 MB** (2 MB by default):
+ABI v2 provides dynamic memory allocation and supports payloads up to **16 MB** (12 MB by default):
 - The plugin exports `chattree_allocate(size: i32) -> i32`
 - The plugin exports `chattree_deallocate(ptr: i32, size: i32)`
 - The plugin exports `chattree_dispatch(req_ptr: i32, req_len: i32) -> i64`
@@ -171,7 +171,7 @@ For a single `/hello` command:
 ]
 ```
 
-`tools[].command` is the user-facing slash command. `entrypoint` is the WASM export invoked by the current runtime; the runtime uses this manifest-level entrypoint when executing plugin tools. For a simple plugin, use one command and one export. Multiple commands do not currently select distinct WASM exports; verify dispatch behavior before shipping a multi-command plugin.
+`tools[].command` is the user-facing slash command. Each tool entry can optionally specify `tools[].entrypoint` to invoke a dedicated WASM export; if omitted, the runtime falls back to the top-level `entrypoint` (or `tools[].command`) and injects `"command"`, `"api"`, and `"toolId"` into the JSON envelope so multi-command plugins can route calls cleanly.
 
 ---
 

@@ -256,6 +256,7 @@ curl -X POST https://chattree.chat/api/plugins/submit \
 | **`400 Bad Request`** | `PACKAGE_TOO_LARGE` | The package exceeds the maximum limit of 25 MB. |
 | **`400 Bad Request`** | `VALIDATION_FAILED` | Package failed structural or integrity validation (see `details` array). |
 | **`409 Conflict`** | `VERSION_ALREADY_EXISTS` | The exact plugin ID and version are already registered. |
+| **`409 Conflict`** | `VERSION_NOT_NEWER` | The submitted version is not strictly greater than the highest registered SemVer for this plugin. |
 | **`429 Too Many Requests`** | `RATE_LIMIT_EXCEEDED` | Production process-local limiter observed more than 5 submissions in an hour for the IP; multi-instance deployments may not share this counter. |
 | **`500 Internal Error`** | `SERVER_ERROR` | Internal database or registry failure. |
 
@@ -287,8 +288,7 @@ curl -X POST https://chattree.chat/api/plugins/submit \
   "error": "Plugin package validation failed.",
   "code": "VALIDATION_FAILED",
   "details": [
-    "WASM SHA-256 checksum mismatch! The hash in plugin.json does not match plugin.wasm.",
-    "Capability \"chat.history.read\" is marked as not available in the current WASM runtime."
+    "WASM SHA-256 checksum mismatch! The hash in plugin.json does not match plugin.wasm."
   ],
   "warnings": [
     "Declared capability \"custom.sensor\" is not recognized in the standard catalogue."
@@ -365,7 +365,7 @@ Invoke-RestMethod -Uri "https://chattree.chat/api/plugins/submit" `
 ## 7. How Users Receive Updates
 
 When an update is submitted:
-1. **Version registration:** The submit API rejects an exact duplicate plugin ID/version. It does not compare SemVer ordering in the route; publish monotonically increasing versions yourself and verify catalog latest-version behavior.
+1. **Version registration:** The submit API rejects exact duplicate plugin ID/version pairs (`409 VERSION_ALREADY_EXISTS`) and enforces strict SemVer monotonicity (`409 VERSION_NOT_NEWER` if the new version is not strictly greater than all existing versions).
 2. **Update discovery:** Whether installed users see an update depends on marketplace catalog state and app version. Verify the flow on a test device before promising a badge or notification.
 3. **Installation:** Follow the update action in the target app and verify the downloaded package and preserved plugin data. Do not assume atomic replacement or storage migration unless confirmed for that app release.
 4. **Permission changes:** The app permission gateway controls Host API calls. Test newly requested capabilities and denied permissions in the target release.
@@ -375,7 +375,7 @@ When an update is submitted:
 - `POST /api/plugins/submit` requires `download_url` and `icon_url`; the icon must use HTTPS and an allowed GitHub host. `banner_url`, `source_url`, `author_url`, `homepage_url`, `organization`, `license`, `category`, listing text, and changelog are optional.
 - The request uses `source_url`; fields such as `repository_url`, `publisher_name`, and `publisher_email` in older examples are not consumed by the current route.
 - The API returns HTTP 200 with `status: "draft"` when Supabase is not configured (validation-only dry run), and `status: "published"` after successful database registration. Do not interpret dry-run success as a live listing.
-- The route currently limits packages to 25 MiB. The mobile importer accepts compressed archives up to 10 MiB, so keep packages below 10 MiB to support direct in-app import.
+- Both the Marketplace submission route and the mobile in-app importer accept compressed packages up to 25 MiB (50 MiB uncompressed).
 - The rate limit is stored in process memory and may not be globally consistent across multiple server instances.
 
 ---
@@ -387,6 +387,6 @@ When an update is submitted:
 | ✅ **No Subfolders** | `plugin.json` and `plugin.wasm` at ZIP root | Chattree extractor looks at root entries only. |
 | ✅ **Version Sync** | Manifest `version` matches GitHub Release tag | Prevents version mismatch errors during validation. |
 | ✅ **WASM Hash Sync** | `wasmSha256` in manifest matches `plugin.wasm` | Detects mismatched binary contents; it is not publisher authentication. |
-| ✅ **Version discipline** | Publish a strictly higher SemVer for each update | The API only rejects exact duplicate plugin ID/version pairs; publishers must enforce ordering. |
+| ✅ **Version discipline** | Publish a strictly higher SemVer for each update | Enforced by the submit API (`409 VERSION_NOT_NEWER`). |
 | ✅ **Raw Image URLs** | Use `raw.githubusercontent.com` for icons | Ensures public accessibility without HTML page wrappers. |
 | ✅ **Minimal Capabilities** | Only declare capabilities actually used | Excessive permissions lower community adoption and trust. |

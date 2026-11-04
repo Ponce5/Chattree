@@ -36,7 +36,7 @@ Reminders are scheduled using Android's native `AlarmManager` (exact alarms via 
 The local webhook listener (`127.0.0.1`) operates while Chattree is in the foreground. Mobile operating systems suspend unprivileged TCP listener sockets when apps are minimized. To avoid draining your battery with an intrusive persistent Android Foreground Service notification, Chattree pauses the socket when backgrounded and automatically re-binds it when you bring the app back to the foreground.
 
 ### Can plugins read my chat history?
-No. The Host API strictly prevents plugins from reading previous conversation history. The `chattree.context.read` capability only provides the single text message passed to the slash command, never past conversation turns.
+By default, no. The `chattree.context.read` capability only exposes the single message passed to the current command. If a plugin explicitly declares the sensitive `chat.history.read` capability and you grant consent, it can read a bounded window of up to **20 recent messages** (truncated at 4,000 characters each) from the active conversation, and returns an empty list in restricted mode.
 
 ### How do plugins access device features like camera, GPS, or storage?
 Plugins must declare the corresponding capability (e.g., `camera.capture`, `location.current`, `storage.private`) in their `plugin.json` manifest. At runtime, calls route through `chattree.host_call`, which is verified by the `PermissionGateway`. If the user has not granted permission, the call is rejected immediately.

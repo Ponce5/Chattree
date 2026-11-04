@@ -76,7 +76,7 @@ Your WASM module must declare this import to use any Host API:
 |-----------|-------------|-------|---------------------|
 | `core` | Plugin metadata and logging | ✅ Sync | None |
 | `storage` | Private key-value store | ✅ Sync | `storage.private` (auto) |
-| `network` | HTTP/HTTPS requests | ❌ Async | `network.http` |
+| `network` | HTTP/HTTPS requests | ❌ Async | `network.http` (+ optional `network.local` for LAN/loopback) |
 | `files` | File pick / read / write | ❌ Async | `files.pick`/`files.read`/`files.write` |
 | `notifications` | Local notifications | ❌ Async | `notifications.send` |
 | `location` | GPS position | ❌ Async | `location.current` |
@@ -89,7 +89,8 @@ Your WASM module must declare this import to use any Host API:
 | `open` | Launch URLs and apps | ❌ Async | `open.url`/`open.app` |
 | `chattree.notes` | Chattree Notes CRUD | ❌ Async | `chattree.notes.*` |
 | `chattree.reminders` | Chattree Reminders CRUD | ❌ Async | `chattree.reminders.*` |
-| `chattree.context` | Current message context | ❌ Async | `chattree.context.read` |
+| `chattree.context` | Current message & bounded chat history | ❌ Async | `chattree.context.read` / `chat.history.read` |
+| `ai` | Single-turn LLM completion, embeddings & RAG | ❌ Async | `ai.context` / `ai.embeddings` |
 
 ---
 
@@ -135,9 +136,9 @@ Your WASM module must declare this import to use any Host API:
 
 **Quotas enforced by `PluginStorageStore`:**
 - Max key length: **256 chars**
-- Max value size: **64 KB (`65,536` bytes)**
-- Max keys per plugin: **200 keys**
-- Max total storage per plugin: **512 KB (`524,288` bytes)**
+- Max value size: **256 KB (`262,144` bytes)**
+- Max keys per plugin: **500 keys**
+- Max total storage per plugin: **2 MB (`2,097,152` bytes)**
 
 ---
 
@@ -307,11 +308,26 @@ The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL en
 
 ### chattree.context.*
 
-The `chattree.context.read` operation allows a plugin to inspect the conversational invocation context.
+The `chattree.context` namespace allows a plugin to inspect the conversational invocation context (`chattree.context.read`) or read a bounded window of recent messages (`chat.history.read`).
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
 | `chattree.context.read` | ❌ | `{}` | `{ currentMessage, explicitContext, authorized, restricted, timestamp }` |
+| `chattree.context.history` / `chattree.context.messages` | ❌ | `{ limit?: number }` | `{ messages: [{ role, content, timestamp }], count, maxLimit: 20, restricted, timestamp }` |
+
+---
+
+### ai.*
+
+The `ai` namespace provides bounded access to single-turn LLM completions (`ai.context`) and on-device vector embeddings / semantic search (`ai.embeddings`).
+
+| Operation | Sync | Input | Output |
+|-----------|------|-------|--------|
+| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | ❌ | `{ prompt, systemPrompt?, maxTokens?, temperature? }` | `{ text, engine: "remote"\|"local", providerId?, modelId }` |
+| `ai.embed` / `ai.embeddings` | ❌ | `{ text }` | `{ embedding: number[], dimensions, modelId }` |
+| `ai.search` / `ai.rag_search` | ❌ | `{ query, topK?, minSimilarity? }` | `{ results: [{ noteId, noteTitle, chunkText, similarity, chunkIndex }], count }` |
+| `ai.index_document` / `ai.index` | ❌ | `{ id, title, content }` | `{ indexed: true, documentId, originalId, chunksCount }` |
+| `ai.remove_document` / `ai.remove` | ❌ | `{ id }` | `{ removed: true, documentId }` |
 
 #### Context Payload Specification
 

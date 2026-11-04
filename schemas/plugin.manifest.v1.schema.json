@@ -173,9 +173,9 @@
     "maxMemoryPages": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 256,
-      "default": 4,
-      "description": "Maximum memory limit in 64 KB WebAssembly pages (max 256 pages = 16 MB)."
+      "maximum": 1024,
+      "default": 512,
+      "description": "Maximum memory limit in 64 KB WebAssembly pages (max 1024 pages = 64 MB)."
     },
     "timeoutMs": {
       "type": "integer",
@@ -233,6 +233,7 @@
         "open.url",
         "open.app",
         "network.http",
+        "network.local",
         "network.webhook_inbound",
         "notifications.send",
         "files.pick",
@@ -280,6 +281,11 @@
           "type": "string",
           "pattern": "^[a-z0-9-]+$",
           "description": "Slash command trigger without leading slash."
+        },
+        "entrypoint": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional per-tool exported WebAssembly function name overriding the top-level entrypoint."
         },
         "displayName": {
           "type": "string",

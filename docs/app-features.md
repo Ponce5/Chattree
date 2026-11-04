@@ -18,27 +18,30 @@ Chattree follows an **explicit tool invocation model**: tools and side-effect op
 
 ## Model and generation settings
 
-**Settings** includes appearance (dark, light, or system theme), app language (English, Spanish, or French), temperature, maximum response tokens, automatic keyboard opening, and local AI optimization. Chat-level options may expose a subset of these controls as well. Some inference settings are relevant only to compatible local or remote models.
+**Settings** includes appearance (dark, light, or system theme), app language (English, Spanish, or French), temperature, maximum response tokens (up to 8,192), automatic keyboard opening, and local AI optimization. Chat-level options may expose a subset of these controls as well. Some inference settings are relevant only to compatible local or remote models.
 
 The model catalog manages chat models. The embedding model is a separate download and does not replace the chat model.
 
 ## Notes, semantic search, and embeddings
 
-Chattree Notes and Reminders are built-in chat features; see the [Notes and Reminders guide](./notes-reminders.md) for their commands and behavior. A separate ONNX embedding model supports semantic note search. After it is installed, Settings can enable or disable RAG, show indexing progress, rebuild the index, and clear the vector index. When RAG is enabled and initialized, conversational chat (`sendMessage`) automatically retrieves and injects relevant note context via an in-memory vector cache (`SqliteVectorStore`) for fast zero-I/O cosine similarity search. Notes and their local embedding index are stored on the device.
+Chattree Notes and Reminders are built-in chat features; see the [Notes and Reminders guide](./notes-reminders.md) for their commands and behavior. A separate ONNX embedding model supports semantic search. After it is installed, Settings can enable or disable RAG, show indexing progress, rebuild the index, and clear the vector index. When RAG is enabled and initialized, conversational chat (`sendMessage`) automatically retrieves and injects relevant note and plugin-indexed document context via an in-memory vector cache (`SqliteVectorStore`) for fast zero-I/O cosine similarity search. Plugins granted `ai.embeddings` can also compute embeddings, query semantic search, and index custom plugin-scoped text documents. Notes and their local embedding index are stored on the device.
 
-## Inbound webhooks and local events
+## Inbound webhooks, local events, and 24/7 cloud relay
 
-Chattree includes a foreground loopback HTTP listener (`InboundHttpServer`) that allows local desktop tools, command-line scripts, and automations to push events to the app via `http://127.0.0.1:<port>`.
-- In **Settings → Inbound Webhooks**, users can enable or disable the listener with persistent state across app restarts, configure a custom loopback port (default `8765`), and inspect live listener status and diagnostics.
-- In **Settings → Plugins → [Plugin] → Webhooks Entrantes**, users can inspect each registered plugin endpoint URL, copy the active Bearer/HMAC secret from `WebhookSecretStore`, and rotate endpoint secrets with a single tap (`beginRotation` + `finalizeRotation`).
+Chattree includes a comprehensive dual-entrypoint webhook architecture for local and remote automations:
+- **Local Loopback Listener (`InboundHttpServer`):** A foreground loopback HTTP server that allows local desktop tools, CLI scripts, and LAN/Wi-Fi devices to deliver triggers directly to `http://127.0.0.1:<port>`. In **Settings → Inbound Webhooks**, users can configure custom ports (default `8765`), toggle LAN access, view live diagnostics, and inspect activity logs.
+- **24/7 Cloud Relay (Cloudflare Worker + Google FCM):** External internet services (GitHub, Stripe, CI/CD, IoT) deliver webhooks to a personal, free Cloudflare Worker. The Worker validates payload boundaries, signs requests with Google Firebase credentials, and dispatches data messages to Google FCM HTTP v1.
+- **One-Click Automated Deployment:** In **Settings → Inbound Webhooks**, users can deploy their personal Cloudflare Worker in seconds by entering their Cloudflare API Token. Chattree communicates directly with Cloudflare API v4, uploads the relay script, registers secrets (FCM device token and Firebase relay credentials), and activates the public `https://<script>.<subdomain>.workers.dev` URL automatically.
+- **Per-Plugin Management:** In **Settings → Plugins → [Plugin] → Webhooks Entrantes**, users can view endpoint paths, copy active Bearer/HMAC secrets, and rotate secrets with one tap (`beginRotation` + `finalizeRotation`).
 
-All payloads are authenticated via Bearer tokens (`Authorization: Bearer <token>`) or HMAC-SHA256 signatures (`X-Chattree-Signature-256`), protected against loopback SSRF bypasses, and deduplicated in an embedded SQLite journal before dispatching to subscribed WebAssembly plugin handlers. See the [Inbound Webhooks guide](./inbound-webhooks.md) for full architecture and protocol specifications.
+All payloads are authenticated via Bearer tokens (`Authorization: Bearer <token>`) or HMAC-SHA256 signatures (`X-Chattree-Signature-256`), protected against loopback SSRF bypasses, and deduplicated in an embedded SQLite journal (`EventJournal`) before dispatching to subscribed WebAssembly plugin handlers. See the [Inbound Webhooks guide](./inbound-webhooks.md) for full architecture and protocol specifications.
 
 ## Background execution and Android services model
 
-Chattree is designed for maximum privacy and zero unwanted battery drain:
+Chattree is designed for maximum privacy, compliance with Google Play store policies, and zero unwanted battery drain:
 - **Scheduled Reminders:** Reminders use Android's system `AlarmManager` (exact alarms via `flutter_local_notifications`). This allows scheduled alerts to ring reliably on time without running persistent background services or holding CPU wake locks.
-- **Webhook Listener Socket:** The loopback HTTP server operates while Chattree is in the foreground. Mobile operating systems suspend unprivileged TCP listener sockets when apps are minimized. Chattree pauses the listener safely when backgrounded and **automatically re-establishes it** upon returning to the foreground, eliminating the need for an intrusive, permanent Android status bar notification.
+- **24/7 Background Webhook Wake-Up (`FcmInboundRelayService`):** When Chattree is closed or the screen is locked, Google FCM data messages wake a lightweight, dedicated Android isolate (`fcmBackgroundHandler`). This handler consumes near-zero CPU and memory, loads no heavy AI or WASM engines, persists raw incoming payloads safely to disk, and triggers native Android notifications. When the user opens Chattree, pending payloads are automatically drained and delivered to WASM plugins.
+- **Local Webhook Socket:** The loopback HTTP server operates while Chattree is in the foreground. Mobile operating systems suspend unprivileged TCP listener sockets when apps are minimized. Chattree pauses the listener safely when backgrounded and **automatically re-establishes it** upon returning to the foreground, eliminating the need for an intrusive, permanent Android status bar notification.
 - **Zero Hidden Daemons:** Neither the local inference engine nor WebAssembly plugins run uncontrolled background tasks or background processes.
 
 ## External AI providers

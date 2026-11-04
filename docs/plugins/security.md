@@ -17,11 +17,11 @@ A WASM plugin runs inside a **WebAssembly linear memory sandbox**.
 | Operating system sockets / raw TCP | ❌ Blocked |
 | SharedPreferences / SQLite directly | ❌ Blocked |
 | Other plugins' private data | ❌ Blocked |
-| Full chat history | ❌ Blocked |
-| AI model context / prompts | ❌ Blocked |
+| Unbounded full chat history | ❌ Blocked (`chat.history.read` is strictly capped at the 20 most recent messages) |
+| Unbounded or recursive AI tool loops | ❌ Blocked (`ai.context` is strictly single-turn and capped at 2,048 output tokens) |
 | Dart VM heap or native objects | ❌ Blocked |
 | Device hardware without a capability | ❌ Blocked |
-| Private IPs / loopback addresses | ❌ Blocked (SSRF protection) |
+| Private IPs / loopback addresses | ❌ Blocked by default (SSRF protection; requires critical `network.local` capability for LAN/loopback, and cloud metadata `169.254.x.x` is always blocked) |
 | `file://`, `javascript:`, `intent:` URIs | ❌ Blocked |
 | Spawning background threads or processes | ❌ Blocked |
 | Persisting data without `storage.private` | ❌ Blocked |
@@ -74,20 +74,22 @@ The `pluginId` is **always injected by the runtime** — the plugin cannot forge
 | WASM linear memory | 32 MB default | Yes — `maxMemoryPages` (up to 1024 pages / 64 MB); fresh isolated linear memory per call |
 | Compiled WASM module cache | 8 modules (LRU) | Bounded in-memory LRU cache (`maxCachedModules = 8`) in `PluginRuntime` |
 | ABI v1 Input Buffer | 1,024 bytes default | Yes — Configurable via `"outputOffset"` in `plugin.json` (capacity = `outputOffset - inputOffset`) |
-| ABI v2 Dynamic Payload | 2 MB default | Yes — Configurable up to 16 MB via `"maxPayloadSizeBytes"` in `plugin.json` |
+| ABI v2 Dynamic Payload | 12 MB default | Yes — Configurable up to 16 MB via `"maxPayloadSizeBytes"` in `plugin.json` |
 | Execution timeout | 5 seconds by default | Current manifest validators accept up to 60000 ms; enforced per invocation by runtime |
 | CPU fuel | 50 000 000 instructions | Yes — `fuelLimit` |
-| Async iterations | 10 round-trips | No |
-| Max concurrent HTTP per plugin | 2 | No |
+| Async iterations | 50 round-trips | No |
+| Max concurrent HTTP per plugin | 20 | No |
 | HTTP request body | 4 MB | No |
 | HTTP response body | 8 MB | No |
-| Notification rate | 5 per session | No |
-| File read limit | 4 MB | No |
-| File write limit | 2 MB | No |
+| Notification rate | 15 per hour (sliding window) | No |
+| File read limit | 8 MB | No |
+| File write limit | 8 MB | No |
+| Share text limit | 32,768 chars (32 KB) | No |
+| Clipboard read/write limit | 100 KB (`102,400` chars) | No |
 | Note content max | 50 000 chars | No |
 | Private storage key max | 256 chars | No |
-| Private storage value max | 64 KB (`65,536` bytes) | No |
-| Private storage quota per plugin | 200 keys / 512 KB total | No |
+| Private storage value max | 256 KB (`262,144` bytes) | No |
+| Private storage quota per plugin | 500 keys / 2 MB (`2,097,152` bytes) total | No |
 
 ---
 
@@ -116,7 +118,7 @@ The `network.http_request` operation blocks:
 - IPv6 unique local (`fc00::/7`) and link-local (`fe80::/10`)
 - DNS resolution is checked to prevent DNS rebinding attacks.
 
-Only public internet addresses resolve.
+Only public internet addresses resolve by default. If the plugin declares and is granted the critical `network.local` capability, RFC 1918 LAN IPv4 addresses, IPv6 Unique Local (`fc00::/7`), loopback (`localhost` / `127.0.0.1`), and `.local`/`.lan`/`.home` domains are permitted, while cloud metadata (`169.254.0.0/16`, `fe80::/10`), multicast, and `0.0.0.0` remain strictly blocked.
 
 ---
 
