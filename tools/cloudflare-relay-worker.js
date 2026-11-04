@@ -26,6 +26,10 @@ const FORWARDED_HEADERS = new Set([
   'x-hub-signature-256',
   'x-signature-256',
   'x-signature-sha256',
+  'stripe-signature',
+  'x-shopify-hmac-sha256',
+  'x-gitlab-token',
+  'x-slack-signature',
 ]);
 
 let cachedToken = null; // { value, expiresAt }
@@ -60,10 +64,18 @@ export default {
 
     const headers = {};
     for (const [name, value] of request.headers) {
-      if (FORWARDED_HEADERS.has(name.toLowerCase())) headers[name] = value;
+      const lower = name.toLowerCase();
+      if (
+        FORWARDED_HEADERS.has(lower) ||
+        lower.startsWith('x-') ||
+        lower.includes('signature') ||
+        lower.includes('token')
+      ) {
+        headers[name] = value;
+      }
     }
     if (!headers['authorization'] && !headers['Authorization'] &&
-        !Object.keys(headers).some((h) => h.toLowerCase().includes('signature'))) {
+        !Object.keys(headers).some((h) => h.toLowerCase().includes('signature') || h.toLowerCase().includes('token'))) {
       return json({ error: 'missing_credentials' }, 401);
     }
 
