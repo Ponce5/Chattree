@@ -59,6 +59,13 @@ const VALID_CAPABILITIES = new Set([
   "chat.history.read",
   "ai.context",
   "ai.embeddings",
+  "network.websocket",
+  "ui.components",
+  "ui.render",
+  "scheduler.task",
+  "scheduler.cron",
+  "database.sql",
+  "storage.database",
 ]);
 
 function computeSha256(buffer) {

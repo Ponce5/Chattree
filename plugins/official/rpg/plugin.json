@@ -1,0 +1,130 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.rpg",
+  "version": "1.0.0",
+  "name": "Text RPG Simulator",
+  "description": "Official interactive Text RPG simulator and deterministic adventure engine for Chattree. Features rich narrative combat, dice rolls, inventory verification, declarative UI cards, and private SQLite savegame persistence.",
+  "author": "Chattree Core Team",
+  "authorEmail": "support@chattree.app",
+  "homepageUrl": "https://chattree.app",
+  "primaryCommand": "rpg",
+  "aliases": [
+    "rol",
+    "quest",
+    "aventura"
+  ],
+  "type": "imported",
+  "category": "utilities",
+  "capabilities": [
+    "database.sql",
+    "storage.private",
+    "ui.components"
+  ],
+  "tags": [
+    "rpg",
+    "game",
+    "adventure",
+    "dice",
+    "narrative",
+    "sqlite",
+    "ui",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/icon.png?v=1.0.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/banner.png?v=1.0.0",
+  "changelog": "1.0.0: Initial release of official Text RPG Simulator with deterministic combat, inventory checks, declarative UI cards and SQLite save persistence.",
+  "runtime": "wasm",
+  "entrypoint": "rpg_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "092f75bffe081361656857e9a03aef88887a983c98de44df0f69bcafc28258b0",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 64,
+  "timeoutMs": 15000,
+  "fuelLimit": 50000000,
+  "inputOffset": 0,
+  "outputOffset": 65536,
+  "maxPayloadSizeBytes": 65536,
+  "tools": [
+    {
+      "id": "com.chattree.official.rpg.engine",
+      "command": "rpg",
+      "displayName": "RPG Adventure Engine",
+      "description": "Simulador de rol interactivo y motor de aventura determinista. Permite iniciar una campaña (/rpg start [guerrero|mago|picaro]), ver tu ficha (/rpg status), ejecutar acciones narrativas en combate o exploración (/rpg action <accion>), y guardar o cargar partida (/rpg save, /rpg load). Cuando el usuario dé una orden en lenguaje natural en el contexto de su aventura, emite JSON con action='action' y query='<accion limpia>'.",
+      "capabilities": [
+        "database.sql",
+        "storage.private",
+        "ui.components"
+      ],
+      "intentContract": {
+        "intent": "rpg_action",
+        "validIntents": [
+          "start",
+          "status",
+          "action",
+          "save",
+          "load",
+          "help"
+        ],
+        "description": "Interpreta órdenes de rol y aventura en lenguaje natural y emite una llamada JSON válida para el motor WASM de RPG.",
+        "fields": [
+          {
+            "name": "action",
+            "key": "action",
+            "type": "string",
+            "description": "Acción a realizar: 'start' (comenzar aventura), 'status' (ver estadísticas), 'action' (ejecutar acción de combate o exploración), 'save' (guardar partida) o 'load' (cargar partida).",
+            "required": true
+          },
+          {
+            "name": "query",
+            "key": "query",
+            "type": "string",
+            "description": "Detalle de la acción en lenguaje natural (ej. 'atacar al goblin con la espada', 'beber una poción', 'abrir el cofre con la ganzúa', 'explorar las ruinas').",
+            "required": false
+          }
+        ],
+        "examples": [
+          {
+            "input": "inicia una nueva aventura de rol como guerrero",
+            "output": {
+              "tool": "rpg",
+              "action": "start",
+              "query": "guerrero"
+            }
+          },
+          {
+            "input": "ataco al goblin con mi espada",
+            "output": {
+              "tool": "rpg",
+              "action": "action",
+              "query": "atacar"
+            }
+          },
+          {
+            "input": "bebo una poción de vida para curarme",
+            "output": {
+              "tool": "rpg",
+              "action": "action",
+              "query": "pocion"
+            }
+          },
+          {
+            "input": "muéstrame el estado de mi personaje y mi inventario",
+            "output": {
+              "tool": "rpg",
+              "action": "status"
+            }
+          },
+          {
+            "input": "guarda mi progreso en el juego",
+            "output": {
+              "tool": "rpg",
+              "action": "save"
+            }
+          }
+        ],
+        "maxResponseTokens": 3000
+      }
+    }
+  ]
+}

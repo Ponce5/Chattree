@@ -25,3 +25,4 @@ Every official plugin maintained here adheres to strict security, performance, a
 | [`elevenlabs/`](./elevenlabs/) | `/elevenlabs <text>` | Official ElevenLabs AI voice & speech synthesis plugin (aliases: `/tts`, `/voice`, `/audio`). | `network.http`, `storage.private`, `files.write` |
 | [`notion/`](./notion/) | `/notion <command>` | Official Notion workspace integration for searching pages, databases, and creating structured notes. | `network.http`, `storage.private` |
 | [`github/`](./github/) | `/github <command>` | Official GitHub workspace integration for technical issue drafting, repository inspection, and search. | `network.http`, `storage.private` |
+| [`rpg/`](./rpg/) | `/rpg <action>` | Official Text RPG simulator and deterministic adventure engine with declarative UI cards and SQLite save persistence. | `database.sql`, `storage.private`, `ui.components` |

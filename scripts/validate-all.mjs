@@ -15,6 +15,7 @@ const targets = [
   "plugins/official/elevenlabs",
   "plugins/official/notion",
   "plugins/official/github",
+  "plugins/official/rpg",
 ];
 
 console.log("Running comprehensive validation on all repository plugins...\n");
