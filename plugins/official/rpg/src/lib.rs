@@ -873,6 +873,17 @@ pub extern "C" fn rpg_entry(ptr: *const u8, len: usize) -> i32 {
             "📂 **Partida Cargada**\n\nSe ha restaurado tu último punto de control en las Ruinas de Eldoria.".to_string(),
             None
         )
+    } else if action_arg.contains("confirmar_reinicio") || action_arg.contains("confirm_reset") {
+        state = GameState::new("Aventurero Reencarnado", CharacterClass::Warrior, 0x99aa1122);
+        (
+            "🔄 **Partida Reiniciada con Éxito**\n\nTodos los registros de la base de datos relacional y la memoria lineal del motor han sido purgados y restaurados al estado inicial. Una nueva senda se abre ante ti.".to_string(),
+            None
+        )
+    } else if action_arg.contains("reiniciar") || action_arg.contains("reset") {
+        (
+            "⚠️ **¿Deseas reiniciar toda la aventura de rol?**\n\nEsta acción borrará de forma permanente tu progreso actual, tus puntos de guardado en la base de datos SQLite y tus objetos acumulados, devolviendo tu campaña al **Capítulo I (Turno 1)** con un nuevo inicio narrativo.\n\n*Para continuar, confirma con el botón rojo abajo o escribe **\"confirmar reinicio\"**.*".to_string(),
+            None
+        )
     } else {
         // Ejecución de acción narrativa / combate
         let res = ActionResolver::resolve_action(&mut state, action_arg);

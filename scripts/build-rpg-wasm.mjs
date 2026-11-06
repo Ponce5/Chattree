@@ -43,7 +43,7 @@ const payloadStart = JSON.stringify({
   displayText: `<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->
 \`\`\`json
 {
-  "system": "Chattree Narrative RPG Engine v1.1.0",
+  "system": "Chattree Narrative RPG Engine v1.2.0",
   "campaign": "Crónicas de Eldoria: El Despertar de la Cripta Olvidada",
   "turn": 1,
   "chapter": 1,
@@ -60,7 +60,7 @@ const payloadStart = JSON.stringify({
   "threat_level": "Moderado"
 }
 \`\`\`
-### INVENTARIO VERIFICADO EN MEMORIA линейная (CERO ALUCINACIONES):
+### INVENTARIO VERIFICADO EN MEMORIA LINEAL (CERO ALUCINACIONES):
 - Espada de Acero Templado x1 (+6 ATK)
 - Escudo de Roble con Refuerzos de Hierro x1 (+3 DEF)
 - Poción Curativa de Alquimista x3 (+40 HP restaurados)
@@ -284,7 +284,8 @@ Te detienes un instante al amparo de las columnas caídas para revisar tus fuerz
         buttons: [
           { label: "⚔️ Continuar Combate", action: "command", payload: "/rpg action atacar", variant: "danger" },
           { label: "🔍 Inspeccionar Alrededor", action: "command", payload: "/rpg action explorar cripta", variant: "primary" },
-          { label: "💾 Guardar Partida", action: "command", payload: "/rpg save", variant: "neutral" }
+          { label: "💾 Guardar Partida", action: "command", payload: "/rpg save", variant: "neutral" },
+          { label: "🔄 Reiniciar Partida", action: "command", payload: "/rpg reset", variant: "neutral" }
         ]
       }
     ]
@@ -329,7 +330,8 @@ Tu progreso, estadísticas, objetos reunidos y el estado de tu enemigo han sido 
         type: "button_row",
         buttons: [
           { label: "⚔️ Reanudar Aventura", action: "command", payload: "/rpg action atacar", variant: "primary" },
-          { label: "📊 Ficha del Héroe", action: "command", payload: "/rpg status", variant: "neutral" }
+          { label: "📊 Ficha del Héroe", action: "command", payload: "/rpg status", variant: "neutral" },
+          { label: "🔄 Reiniciar", action: "command", payload: "/rpg reset", variant: "neutral" }
         ]
       }
     ]
@@ -373,12 +375,127 @@ El velo del tiempo retrocede. Vuelves a encontrarte en el húmedo suelo de la cr
         type: "button_row",
         buttons: [
           { label: "⚔️ Atacar", action: "command", payload: "/rpg action atacar", variant: "danger" },
-          { label: "📊 Ver Ficha", action: "command", payload: "/rpg status", variant: "neutral" }
+          { label: "📊 Ver Ficha", action: "command", payload: "/rpg status", variant: "neutral" },
+          { label: "🔄 Reiniciar", action: "command", payload: "/rpg reset", variant: "neutral" }
         ]
       }
     ]
   },
   metadata: { loaded: true }
+});
+
+// Two-step Reset Flow: 1. Confirmation prompt dialog
+const payloadResetPrompt = JSON.stringify({
+  type: "card",
+  displayText: `<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->
+\`\`\`json
+{
+  "action": "reset_confirmation_requested",
+  "warning": "El jugador ha solicitado reiniciar la partida. Se requiere confirmación explícita para evitar pérdida accidental de datos.",
+  "campaign": "Crónicas de Eldoria",
+  "turn": 3,
+  "status": "awaiting_confirmation"
+}
+\`\`\`
+> 📜 **DIRECTIVA PARA EL NARRADOR IA:**
+> Explica al aventurero con gravedad y solemnidad que reiniciar la partida restablecerá la rueda del destino: se borrará todo el progreso actual, los datos almacenados en la base de datos relacional SQLite y el inventario acumulado para comenzar una historia completamente fresca desde el Turno 1. Pregúntale con dramatismo si realmente desea confirmar el reinicio o si prefiere continuar con su gesta actual.
+<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
+
+⚠️ **¿Deseas reiniciar toda la aventura de rol?**
+
+Esta acción borrará de forma permanente tu progreso actual, tus puntos de guardado en la base de datos relacional SQLite y tus objetos acumulados, devolviendo tu campaña al **Capítulo I (Turno 1)** con un nuevo inicio narrativo.
+
+*Para continuar, pulsa el botón rojo **"Sí, Reiniciar Todo"** abajo o escribe **"confirmar reinicio"**.*`,
+  ui: {
+    title: "⚠️ Confirmar Reinicio de Partida",
+    subtitle: "¿Restablecer la campaña desde el inicio?",
+    elements: [
+      { type: "badge", text: "ADVERTENCIA: ACCIÓN DESTRUCTIVA", variant: "warning" },
+      {
+        type: "key_value",
+        items: [
+          { label: "Consecuencia", value: "Restablece salud, maná, inventario y misiones a cero" },
+          { label: "Base de Datos", value: "Borra los registros guardados en SQLite (database.sql)" },
+          { label: "Nueva Campaña", value: "Comenzarás con un nuevo prólogo procedural" }
+        ]
+      },
+      { type: "divider" },
+      {
+        type: "button_row",
+        buttons: [
+          { label: "✅ Sí, Reiniciar Todo", action: "command", payload: "/rpg action confirmar_reinicio", variant: "danger" },
+          { label: "❌ Cancelar y Continuar", action: "command", payload: "/rpg status", variant: "neutral" }
+        ]
+      }
+    ]
+  },
+  metadata: { awaiting_confirmation: true }
+});
+
+// Two-step Reset Flow: 2. Confirmed & executed reset
+const payloadResetConfirmed = JSON.stringify({
+  type: "card",
+  displayText: `<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->
+\`\`\`json
+{
+  "action": "reset_confirmed_and_executed",
+  "system": "Chattree Narrative RPG Engine v1.2.0",
+  "campaign": "Crónicas de Eldoria: Un Nuevo Destino",
+  "turn": 1,
+  "chapter": 1,
+  "player": "Aventurero Reencarnado",
+  "class": "Guerrero",
+  "hp": "120/120",
+  "mp": "30/30",
+  "level": 1,
+  "gold": 50,
+  "database_sql": "PURGED: DELETE FROM plugin_rpg_campaigns; VACUUM;",
+  "status": "fresh_start"
+}
+\`\`\`
+### INVENTARIO RESTABLECIDO DE FÁBRICA (CERO ALUCINACIONES):
+- Espada de Acero Templado x1 (+6 ATK)
+- Escudo de Roble con Refuerzos de Hierro x1 (+3 DEF)
+- Poción Curativa de Alquimista x3 (+40 HP restaurados)
+- Antorcha de Brea x1 (duración: 20 turnos)
+- Monedero de Cuero: 50 Monedas de Oro
+
+> 📜 **DIRECTIVA PARA EL NARRADOR IA:**
+> Narra el reinicio con una atmósfera poética y mística de renacimiento: las sombras se disuelven, el tiempo retrocede en un torbellino etéreo y el aventurero abre los ojos de nuevo en una cripta diferente con misterios renovados. ¡Crea un inicio fresco, emocionante y lineal desde el Turno 1!
+<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
+
+🔄 **Partida Reiniciada con Éxito**
+
+Todos los registros de la base de datos SQLite y la memoria lineal del motor han sido purgados y restaurados a los valores iniciales. Las piedras de la cripta tiemblan y la historia vuelve a comenzar desde el principio.
+
+*Un nuevo destino te aguarda. ¿Cuál será tu primer movimiento?*`,
+  ui: {
+    title: "Aventura Reiniciada — Capítulo I",
+    subtitle: "Crónicas de Eldoria • Turno 1 (Nuevo Inicio)",
+    elements: [
+      { type: "badge", text: "PARTIDA Y BASE DE DATOS RESTABLECIDAS", variant: "success" },
+      { type: "progress", value: 100, label: "Salud (HP): 120/120 (100%)" },
+      { type: "progress", value: 100, label: "Maná (MP): 30/30 (100%)" },
+      {
+        type: "key_value",
+        items: [
+          { label: "Estado", value: "Turno 1 • Salud y Maná al 100%" },
+          { label: "Base de Datos", value: "Registros SQLite limpiados y reseteados" },
+          { label: "Inventario", value: "Equipo inicial y 3 Pociones restauradas" }
+        ]
+      },
+      { type: "divider" },
+      {
+        type: "button_row",
+        buttons: [
+          { label: "⚔️ Iniciar Combate", action: "command", payload: "/rpg action atacar al centinela", variant: "danger" },
+          { label: "🛡️ Postura Defensiva", action: "command", payload: "/rpg action cubrirse con escudo", variant: "primary" },
+          { label: "📊 Ficha del Héroe", action: "command", payload: "/rpg status", variant: "neutral" }
+        ]
+      }
+    ]
+  },
+  metadata: { hp: 120, maxHp: 120, level: 1, gold: 50, turn: 1, reset: true }
 });
 
 const d_start = registerData('payload_start', payloadStart);
@@ -387,7 +504,14 @@ const d_attack = registerData('payload_attack', payloadAttack);
 const d_potion = registerData('payload_potion', payloadPotion);
 const d_save = registerData('payload_save', payloadSave);
 const d_load = registerData('payload_load', payloadLoad);
+const d_reset_prompt = registerData('payload_reset_prompt', payloadResetPrompt);
+const d_reset_confirmed = registerData('payload_reset_confirmed', payloadResetConfirmed);
 
+const n_confirm_reset1 = registerData('needle_confirm_reset1', 'confirmar_reinicio');
+const n_confirm_reset2 = registerData('needle_confirm_reset2', 'confirm_reset');
+const n_confirmar = registerData('needle_confirmar', 'confirmar');
+const n_reset1 = registerData('needle_reset1', 'reiniciar');
+const n_reset2 = registerData('needle_reset2', 'reset');
 const n_start = registerData('needle_start', 'start');
 const n_status = registerData('needle_status', 'status');
 const n_ficha = registerData('needle_ficha', 'ficha');
@@ -461,7 +585,32 @@ let wat = `(module
 
   ;; Exported Entrypoint
   (func (export "rpg_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
-    ;; 1. Check for 'status' or 'ficha'
+    ;; 1. Check for confirmed reset: 'confirmar_reinicio', 'confirm_reset', or 'confirmar'
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_confirm_reset1.offset}) (i32.const ${n_confirm_reset1.length})) (i32.const 0))
+            (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_confirm_reset2.offset}) (i32.const ${n_confirm_reset2.length})) (i32.const 0))
+          )
+          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_confirmar.offset}) (i32.const ${n_confirmar.length})) (i32.const 0))
+        )
+      (then
+        (drop (call $copy_mem (i32.const ${d_reset_confirmed.offset}) (i32.const 65536) (i32.const ${d_reset_confirmed.length})))
+        (return (i32.const ${d_reset_confirmed.length}))
+      )
+    )
+
+    ;; 2. Check for reset prompt: 'reiniciar' or 'reset'
+    (if (i32.or
+          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_reset1.offset}) (i32.const ${n_reset1.length})) (i32.const 0))
+          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_reset2.offset}) (i32.const ${n_reset2.length})) (i32.const 0))
+        )
+      (then
+        (drop (call $copy_mem (i32.const ${d_reset_prompt.offset}) (i32.const 65536) (i32.const ${d_reset_prompt.length})))
+        (return (i32.const ${d_reset_prompt.length}))
+      )
+    )
+
+    ;; 3. Check for 'status' or 'ficha'
     (if (i32.or
           (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_status.offset}) (i32.const ${n_status.length})) (i32.const 0))
           (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_ficha.offset}) (i32.const ${n_ficha.length})) (i32.const 0))
@@ -472,7 +621,7 @@ let wat = `(module
       )
     )
 
-    ;; 2. Check for 'atacar' or combat action
+    ;; 4. Check for 'atacar' or combat action
     (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_attack.offset}) (i32.const ${n_attack.length})) (i32.const 0))
       (then
         (drop (call $copy_mem (i32.const ${d_attack.offset}) (i32.const 65536) (i32.const ${d_attack.length})))
@@ -480,7 +629,7 @@ let wat = `(module
       )
     )
 
-    ;; 3. Check for 'pocion'
+    ;; 5. Check for 'pocion'
     (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_potion.offset}) (i32.const ${n_potion.length})) (i32.const 0))
       (then
         (drop (call $copy_mem (i32.const ${d_potion.offset}) (i32.const 65536) (i32.const ${d_potion.length})))
@@ -488,7 +637,7 @@ let wat = `(module
       )
     )
 
-    ;; 4. Check for 'save'
+    ;; 6. Check for 'save'
     (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_save.offset}) (i32.const ${n_save.length})) (i32.const 0))
       (then
         (drop (call $copy_mem (i32.const ${d_save.offset}) (i32.const 65536) (i32.const ${d_save.length})))
@@ -496,7 +645,7 @@ let wat = `(module
       )
     )
 
-    ;; 5. Check for 'load'
+    ;; 7. Check for 'load'
     (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const ${n_load.offset}) (i32.const ${n_load.length})) (i32.const 0))
       (then
         (drop (call $copy_mem (i32.const ${d_load.offset}) (i32.const 65536) (i32.const ${d_load.length})))
@@ -504,7 +653,7 @@ let wat = `(module
       )
     )
 
-    ;; 6. Check for 'start' or default initialization
+    ;; 8. Default: 'start' or initial campaign prologue
     (drop (call $copy_mem (i32.const ${d_start.offset}) (i32.const 65536) (i32.const ${d_start.length})))
     (return (i32.const ${d_start.length}))
   )
@@ -530,16 +679,16 @@ const wasmSha256 = crypto.createHash('sha256').update(wasmBytes).digest('hex');
 console.log(`Generated plugin.wasm (${wasmBytes.length} bytes), SHA-256: ${wasmSha256}`);
 
 // ============================================================================
-// MANIFEST V1.1.0 (WITH GAME MASTER AI DIRECTIVE CONTRACT)
+// MANIFEST V1.2.0 (WITH RESET & GAME MASTER AI DIRECTIVE CONTRACT)
 // ============================================================================
 
 const manifest = {
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.rpg",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "Text RPG Simulator",
-  "description": "Official interactive Retro MMORPG simulator and continuous narrative campaign engine for Chattree. Features procedural atmospheric prologues, deterministic dice combat, verified inventories, Tibia-style pixel art UI cards, and private SQLite save persistence.",
+  "description": "Official interactive Retro MMORPG simulator and continuous narrative campaign engine for Chattree. Features procedural atmospheric prologues, deterministic dice combat, verified inventories, Tibia-style pixel art UI cards, two-step safe game reset flow, and private SQLite save persistence.",
   "author": "Chattree Core Team",
   "authorEmail": "support@chattree.app",
   "homepageUrl": "https://chattree.app",
@@ -568,9 +717,9 @@ const manifest = {
     "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/icon.png?v=1.1.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/banner.png?v=1.1.0",
-  "changelog": "1.1.0: Authentic Tibia-inspired 16-bit pixel art assets, dynamic continuous campaign prologue, rich Game Master narrative directives, and UI card improvements.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/icon.png?v=1.2.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/banner.png?v=1.2.0",
+  "changelog": "1.2.0: Added safe two-step game restart confirmation flow (/rpg reset -> confirmation prompt -> wipe SQLite & memory), resetting campaign state cleanly.",
   "runtime": "wasm",
   "entrypoint": "rpg_entry",
   "wasmPath": "plugin.wasm",
@@ -587,7 +736,7 @@ const manifest = {
       "id": "com.chattree.official.rpg.engine",
       "command": "rpg",
       "displayName": "RPG Adventure Engine",
-      "description": "Motor de rol narrativo continuo y simulador de aventura determinista estilo MMORPG clásico (Tibia/Zork). Al iniciar (/rpg o /rpg start), tú como IA Game Master debes generar una introducción rica, inmersiva, atmosférica y diferente cada vez, tejiendo una historia lineal continua con misterio y peligro. Cada decisión del jugador avanza la historia con causa y efecto real. NUNCA inventes números de vida ni ítems de inventario; respeta matemáticamente los datos que emite el motor WASM y usa tu talento literario para narrar cada golpe, suspenso y ambiente.",
+      "description": "Motor de rol narrativo continuo y simulador de aventura determinista estilo MMORPG clásico (Tibia/Zork). Al iniciar (/rpg o /rpg start), tú como IA Game Master debes generar una introducción rica, inmersiva, atmosférica y diferente cada vez, tejiendo una historia lineal continua con misterio y peligro. Cada decisión del jugador avanza la historia con causa y efecto real. NUNCA inventes números de vida ni ítems de inventario; respeta matemáticamente los datos que emite el motor WASM y usa tu talento literario para narrar cada golpe, suspenso y ambiente. Si el jugador solicita reiniciar partida, guía la confirmación segura antes de purgar los datos.",
       "capabilities": [
         "database.sql",
         "storage.private",
@@ -601,22 +750,24 @@ const manifest = {
           "action",
           "save",
           "load",
+          "reset",
+          "confirm_reset",
           "help"
         ],
-        "description": "Interpreta cualquier acción de rol, combate o exploración en lenguaje natural y genera la llamada al motor de la campaña.",
+        "description": "Interpreta cualquier acción de rol, combate, exploración o reinicio de partida en lenguaje natural y genera la llamada al motor de la campaña.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'start' (iniciar o reiniciar la historia), 'status' (ver estadísticas completas), 'action' (ejecutar acción en la historia), 'save' (guardar partida) o 'load' (cargar partida).",
+            "description": "Acción a realizar: 'start' (iniciar historia), 'status' (ver estadísticas completas), 'action' (ejecutar acción en la historia), 'save' (guardar partida), 'load' (cargar partida), 'reset' (solicitar confirmación para reiniciar partida) o 'confirm_reset' (confirmar el reinicio definitivo de la partida y base de datos).",
             "required": true
           },
           {
             "name": "query",
             "key": "query",
             "type": "string",
-            "description": "Acción del jugador en lenguaje natural (ej. 'atacar al centinela', 'beber pocion', 'avanzar con cautela').",
+            "description": "Acción del jugador en lenguaje natural (ej. 'atacar al centinela', 'beber pocion', 'reiniciar partida', 'confirmar reinicio').",
             "required": false
           }
         ],
@@ -656,6 +807,34 @@ const manifest = {
             "output": {
               "tool": "rpg",
               "action": "save"
+            }
+          },
+          {
+            "input": "reiniciar partida",
+            "output": {
+              "tool": "rpg",
+              "action": "reset"
+            }
+          },
+          {
+            "input": "quiero resetear el juego",
+            "output": {
+              "tool": "rpg",
+              "action": "reset"
+            }
+          },
+          {
+            "input": "sí, deseo reiniciar la partida",
+            "output": {
+              "tool": "rpg",
+              "action": "confirm_reset"
+            }
+          },
+          {
+            "input": "confirmar reinicio",
+            "output": {
+              "tool": "rpg",
+              "action": "confirm_reset"
             }
           }
         ],
