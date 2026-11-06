@@ -9,12 +9,12 @@ const targets = [
   "examples/hello",
   "examples/notes-demo",
   "templates/plugin",
-  "plugins/official/echo",
   "plugins/official/calendar",
   "plugins/official/mail",
   "plugins/official/pdf",
   "plugins/official/elevenlabs",
   "plugins/official/notion",
+  "plugins/official/github",
 ];
 
 console.log("Running comprehensive validation on all repository plugins...\n");

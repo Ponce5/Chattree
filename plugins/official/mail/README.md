@@ -1,6 +1,6 @@
-# Chattree Mail Plugin (v1.2.0)
+# Chattree Gmail Plugin (v2.1.1)
 
-The **Official Mail Plugin** provides sandboxed, on-device email integration with **Contraseña de Aplicación (App Password)** support for reading inboxes, inspecting message details, and composing/sending emails through Chattree's conversational AI.
+The **Official Gmail Plugin** provides sandboxed, on-device email integration with **Contraseña de Aplicación (App Password)** support for reading inboxes, inspecting message details, and composing/sending emails through Chattree's conversational AI.
 
 ---
 

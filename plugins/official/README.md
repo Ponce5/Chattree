@@ -19,9 +19,9 @@ Every official plugin maintained here adheres to strict security, performance, a
 
 | Plugin | Command | Description | Capabilities |
 |---|---|---|---|
-| [`echo/`](./echo/) | `/echo <message>` | Minimal echo utility demonstrating zero-overhead WebAssembly execution. | *(None)* |
 | [`calendar/`](./calendar/) | `/calendar <event title>` | Official device calendar integration with AI tool support for scheduling and querying events. | `calendar.create`, `calendar.read` |
-| [`mail/`](./mail/) | `/mail <command>` | Official IMAP/SMTP mail integration for inbox inspection and message composition. | `email.read`, `email.send` |
-| [`pdf/`](./pdf/) | `/pdf <command>` | Official PDF processing and extraction plugin. | `files.read`, `files.write` |
-| [`elevenlabs/`](./elevenlabs/) | `/elevenlabs <text>` | Official ElevenLabs AI voice & speech synthesis plugin. | `network.http`, `storage.private`, `files.write` |
-| [`notion/`](./notion/) | `/notion <command>` | Official Notion workspace integration for searching pages, databases, and creating notes. | `network.http`, `storage.private` |
+| [`mail/`](./mail/) | `/gmail <command>` | Official IMAP/SMTP mail integration for inbox inspection and message composition (aliases: `/mail`, `/email`). | `storage.private`, `email.read`, `email.send` |
+| [`pdf/`](./pdf/) | `/pdf <command>` | Official AI-powered PDF generator and document exporter. | `files.write` |
+| [`elevenlabs/`](./elevenlabs/) | `/elevenlabs <text>` | Official ElevenLabs AI voice & speech synthesis plugin (aliases: `/tts`, `/voice`, `/audio`). | `network.http`, `storage.private`, `files.write` |
+| [`notion/`](./notion/) | `/notion <command>` | Official Notion workspace integration for searching pages, databases, and creating structured notes. | `network.http`, `storage.private` |
+| [`github/`](./github/) | `/github <command>` | Official GitHub workspace integration for technical issue drafting, repository inspection, and search. | `network.http`, `storage.private` |
