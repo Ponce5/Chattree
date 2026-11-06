@@ -323,6 +323,53 @@ When your exported function or `resume()` writes formatted Markdown into the out
 
 ---
 
+## Declarative Interactive UI Cards (`ui.components`)
+
+Beyond Markdown, plugins requesting the `ui.components` capability can return **rich interactive UI cards** directly into the conversation.
+
+By returning a JSON object with `"type": "card"`, your plugin can display:
+- **Status Badges:** Color-coded visual tags (`success`, `warning`, `error`, `info`, `neutral`).
+- **Progress Bars:** Visual progress tracking (0.0 to 1.0 or 0% to 100%).
+- **Key-Value Tables:** Structured grids for system metrics, specifications, or details (up to 40 items).
+- **Interactive Action Buttons:** Buttons with actions:
+  - `command`: Triggers another slash command (commands starting with `/` prompt the user with a confirmation modal).
+  - `url`: Opens an external link safely in the browser.
+  - `copy`: Copies values directly to the clipboard.
+
+### Example Declarative Card Output:
+```json
+{
+  "type": "card",
+  "displayText": "Server status: Operational",
+  "ui": {
+    "title": "Database Cluster",
+    "subtitle": "PostgreSQL 16 High-Availability",
+    "elements": [
+      { "type": "badge", "text": "ONLINE", "variant": "success" },
+      { "type": "progress", "value": 82, "label": "Storage Used: 82%" },
+      {
+        "type": "key_value",
+        "items": [
+          { "label": "Primary Node", "value": "pg-primary-01" },
+          { "label": "Replicas", "value": "2 in sync" },
+          { "label": "Connections", "value": "142 / 200" }
+        ]
+      },
+      { "type": "divider" },
+      {
+        "type": "button_row",
+        "buttons": [
+          { "label": "View Metrics", "action": "url", "payload": "https://monitor.example.com" },
+          { "label": "Failover", "action": "command", "payload": "/cluster failover", "variant": "danger" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## Optional — Natural-language invocation
 
 Chattree registers declared tool metadata, but natural-language invocation is mediated by the app’s intent interpreter and is not guaranteed for every provider or command. An `intentContract` can describe valid actions and fields (see [plugin-manifest.md](plugin-manifest.md)); test each supported provider and retain a usable slash-command path. Do not rely on a specific model JSON shape as a public runtime ABI.

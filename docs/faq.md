@@ -13,7 +13,10 @@ Chattree is an on-device, privacy-focused artificial intelligence chat applicati
 No. When using on-device models, 100% of token inference, embedding calculations, and vector database queries occur locally on your device. There is zero telemetry, and your conversations are never uploaded to any remote server.
 
 ### What hardware is required to run local models?
-An Android device running Android 10 or later with a 64-bit ARM processor (`arm64-v8a`) is required. For running local models, at least 6 GB of RAM is recommended (8 GB+ provides optimal speed).
+An Android device running Android 8.0 Oreo (API Level 26) or later with a 64-bit ARM processor (`arm64-v8a`) or `x86_64` is supported. Memory requirements scale according to the model size:
+- **Ultralight models (< 1B parameters, e.g. SmolLM2 360M, Qwen2.5 0.5B, Qwen3 0.6B):** require only 1.2 GB to 1.6 GB of available RAM and run comfortably on devices with 3 GB or 4 GB of total RAM.
+- **Medium models (1B to 4B parameters, e.g. Llama 3.2 3B, Qwen 3B, Gemma 3 4B):** recommend 4 GB to 8 GB of RAM.
+- **Heavy models (7B to 8B parameters, e.g. Qwen2.5 7B, Qwen3 8B):** recommend 8 GB to 12 GB+ of RAM.
 
 ---
 
@@ -27,7 +30,16 @@ WebAssembly (WASM) provides several advantages for mobile extensions:
 - **Fast Startup:** Modules instantiate in milliseconds without background runtime overhead.
 
 ### Can plugins run in the background or drain battery?
-No. Chattree plugins only execute when a slash command is explicitly triggered by the user in chat or when an inbound event is routed to an explicit event subscription. They are subject to a 5-second timeout and an instruction fuel limit (50,000,000 instructions). Plugins cannot spawn background threads, background services, or persistent daemons.
+Plugins cannot spawn background threads, persistent OS daemons, or unmetered background processes. However, plugins can schedule recurring background automations via the `scheduler.task` capability using standard 5-part Cron expressions or periodic intervals. To prevent battery drain, Chattree strictly enforces a **minimum interval of 60 seconds** and caps tasks at 25 per plugin. When a scheduled time arrives, Chattree dispatches an event via `HostEventBus`, waking the plugin's declared event consumer cleanly.
+
+### Can plugins open real-time WebSocket connections?
+Yes. Plugins declaring the `network.websocket` capability can establish up to **10 concurrent full-duplex WebSocket connections** (`ws://` or `wss://`). Inbound and outbound frames are capped at **16 MB** (frames exceeding 16 MB are terminated cleanly with WebSocket status code `1009`). Unpolled messages are buffered in an in-memory queue of up to **500 frames**. Connections to private LAN IPs or `localhost` are blocked by default unless the plugin also holds the critical `network.local` capability.
+
+### Can plugins render custom interactive buttons and UI widgets?
+Yes. Plugins declaring the `ui.components` capability can return rich declarative cards (`DeclarativeUiBubble`) containing status badges, progress bars, metric key-value tables (up to 40 items), and action button rows (up to 8 buttons with `command`, `url`, and `copy` actions). For user safety, any button that triggers a slash command (`/`) prompts the user with an explicit **Security Confirmation Modal** before execution.
+
+### Can plugins use a relational SQL database?
+Yes. Plugins declaring `database.sql` are provisioned a private, fully isolated **relational SQLite database** (`plugin_<pluginId>.db`). Each plugin has a generous **200 MB storage quota** (measuring the `.db`, `.db-wal`, `.db-shm`, and `.db-journal` files), supports full multi-statement ACID batch transactions (`database.transaction`) with rollback, returns up to **2,000 rows per query**, and includes automatic type normalization for booleans and JSON structures. Plugins are strictly isolated and cannot query or attach databases belonging to other plugins.
 
 ### How does Chattree handle background execution and notifications on Android?
 Reminders are scheduled using Android's native `AlarmManager` (exact alarms via `flutter_local_notifications`). This allows Android to wake up and fire scheduled notifications at the exact target time with zero battery drain while the app is closed.
@@ -62,4 +74,4 @@ No. When you configure an external provider, requests travel directly via HTTPS 
 You can distribute the `.chattree-plugin` package directly (via GitHub Releases, personal websites, or messaging apps) for users to import via **Settings → Plugins → Import Plugin**. Additionally, you can publish to the official Chattree Marketplace by registering your package and metadata.
 
 ### What is the `.chattree-plugin` file format?
-It is a standard ZIP archive containing `plugin.json` (manifest), `plugin.wasm` (compiled bytecode), and an optional `icon.png` (512×512 image) at the root level.
+It is a standard ZIP archive containing `plugin.json` (manifest), `plugin.wasm` (compiled WebAssembly binary), and optionally `icon.png` (512×512 image), `README.md`, and `LICENSE` (`license`, `license.txt`, or `license.md`) at the root level. Packages are bounded to a maximum of 25 MB compressed, 50 MB uncompressed, and 50 files total to protect device resources.

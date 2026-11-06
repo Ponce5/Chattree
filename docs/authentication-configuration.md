@@ -53,9 +53,9 @@ Chattree categorizes capabilities into three danger tiers:
 
 | Level | Badge | Permissions Included | User Consent Mechanism |
 |---|---|---|---|
-| **Normal** | 🟢 | `storage.private`, `share.text`, `open.url` | Granted automatically upon installation. |
-| **Sensitive** | 🟡 | `network.http`, `files.*`, `chattree.notes.*`, `chattree.reminders.*`, `notifications.send` | Explicit confirmation dialog presented during installation or first invocation. |
-| **Critical** | 🔴 | `location.current`, `camera.capture`, `contacts.*`, `calendar.*` | Explicit confirmation prompt AND Android runtime permission prompt. |
+| **Normal** | 🟢 | `storage.private`, `share.text`, `open.url`, `clipboard.write` | Granted automatically upon installation (core sandbox capabilities). |
+| **Sensitive** | 🟡 | `network.http`, `network.webhook_inbound`, `network.webhook_outbound`, `files.pick`, `files.read`, `files.write`, `chattree.notes.*`, `chattree.reminders.*`, `notifications.send`, `clipboard.read`, `share.file`, `open.app`, `contacts.create`, `contacts.update`, `calendar.*`, `chattree.context.read`, `chat.history.read`, `ai.context`, `ai.embeddings` | Explicit confirmation dialog presented during installation or first invocation. |
+| **Critical** | 🔴 | `location.current`, `camera.capture`, `contacts.read`, `network.local`, `email.read`, `email.send` | Explicit confirmation prompt AND operating system runtime permission prompt. |
 
 ### Permission Workflow
 

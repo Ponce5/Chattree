@@ -184,3 +184,408 @@ Demonstrates programmatic creation of a note via `chattree.notes.create`.
   }
 }
 ```
+
+---
+
+## 5. Real-Time WebSocket Streaming Client (`network.websocket`)
+
+Demonstrates establishing a bidirectional WebSocket connection, dispatching structured messages, polling the in-memory buffer (up to 500 frames), and closing cleanly.
+
+### `plugin.json` snippet
+```json
+{
+  "schemaVersion": 1,
+  "id": "com.example.streamer",
+  "version": "1.0.0",
+  "name": "Live Streamer",
+  "primaryCommand": "stream",
+  "capabilities": ["network.websocket"],
+  "entrypoint": "run"
+}
+```
+
+### Step 1: Connect (`websocket.connect`)
+```json
+{
+  "api": "websocket",
+  "operation": "connect",
+  "payload": {
+    "url": "wss://echo.websocket.events",
+    "headers": {
+      "X-Client-Version": "1.0.0"
+    },
+    "pingIntervalSeconds": 30
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "connectionId": "ws_conn_9a8b7c6d",
+    "status": "connected",
+    "url": "wss://echo.websocket.events"
+  }
+}
+```
+
+### Step 2: Send Message (`websocket.send`)
+```json
+{
+  "api": "websocket",
+  "operation": "send",
+  "payload": {
+    "connectionId": "ws_conn_9a8b7c6d",
+    "message": "{\"action\":\"subscribe\",\"topic\":\"crypto_ticker\"}",
+    "isBinary": false
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "sent": true,
+    "bytes": 48
+  }
+}
+```
+
+### Step 3: Poll Inbound Messages (`websocket.receive` / `websocket.poll`)
+```json
+{
+  "api": "websocket",
+  "operation": "receive",
+  "payload": {
+    "connectionId": "ws_conn_9a8b7c6d",
+    "maxMessages": 10
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "messages": [
+      {
+        "data": "{\"topic\":\"crypto_ticker\",\"price\":68500.50}",
+        "isBinary": false,
+        "timestamp": "2026-11-05T12:00:00.000Z"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+### Step 4: Close Connection (`websocket.close`)
+```json
+{
+  "api": "websocket",
+  "operation": "close",
+  "payload": {
+    "connectionId": "ws_conn_9a8b7c6d",
+    "code": 1000,
+    "reason": "Normal stream termination"
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "closed": true,
+    "connectionId": "ws_conn_9a8b7c6d"
+  }
+}
+```
+
+---
+
+## 6. Declarative Interactive UI Card (`ui.components` / `ui.render`)
+
+Demonstrates returning a rich declarative UI card containing a status badge, a progress bar, formatted key-value metrics, and action buttons (`command`, `url`, and `copy`).
+
+### `plugin.json` snippet
+```json
+{
+  "schemaVersion": 1,
+  "id": "com.example.dashboard",
+  "version": "1.0.0",
+  "name": "Cloud Monitor",
+  "primaryCommand": "monitor",
+  "capabilities": ["ui.components"],
+  "entrypoint": "run"
+}
+```
+
+### Direct WASM Execution Output (`ToolResult.ui`)
+The plugin writes this JSON to linear memory at offset 1024:
+
+```json
+{
+  "type": "card",
+  "displayText": "Production Server Status: Operational",
+  "ui": {
+    "title": "Cloud Cluster EU-West",
+    "subtitle": "Node health & resource allocation",
+    "elements": [
+      {
+        "type": "badge",
+        "text": "HEALTHY",
+        "variant": "success"
+      },
+      {
+        "type": "progress",
+        "value": 72.5,
+        "label": "CPU & Memory Load",
+        "status": "72.5% of 64 GB"
+      },
+      {
+        "type": "key_value",
+        "items": [
+          { "label": "Region", "value": "eu-central-1" },
+          { "label": "Active Pods", "value": "48 / 50" },
+          { "label": "Latency", "value": "18 ms" },
+          { "label": "Uptime", "value": "99.98%" }
+        ]
+      },
+      {
+        "type": "divider"
+      },
+      {
+        "type": "button_row",
+        "buttons": [
+          {
+            "label": "Grafana Dashboard",
+            "action": "url",
+            "payload": "https://grafana.example.com/d/cluster-eu",
+            "variant": "secondary"
+          },
+          {
+            "label": "Copy Cluster IP",
+            "action": "copy",
+            "payload": "10.240.0.1",
+            "variant": "secondary"
+          },
+          {
+            "label": "Restart Pods",
+            "action": "command",
+            "payload": "/monitor restart eu-west",
+            "variant": "danger"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+> **Security Note:** Clicking the **Restart Pods** button (`action: "command"` with target `/monitor restart eu-west`) automatically triggers Chattree's **Security Confirmation Modal** before execution, allowing the user to review the command and confirm with one tap.
+
+---
+
+## 7. Scheduled Cron Task & EventBus Ingestion (`scheduler.task`)
+
+Demonstrates scheduling a recurring background job using standard 5-part Cron syntax with anti-battery drain enforcement (minimum 60-second interval).
+
+### `plugin.json` manifest with Event Consumer
+```json
+{
+  "schemaVersion": 2,
+  "id": "com.example.notifier",
+  "version": "1.0.0",
+  "name": "Daily Digest Scheduler",
+  "primaryCommand": "digest",
+  "capabilities": ["scheduler.task", "notifications.send"],
+  "entrypoint": "run",
+  "eventConsumers": [
+    {
+      "id": "cron_trigger_handler",
+      "eventTypes": ["scheduler.trigger"],
+      "targetAction": "handle_cron"
+    }
+  ]
+}
+```
+
+### Schedule Task (`scheduler.schedule_task`)
+```json
+{
+  "api": "scheduler",
+  "operation": "schedule_task",
+  "payload": {
+    "taskId": "daily_morning_digest",
+    "cron": "0 8 * * *",
+    "description": "Fires every morning at 8:00 AM",
+    "payload": {
+      "channel": "daily_summary",
+      "includeWeather": true
+    }
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "scheduled": true,
+    "taskId": "daily_morning_digest",
+    "nextExecution": "2026-11-06T08:00:00.000Z"
+  }
+}
+```
+
+### Event Received in Plugin via `HostEventBus` (`scheduler.trigger`)
+When the clock strikes 8:00 AM, Chattree invokes `handle_cron` with:
+```json
+{
+  "eventType": "scheduler.trigger",
+  "taskId": "daily_morning_digest",
+  "pluginId": "com.example.notifier",
+  "timestamp": 1793952000000,
+  "payload": {
+    "channel": "daily_summary",
+    "includeWeather": true
+  }
+}
+```
+
+---
+
+## 8. Relational SQLite Storage & Batch Transactions (`database.sql`)
+
+Demonstrates creating tables, inserting parameterized records, querying with filters, and executing atomic batch transactions in the plugin's dedicated private database (`plugin_<pluginId>.db`).
+
+### `plugin.json` snippet
+```json
+{
+  "schemaVersion": 1,
+  "id": "com.example.inventory",
+  "version": "1.0.0",
+  "name": "Inventory Manager",
+  "primaryCommand": "stock",
+  "capabilities": ["database.sql"],
+  "entrypoint": "run"
+}
+```
+
+### Step 1: Create Table (`database.execute`)
+```json
+{
+  "api": "database",
+  "operation": "execute",
+  "payload": {
+    "sql": "CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, sku TEXT UNIQUE, name TEXT, stock INTEGER, price REAL, in_stock INTEGER, tags TEXT, updated_at INTEGER)"
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "changes": 0
+  }
+}
+```
+
+### Step 2: Insert Records (`database.insert`)
+Automatic type normalization converts `inStock: true` to `1` and the array `tags` to a JSON string:
+```json
+{
+  "api": "database",
+  "operation": "insert",
+  "payload": {
+    "table": "products",
+    "values": {
+      "sku": "KB-MEC-RGB",
+      "name": "Mechanical Gaming Keyboard",
+      "stock": 45,
+      "price": 89.99,
+      "in_stock": true,
+      "tags": ["hardware", "peripherals", "gaming"],
+      "updated_at": 1793880000000
+    }
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "insertedId": 1
+  }
+}
+```
+
+### Step 3: Query Records (`database.query`)
+```json
+{
+  "api": "database",
+  "operation": "query",
+  "payload": {
+    "sql": "SELECT id, sku, name, stock, price FROM products WHERE stock < ? ORDER BY stock ASC LIMIT 10",
+    "params": [50]
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "rows": [
+      {
+        "id": 1,
+        "sku": "KB-MEC-RGB",
+        "name": "Mechanical Gaming Keyboard",
+        "stock": 45,
+        "price": 89.99
+      }
+    ],
+    "rowCount": 1,
+    "columns": ["id", "sku", "name", "stock", "price"]
+  }
+}
+```
+
+### Step 4: Atomic Batch Transaction (`database.transaction`)
+Executes multiple SQL statements atomically. If any statement encounters an error, all changes rollback immediately:
+```json
+{
+  "api": "database",
+  "operation": "transaction",
+  "payload": {
+    "statements": [
+      {
+        "sql": "UPDATE products SET stock = stock - 1 WHERE sku = ?",
+        "params": ["KB-MEC-RGB"]
+      },
+      {
+        "sql": "INSERT INTO sales_log (sku, quantity, created_at) VALUES (?, ?, ?)",
+        "params": ["KB-MEC-RGB", 1, 1793880050000]
+      }
+    ]
+  }
+}
+```
+*Successful Response:*
+```json
+{
+  "success": true,
+  "data": {
+    "success": true,
+    "results": [
+      { "changes": 1 },
+      { "changes": 1, "lastInsertRowId": 1 }
+    ]
+  }
+}
+```

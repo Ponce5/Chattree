@@ -235,6 +235,7 @@
         "network.http",
         "network.local",
         "network.webhook_inbound",
+        "network.webhook_outbound",
         "notifications.send",
         "files.pick",
         "files.read",
@@ -265,7 +266,14 @@
         "chattree.context.read",
         "chat.history.read",
         "ai.context",
-        "ai.embeddings"
+        "ai.embeddings",
+        "network.websocket",
+        "ui.components",
+        "ui.render",
+        "scheduler.task",
+        "scheduler.cron",
+        "database.sql",
+        "storage.database"
       ]
     },
     "pluginTool": {

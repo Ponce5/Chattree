@@ -86,6 +86,10 @@ Native service (Notes, Network, Storage, …)
 | `chattree.context.read` | ✅ Available (Phase 3G) |
 | `chat.history.read` | ✅ Available |
 | `ai.context` / `ai.embeddings` | ✅ Available |
+| `network.websocket` | ✅ Available (Phase 1 — WebSockets) |
+| `ui.components` / `ui.render` | ✅ Available (Phase 2 — Visual Components) |
+| `scheduler.task` / `scheduler.cron` | ✅ Available (Phase 3 — Scheduled Tasks) |
+| `database.sql` / `storage.database` | ✅ Available (Phase 4 — Relational Database) |
 
 See [capabilities.md](capabilities.md) for full details.
 

@@ -237,6 +237,140 @@ When fetching data from public APIs:
 
 ---
 
+## Tutorial 4: Real-Time Sockets with `network.websocket`
+
+This tutorial walks through building a real-time event listener or bridge plugin.
+
+### 1. Requirements & Capabilities
+Declare `network.websocket` in `plugin.json`. If your plugin connects to a local gateway on your home Wi-Fi (e.g. Home Assistant or local bridge), also declare the critical capability `network.local`.
+
+```json
+{
+  "capabilities": ["network.websocket"]
+}
+```
+
+### 2. Handshake & Connection Pooling
+Chattree manages a connection pool allowing up to **10 concurrent sockets per plugin**:
+1. When calling `websocket.connect`, Chattree **pre-reserves connection capacity atomically** before beginning the network handshake. This prevents quota race conditions when multiple handshakes initiate simultaneously.
+2. If the connection fails or times out, the reservation is immediately released.
+3. Keep-alive heartbeat pings are handled automatically via `pingIntervalSeconds` (default 30 seconds).
+
+### 3. Inbound Frame Buffering & Size Limits
+- Inbound frames are buffered in an in-memory queue holding up to **500 messages**.
+- Use `websocket.receive` (or `websocket.poll`) with `maxMessages: 50` to periodically drain the queue.
+- **16 MB Frame Ceiling:** Individual frames exceeding **16 MB** are rejected and terminate the socket with RFC 6455 close status code **`1009`** to protect mobile RAM.
+
+### 4. Teardown
+Always close unused connections via `websocket.close`. If your plugin crashes or is disabled, Chattree's lifecycle manager automatically purges and terminates all open sockets.
+
+---
+
+## Tutorial 5: Building Interactive Dashboards with `ui.components`
+
+Chattree plugins can move beyond plain text or Markdown by emitting rich declarative UI cards.
+
+### 1. Declaring Capability
+Add `ui.components` to `capabilities` in `plugin.json`.
+
+### 2. The Declarative Card Model
+Your WASM binary can write a structured JSON card directly to linear memory offset 1024 as a `ToolResult.ui`:
+
+```json
+{
+  "type": "card",
+  "displayText": "Deployment #42",
+  "ui": {
+    "title": "Continuous Deployment",
+    "elements": [
+      { "type": "badge", "text": "RUNNING", "variant": "warning" },
+      { "type": "progress", "value": 60, "label": "Deploying containers..." },
+      {
+        "type": "key_value",
+        "items": [
+          { "label": "Service", "value": "api-gateway" },
+          { "label": "Revision", "value": "v2.4.1" }
+        ]
+      },
+      { "type": "divider" },
+      {
+        "type": "button_row",
+        "buttons": [
+          { "label": "Cancel Build", "action": "command", "payload": "/build cancel 42", "variant": "danger" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 3. Card Constraints & Safety
+- **Density Bounds:** Each card supports up to **60 elements**, **40 key-value items**, and **8 buttons per row**.
+- **Sanitization:** All nodes pass through `UiApiHandler.sanitizeUiCard` to strip malicious scripts or malformed nodes.
+- **Security Confirmation Dialog:** Any button with `action: "command"` that targets a slash command (starts with `/`) triggers an explicit confirmation dialog showing the user the exact command before sending it to the chat.
+
+---
+
+## Tutorial 6: Background Automation with `scheduler.task`
+
+This tutorial shows how to schedule recurrent jobs and receive event callbacks.
+
+### 1. Manifest Configuration
+Use `schemaVersion: 2` and declare `scheduler.task`:
+
+```json
+{
+  "schemaVersion": 2,
+  "capabilities": ["scheduler.task", "notifications.send"],
+  "eventConsumers": [
+    {
+      "id": "morning_check",
+      "eventTypes": ["scheduler.trigger"],
+      "targetAction": "run_morning_check"
+    }
+  ]
+}
+```
+
+### 2. Cron Syntax & Wall-Clock Evaluation
+Chattree evaluates 5-field Cron expressions:
+`minute (0-59) hour (0-23) day (1-31) month (1-12) weekday (0-6)`
+
+Examples:
+- `*/15 * * * *` — Every 15 minutes
+- `0 9 * * *` — Every day at 9:00 AM
+- `0 18 * * 1-5` — Weekdays at 6:00 PM
+
+### 3. Anti-Battery Drain Guard
+To protect device battery and prevent runaway loops, Chattree strictly enforces a **60-second minimum interval**. Any schedule attempting to run faster than once per 60 seconds is rejected with `minimumIntervalViolation`.
+
+### 4. Lifecycle & Quotas
+Plugins can register up to **25 active scheduled tasks** with payloads up to **128 KB**. All tasks are automatically cleaned up when the plugin is uninstalled.
+
+---
+
+## Tutorial 7: Relational Data Persistence with `database.sql`
+
+For complex data structures, Chattree provisions a private SQLite database for your plugin.
+
+### 1. Private Database Isolation
+Each plugin has a dedicated SQLite database (`plugin_<pluginId>.db`). No other plugin or host service can read or alter your tables.
+
+### 2. Executing Queries & Transactions
+- **DDL & DML:** Use `database.execute` for `CREATE TABLE`, `INSERT`, `UPDATE`, `DELETE`.
+- **Queries:** Use `database.query` for `SELECT`. Queries return up to **2,000 rows** per call.
+- **Batch Transactions:** Use `database.transaction` with multiple statements. If any statement fails, the entire batch rolls back atomically.
+
+### 3. Type Normalization
+You can pass native types in `params` or `values`:
+- Booleans (`true`/`false`) are automatically converted to `1`/`0`.
+- Maps and Lists are serialized to valid JSON strings.
+
+### 4. Storage Quota (200 MB)
+Chattree enforces a **200 MB quota** measuring the primary `.db` file plus SQLite write-ahead log files (`.db-wal`, `.db-shm`, and `.db-journal`). If your database approaches 200 MB, delete obsolete rows or run `VACUUM`. Dangerous SQL commands (`ATTACH DATABASE`, `DETACH DATABASE`, `VACUUM INTO`, and `PRAGMA writable_schema`) are blocked.
+
+---
+
 ## Best Practices: Memory & Buffer Management in Rust / C
 
 When building plugins in Rust or C, understanding linear memory layout and UTF-8 safety is critical to prevent crashes, fuel exhaustion, or memory corruption.

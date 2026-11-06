@@ -53,6 +53,12 @@ chattree-repo/
 
 Chattree features an extensible WebAssembly (WASM) plugin ecosystem. Official plugins are maintained within this repository under `plugins/official/`.
 
+The runtime provides high-performance, sandboxed host capabilities for plugins:
+- **Real-Time WebSockets (`network.websocket`):** Full-duplex streaming connections (up to 10 sockets, 16 MB max frame size, 500 queued messages buffer, SSRF protected).
+- **Declarative Interactive UI (`ui.components`):** Rich cards in chat with progress bars, status badges, metric tables (up to 40 items), and action buttons with security confirmation modals.
+- **Scheduled Tasks & Cron Automations (`scheduler.task`):** Standard 5-field Cron jobs and periodic background tasks with anti-battery drain protection (minimum 60s interval, up to 25 tasks, 128 KB payload).
+- **Private Relational SQLite Database (`database.sql`):** Fully isolated relational databases (`plugin_<pluginId>.db`) with 200 MB storage quota, atomic batch transactions, and up to 2,000 rows per query.
+
 Plugins are distributed as `.chattree-plugin` ZIP archives. The package includes a SHA-256 digest for the WASM binary; this detects package changes, but is not a publisher signature or proof of publisher identity. Marketplace submission is available through the **Chattree Marketplace**:
 - **Distribution:** Hosted as public binary assets on GitHub Releases.
 - **Publication & Updates:** Submitted via the [Chattree Plugin Submission Portal](https://chattree.chat/submit-plugin) or the automated REST API (`POST /api/plugins/submit`).

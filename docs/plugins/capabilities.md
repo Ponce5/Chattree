@@ -634,6 +634,17 @@ Allows the plugin to register HTTP webhook endpoints (`127.0.0.1` by default, or
 
 ---
 
+### 🟡 network.webhook_outbound
+
+**Category:** Network & Connectivity  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `network` (`WebhookEgressSender`)
+
+Allows the plugin to dispatch automated outbound webhook events to external HTTPS services (such as Slack, Notion, Discord, or CI/CD pipelines) when internal Chattree events occur. Outbound webhooks implement SSRF validation, DNS pinning, exponential backoff retries (base 10s + jitter 0..2s), maximum 16 concurrent global dispatches (max 5 per extension), and response body drainage capped at 8 KB to protect mobile resources.
+
+---
+
 ### 🟡 clipboard.read / 🟢 clipboard.write
 
 **Category:** Device  
@@ -718,3 +729,194 @@ Allows the plugin to generate on-device vector embeddings, perform semantic sear
 - Input text/content max **50 000 characters** per call.
 - `topK` clamped between **1 and 20** (default 5).
 - Indexed documents are automatically namespaced as `plugin_<pluginId>_<id>` so a plugin can only overwrite or remove its own indexed documents.
+
+---
+
+### 🟡 network.websocket
+
+**Category:** Network  
+**Status:** ✅ Available (Phase 1)  
+**Permission required:** User consent (`network.websocket`)  
+**Host API namespace:** `websocket`
+
+Allows plugins to establish and manage **bidirectional, full-duplex WebSocket connections** for streaming data, live push notifications, real-time messaging, and IoT/telemetry channels.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `websocket.connect` | `{ url: string, headers?: object, protocols?: string[], pingIntervalSeconds?: number }` | `{ connectionId: string, status: "connected" \| "connecting", url: string }` |
+| `websocket.send` | `{ connectionId: string, message: string, isBinary?: boolean }` | `{ sent: true, bytes: number }` |
+| `websocket.receive` / `websocket.poll` | `{ connectionId: string, maxMessages?: number }` | `{ messages: [{ data: string, isBinary: boolean, timestamp: string }], count: number }` |
+| `websocket.status` | `{ connectionId: string }` | `{ connectionId: string, state: "connected" \| "connecting" \| "closing" \| "closed", bufferedAmount: number, queuedMessages: number }` |
+| `websocket.close` | `{ connectionId: string, code?: number, reason?: string }` | `{ closed: true, connectionId: string }` |
+
+**Input fields for `websocket.connect`:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | ✅ | `ws://` or `wss://` URI |
+| `headers` | object | ❌ | Custom handshake headers (restricted hop-by-hop headers stripped) |
+| `protocols` | string[] | ❌ | WebSocket subprotocols requested |
+| `pingIntervalSeconds` | number | ❌ | Periodic ping heartbeat interval (default 30s) |
+
+**Limitations & Security Guarantees:**
+- **Connection limit:** Up to **10 concurrent active sockets** per plugin.
+- **Atomic connection reservations:** Connection quotas are pre-reserved before the asynchronous network handshake begins. This completely prevents race conditions where multiple parallel connect calls bypass the 10-socket quota. If a handshake fails, times out, or is cancelled, the reservation is automatically released.
+- **Maximum frame size:** **16 MB (`16,777,216` bytes)** per incoming or outgoing frame. If an inbound frame exceeds 16 MB, the socket is immediately terminated with WebSocket close code **`1009`** (Message Too Large / RFC 6455) to protect device memory.
+- **In-memory message buffer:** Up to **500 queued messages** per socket retained in memory before polling.
+- **SSRF protection:** Connections to loopback (`127.0.0.1`, `localhost`) or private RFC 1918 subnets (`192.168.x.x`, `10.x.x.x`, `172.16.x.x`) are rejected unless the plugin also holds the critical `network.local` capability. Cloud metadata endpoints (`169.254.169.254`) are permanently blocked.
+- **Lifecycle cleanup:** All active sockets are cleanly closed when a plugin is uninstalled, disabled, or unloaded.
+
+**Example:**
+```json
+{
+  "api": "websocket",
+  "operation": "connect",
+  "payload": {
+    "url": "wss://echo.websocket.events"
+  }
+}
+```
+
+---
+
+### 🟡 ui.components / ui.render
+
+**Category:** Device / UI  
+**Status:** ✅ Available (Phase 2)  
+**Permission required:** User consent (`ui.components` or `ui.render`)  
+**Host API namespace:** `ui`
+
+Allows plugins to emit rich, interactive declarative UI cards in the chat rather than plain text. Enables progress bars, badges, formatted metric key-value tables, and action buttons.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `ui.render` / `ui.show_card` | `{ card: UiCard }` | `{ rendered: true, elementCount: number }` |
+
+> **Direct WASM Tool Result:** Plugins can also emit declarative UI directly by returning `{ "text": "Summary", "ui": { "type": "card", ... } }` in the result of any tool call.
+
+**Card Schema (`UiCard`):**
+
+```json
+{
+  "title": "Build Status",
+  "subtitle": "Production Deployment Pipeline",
+  "elements": [
+    { "type": "badge", "text": "SUCCESS", "variant": "success" },
+    { "type": "progress", "value": 100, "label": "Deployment Complete" },
+    {
+      "type": "key_value",
+      "items": [
+        { "label": "Commit", "value": "a1b2c3d" },
+        { "label": "Environment", "value": "production" }
+      ]
+    },
+    { "type": "divider" },
+    {
+      "type": "button_row",
+      "buttons": [
+        { "label": "View Logs", "action": "url", "payload": "https://ci.example.com/build/123" },
+        { "label": "Rollback", "action": "command", "payload": "/deploy rollback", "variant": "danger" }
+      ]
+    }
+  ]
+}
+```
+
+**Supported Component Elements:**
+
+| Component | Properties | Description |
+|-----------|------------|-------------|
+| `text` | `content` (string), `style` (`"body"` \| `"caption"` \| `"headline"` \| `"code"`), `markdown` (boolean) | Text block with optional markdown formatting |
+| `badge` | `text` (string), `variant` (`"info"` \| `"success"` \| `"warning"` \| `"error"` \| `"neutral"`), `icon` (string?) | Color-coded status badge |
+| `progress` | `value` (number 0.0 to 1.0 or 0 to 100), `label` (string?), `status` (string?) | Progress bar with optional indicator text |
+| `key_value` | `items`: `[{ label: string, value: string, copyable?: boolean }]` | Structured label-value grid (up to 40 items) |
+| `divider` | None | Subtle horizontal separator line |
+| `button_row` | `buttons`: `[{ label: string, action: "command" \| "url" \| "copy", payload: string, variant?: "primary" \| "secondary" \| "danger" }]` | Interactive action row (up to 8 buttons per row) |
+
+**Limitations & Security Guarantees:**
+- **Element density limits:** Max **60 elements** per card; max **40 key-value items** per table; max **8 buttons** per button row; max nesting depth of 3 levels.
+- **Centralized sanitization:** All UI cards are sanitized through `UiApiHandler.sanitizeUiCard` regardless of source (Host API call or direct WASM return). Invalid nodes, oversized strings, and unknown types are safely stripped.
+- **Security Confirmation Modal for sensitive actions:** If an action button has `action: "command"` and the target payload begins with `/` (e.g., `/deploy`, `/delete`, `/reboot`) or executes commands, Chattree intercepts the click and displays an explicit user confirmation dialog showing the command before execution. This prevents clickjacking or unauthorized actions from third-party plugins.
+
+---
+
+### 🟡 scheduler.task / scheduler.cron
+
+**Category:** Automation / Device  
+**Status:** ✅ Available (Phase 3)  
+**Permission required:** User consent (`scheduler.task` or `scheduler.cron`)  
+**Host API namespace:** `scheduler`
+
+Allows plugins to schedule recurring tasks and background automations using standard Cron expressions or periodic intervals, with events delivered through Chattree's central `HostEventBus`.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `scheduler.schedule_task` | `{ taskId: string, cron?: string, intervalSeconds?: number, payload?: any, description?: string }` | `{ scheduled: true, taskId: string, nextExecution: string }` |
+| `scheduler.cancel_task` | `{ taskId: string }` | `{ cancelled: true, taskId: string }` |
+| `scheduler.list_tasks` | `{}` | `{ tasks: [{ taskId, cron, intervalSeconds, nextExecution, payload, createdAt }], count: number }` |
+| `scheduler.get_task` | `{ taskId: string }` | `{ task: object \| null }` |
+
+**Cron Syntax & Precision:**
+- Evaluated via exact wall-clock calculations (`calculateNextCronExecution`).
+- Standard 5-field format: `minute hour day-of-month month day-of-week`
+  - `*/15 * * * *` — Every 15 minutes
+  - `0 * * * *` — Every hour on the hour
+  - `0 9 * * *` — Daily at 9:00 AM
+  - `0 0 * * 1` — Weekly on Mondays at midnight
+  - `30 14 1 * *` — 1st of every month at 2:30 PM
+
+**Limitations & Security Guarantees:**
+- **Anti-battery drain threshold:** Enforces a strict minimum execution interval of **60 seconds**. Tasks specifying intervals or cron schedules with frequency under 60 seconds are rejected with `minimumIntervalViolation`.
+- **Task quota:** Up to **25 active scheduled tasks** per plugin.
+- **Payload capacity:** Up to **128 KB (`131,072` bytes)** per task payload.
+- **Event distribution:** When a task triggers, the system publishes a `scheduler.trigger` event on `HostEventBus` containing `{ taskId, pluginId, payload, timestamp }`.
+- **Automatic cleanup:** All scheduled tasks registered by a plugin are cleanly deleted from the persistent schedule store when the plugin is uninstalled or disabled.
+
+---
+
+### 🟡 database.sql / storage.database
+
+**Category:** Data  
+**Status:** ✅ Available (Phase 4)  
+**Permission required:** User consent (`database.sql` or `storage.database`)  
+**Host API namespace:** `database`
+
+Provides a fully managed, private, and isolated **relational SQLite database** for each plugin. Perfect for plugins that need complex queries, indexes, relational filtering, and atomic multi-step transactions.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `database.query` | `{ sql: string, params?: any[] }` | `{ rows: object[], rowCount: number, columns: string[] }` |
+| `database.execute` | `{ sql: string, params?: any[] }` | `{ changes: number, lastInsertRowId?: number }` |
+| `database.insert` | `{ table: string, values: object }` | `{ insertedId: number }` |
+| `database.update` | `{ table: string, values: object, where: string, whereArgs?: any[] }` | `{ rowsAffected: number }` |
+| `database.delete` | `{ table: string, where: string, whereArgs?: any[] }` | `{ rowsAffected: number }` |
+| `database.transaction` | `{ statements: [{ sql: string, params?: any[] }] }` | `{ success: true, results: object[] }` |
+| `database.tables` | `{}` | `{ tables: string[] }` |
+
+**Limitations & Security Guarantees:**
+- **Dedicated private database file:** Each plugin operates on `plugin_<pluginId>.db` stored in a protected app sandbox directory. Zero cross-plugin access.
+- **Storage quota:** **200 MB (`209,715,200` bytes)** maximum database size. The quota calculates the cumulative size of the `.db` primary file, `.db-wal` write-ahead log, `.db-shm` shared memory file, and `.db-journal`. If an execution would exceed 200 MB, the operation is blocked with `quotaExceeded`.
+- **Query result cap:** Max **2,000 rows** returned per query to prevent memory exhaustion.
+- **Automatic type normalization:** Booleans are mapped to SQLite integers (`1` or `0`), and structured objects/arrays are serialized to valid JSON strings.
+- **Atomic transactions:** `database.transaction` runs multiple SQL statements within a single atomic SQLite transaction with immediate automatic rollback on error.
+- **Sandbox escape defense:** Strictly blocks unauthorized SQL statements including `ATTACH DATABASE`, `DETACH DATABASE`, `VACUUM INTO`, direct modifications to `sqlite_master`, and `PRAGMA writable_schema`.
+- **Zero-orphan uninstall:** Uninstalling a plugin automatically removes its `.db`, `.db-wal`, `.db-shm`, and `.db-journal` files, leaving zero residual data on disk.
+
+**Example:**
+```json
+{
+  "api": "database",
+  "operation": "execute",
+  "payload": {
+    "sql": "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT, content TEXT, created_at INTEGER)"
+  }
+}
+```

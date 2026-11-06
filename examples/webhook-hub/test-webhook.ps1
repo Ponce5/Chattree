@@ -10,7 +10,7 @@
 .PARAMETER Port
   Puerto del InboundHttpServer (por defecto 8765).
 .EXAMPLE
-  .\test-webhook.ps1 -Secret "0f4e359128205cb9ebffd5afea345540986e4d1e7c6b7589375e3873753a84c7"
+  .\test-webhook.ps1 -Secret "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 #>
 param(
   [Parameter(Mandatory=$false)]

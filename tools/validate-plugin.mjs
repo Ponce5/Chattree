@@ -28,6 +28,7 @@ const VALID_CAPABILITIES = new Set([
   "network.http",
   "network.local",
   "network.webhook_inbound",
+  "network.webhook_outbound",
   "notifications.send",
   "files.pick",
   "files.read",

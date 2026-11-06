@@ -20,7 +20,20 @@ This directory houses the authoritative JSON Schemas and structural validation c
 - **Runtime Environment:** Mandatory `"runtime": "wasm"`, `"wasmPath": "plugin.wasm"`, and `"runtimeApiVersion": "1.0.0"`.
 - **Integrity Checksum (`wasmSha256`):** Exactly 64 lowercase hexadecimal characters matching the SHA-256 digest of `plugin.wasm`.
 - **Capabilities (`capabilities`):** Validated against the official Chattree Host API capability catalogue (e.g. `storage.private`, `network.http`, `chattree.notes.*`).
-- **Runtime Limits:** Enforces safety constraints on `maxMemoryPages` (≤ 256 pages / 16 MB) and `timeoutMs` (≤ 60000 ms).
+- **Runtime Limits:** Enforces safety constraints on `maxMemoryPages` (default 512 pages / 32 MB, accepts up to 1024 pages / 64 MB), `timeoutMs` (100 to 60000 ms), and `maxPayloadSizeBytes` (default 12 MB, up to 16 MB).
+
+---
+
+### 2. Plugin Manifest Schema v2 (`plugin.manifest.v2.schema.json`)
+
+- **File:** [`plugin.manifest.v2.schema.json`](./plugin.manifest.v2.schema.json)
+- **Specification Version:** Draft-07
+- **Schema Version:** `2`
+- **Target File:** `plugin.json` in `.chattree-plugin` package root for plugins declaring inbound webhooks or event pipelines
+
+#### Additional Validations Enforced:
+- **Declarative Inbound Webhooks (`inboundWebhooks`):** Validates local HTTP endpoint declarations (`id`, `path`, `authType`: `bearer` | `hmacSha256Raw` | `none`, `eventType`, `idempotencyHeader`, and `requiredPermissions` requiring `network.webhook_inbound`).
+- **Declarative Event Consumers (`eventConsumers`):** Validates event consumer subscriptions (`id`, `eventTypes`, `targetAction`, and required permissions).
 
 ---
 

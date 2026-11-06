@@ -9,6 +9,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Phase 1 — Real-Time WebSockets (`WebSocketApiHandler`, capability `network.websocket`)**:
+  - Full-duplex WebSocket connection manager allowing plugins to establish up to 10 concurrent sockets.
+  - Memory message buffer supporting up to 500 queued frames per socket with polling and streaming support.
+  - 16 MB frame ceiling (`16,777,216` bytes) with automatic RFC 6455 status code 1009 termination upon violation.
+  - Pre-handshake atomic connection quota reservations preventing race conditions during concurrent asynchronous handshakes.
+  - Built-in SSRF defense with `network.local` critical capability gating for LAN/localhost connections and permanent cloud metadata protection.
+- **Phase 2 — Declarative Interactive UI Components (`DeclarativeUiBubble`, capability `ui.components` / `ui.render`)**:
+  - Rich interactive UI rendering in chat for progress bars, status badges, structured key-value tables (up to 40 items), and action button rows (up to 8 buttons per row).
+  - Global centralized card sanitization (`UiApiHandler.sanitizeUiCard`) enforcing schema constraints across both Host API `ui.render` calls and direct WASM `ToolResult.ui` returns (max 60 elements per card, max depth 3).
+  - Interactive Action Security Confirmation: Mandatory user confirmation modal before executing sensitive action buttons or commands starting with `/` to prevent clickjacking or unauthorized commands by third-party plugins.
+- **Phase 3 — Scheduled Tasks & Cron Automations (`PluginTaskScheduler`, capability `scheduler.task` / `scheduler.cron`)**:
+  - Wall-clock Cron evaluation (`calculateNextCronExecution`) supporting standard 5-part cron syntax (`*/N * * * *`, `0 * * * *`, `0 0 * * *`, `M H * * *`) and periodic intervals.
+  - Anti-battery drain guard enforcing a strict minimum execution interval of 60 seconds.
+  - Central event publication on `HostEventBus` (`scheduler.trigger`) delivering task payloads up to 128 KB, with a ceiling of 25 active tasks per plugin.
+  - Automatic task cleanup and cancellation upon plugin disable or uninstallation.
+- **Phase 4 — Private Relational SQLite Database (`PluginDatabaseManager`, capability `database.sql` / `storage.database`)**:
+  - Private isolated SQLite database file per plugin (`plugin_<pluginId>.db`) with complete sandbox separation.
+  - Production-expanded 200 MB storage quota accurately measuring `.db`, `.db-wal`, `.db-shm`, and `.db-journal` files.
+  - Atomic batch transactions (`database.transaction`) with automatic rollback on error.
+  - Query memory guard returning up to 2,000 rows per query with column metadata.
+  - Automatic type normalization for booleans (`1`/`0`) and structured maps/lists (JSON strings).
+  - Sandbox escape protection prohibiting `ATTACH DATABASE`, `DETACH DATABASE`, `VACUUM INTO`, and unauthorized pragma operations.
+  - Zero-orphan file cleanup purging all database files on plugin uninstallation.
 - **24/7 Cloud Background Webhooks (`FcmInboundRelayService`)**: Added cloud webhook delivery pipeline combining a personal, free Cloudflare Worker relay and Google Firebase Cloud Messaging (FCM HTTP v1). When the app is closed or locked, FCM data messages wake a dedicated lightweight background isolate (`fcmBackgroundHandler`) without battery drain or keeping open TCP sockets, queuing raw payloads in `kFcmPendingInboxKey` and triggering native notifications. On app launch/resume, `drainPendingInbox` completes full validation and event dispatch.
 - **Automated Cloudflare Worker Deployment (`CloudflareDeployService`)**: Integrated in-app deployment from **Settings → Inbound Webhooks**. Users enter their Cloudflare API Token, and Chattree automatically connects to Cloudflare API v4, uploads the Worker script, registers encrypted secrets (`FCM_TOKEN` and Firebase credentials), and binds public subdomain routes in seconds.
 - **Tolerant Webhook Idempotency Fallback**: If an external webhook payload does not supply `X-Chattree-Delivery-Id`, `FcmInboundRelayService` automatically generates a deterministic fallback delivery key (`fcm-{timestamp}-{hashCode}`) to prevent event loss while guaranteeing deduplication.
@@ -17,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Automatic Conversational Vector RAG**: Connected `RAGService.instance.buildContextForQuery` directly to `ChatController.sendMessage` so conversational turns automatically retrieve and inject relevant semantic context from Notes whenever RAG is enabled and initialized.
 - **In-Memory Vector Search Cache (`SqliteVectorStore`)**: Added a decoded float vector cache (`_memoryCache`) for zero-I/O cosine similarity search across notes, with deterministic invalidation on insert, update, delete, and clear operations.
 - **Bounded WASM Module LRU Cache (`PluginRuntime`)**: Added an in-memory compiled module cache (`maxCachedModules = 8`) while instantiating a fresh, isolated linear memory per execution.
+- **Persistent Inbound Activity Log (`InboundActivityLog`)**: Hardened webhook history storage against app restarts and closed-state transitions. Ensured `_loaded` disk guard prevents premature overwrites, implemented atomic deduplication by unique delivery/receipt IDs, and unified background FCM isolates with foreground event rendering.
+- **Android 15+ 16 KB Page Size Alignment**: Configured automated ELF patching hooks across all native `.so` libraries (`p_align >= 0x4000`) and declared `android:extractNativeLibs="false"` in `AndroidManifest.xml` for full Google Play Console compliance.
 - **Production Readiness Audit Test Suite**: Added unit and regression tests (`test/audit_production_readiness_test.dart`) covering `EmailApiHandler` capability checks, `PluginStateStore` secret encryption, `PluginStorageStore` per-plugin quotas, and `SqliteVectorStore` cache invalidation.
 
 ### Changed
@@ -27,7 +52,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Removed automatic permission pre-approval for external `com.chattree.official.*` plugin IDs; only built-in `PluginType.internal` tools receive pre-approved internal capabilities.
   - Expanded reserved internal IDs in `PluginPackageManager.validatePackage` (`com.chattree.note`, `com.chattree.reminder`, `com.chattree.visual`, `com.chattree.weather`, `com.chattree.translate`, `com.chattree.calendar`, `com.chattree.internal`) to prevent third-party spoofing.
 - **Encrypted Secret Plugin Settings (`PluginStateStore`)**: Settings declared with `isSecret: true` (or matching secret/token/password/api_key identifiers) are now encrypted in `FlutterSecureStorage`, storing only a `__SECURE_STORED__` sentinel in `SharedPreferences`.
-- **Per-Plugin Storage Quotas (`PluginStorageStore`)**: Enforced strict quotas per plugin (`maxKeysPerPlugin = 200`, `maxValueLength = 65,536` bytes / 64 KB, and `maxTotalBytesPerPlugin = 524,288` bytes / 512 KB) to prevent storage exhaustion.
+- **Per-Plugin Storage Quotas (`PluginStorageStore`)**: Enforced strict quotas per plugin (`maxKeysPerPlugin = 500`, `maxValueLength = 262,144` bytes / 256 KB, and `maxTotalBytesPerPlugin = 2,097,152` bytes / 2 MB) to prevent storage exhaustion.
 - **Strict Disabled-Plugin Dispatch Guard**: Blocked `ChatController` fallback to `ToolRegistry.instance.dispatch` when the owning plugin is disabled in `PluginRegistry`.
 - **Clean WASM Payload Forwarding**: Scoped legacy calendar field normalization in `WasmMarketplaceTool.handle` strictly to calendar commands so general-purpose WASM plugins receive unmodified `operation` and `payload` structures.
 - **Persistent HTTP Client Reuse for Cloud Providers**: `OpenAiProvider`, `GeminiProvider`, and `ClaudeProvider` now reuse persistent `HttpClient` instances (60s idle timeout, 15s connection timeout) to avoid repeated TCP/TLS handshakes, with clean re-creation on `cancelGeneration()`.

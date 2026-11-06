@@ -15,11 +15,13 @@ This guide walks you through installing Chattree on your Android device and conf
 
 | Specification | Minimum | Recommended |
 |---|---|---|
-| Operating System | Android 10 (API Level 29) | Android 13+ (API Level 33+) |
-| RAM (Cloud AI only) | 3 GB | 4 GB |
-| RAM (On-device LLMs) | 6 GB | 8 GB or 12 GB |
-| Free Storage | 500 MB (app & plugins) | 4 GB+ (for local model weights) |
-| Architecture | 64-bit ARM (`arm64-v8a`) | 64-bit ARM (`arm64-v8a`) with NEON/v8.2-A |
+| Operating System | Android 8.0 Oreo (API Level 26) | Android 13+ (API Level 33+) |
+| RAM (Cloud AI & Plugins) | 3 GB | 4 GB |
+| RAM (Ultralight Local LLMs < 1B) | 3 GB (1.2 – 1.6 GB RAM allocated) | 4 GB |
+| RAM (Medium Local LLMs 1B – 4B) | 4 GB to 6 GB | 6 GB to 8 GB |
+| RAM (Heavy Local LLMs 7B – 8B) | 8 GB | 12 GB or 16 GB |
+| Free Storage | 500 MB (app & plugins) | 4 GB+ (for local GGUF model weights) |
+| Architecture | 64-bit ARM (`arm64-v8a`) or `x86_64` | 64-bit ARM (`arm64-v8a`) with NEON/v8.2-A |
 
 ---
 

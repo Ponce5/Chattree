@@ -208,24 +208,54 @@ External Cloud Emitter (GitHub / Stripe / IoT / CLI)
 
 Chattree features an automated in-app deployment workflow (`CloudflareDeployService`) allowing users to deploy their personal relay Worker in seconds:
 
-1. **In-App Deployment Dialog (**Settings → Inbound Webhooks → Auto-desplegar en Cloudflare**):**
-   - The user creates a Cloudflare API Token using the official `Edit Cloudflare Workers` template.
-   - The user pastes their token into the single-field dialog and taps **Desplegar Worker ahora**.
-2. **Automated Provisioning Sequence:**
-   - **Account Verification:** Authenticates against `GET /client/v4/accounts` and resolves the account identifier.
+1. **Clean Adaptive UI Experience:**
+   - Prior to deployment, remote endpoint URLs, FCM tokens, and Bearer secrets remain cleanly hidden to prevent confusion with non-functional endpoints.
+   - A prominent, theme-adaptive **Auto-desplegar en Cloudflare** button spans the section width (contrasting cleanly in both dark and light modes).
+   - Once configured, the verified public relay URL, active credentials, and diagnostic testing controls reveal smoothly.
+2. **One-Tap Provisioning Sequence:**
+   - **Account Verification:** Authenticates against `GET /client/v4/accounts` using the user's Cloudflare API Token.
    - **Subdomain Resolution:** Checks `GET /client/v4/accounts/{id}/workers/subdomain`.
    - **Script Upload:** Bundles `tools/cloudflare-relay-worker.js` as an ES Module multipart payload and uploads it to `PUT /client/v4/accounts/{id}/workers/scripts/chattree-webhook-relay`.
-   - **Secret Binding:** Automatically configures Cloudflare secrets via `PUT /scripts/{name}/secrets`:
-     - `FCM_TOKEN`: The device's unique FCM registration token.
-     - `FIREBASE_SERVICE_ACCOUNT`: Secure relay credentials.
-   - **Subdomain Routing:** Enables the public route via `POST /scripts/{name}/subdomain`.
-3. **One-Tap Verification:** The resulting URL (`https://chattree-webhook-relay.<subdomain>.workers.dev`) is saved to app preferences, and the user can test the end-to-end pipeline with the **Probar conexión en la nube** button.
+   - **Automated Secret Binding:** Configures Cloudflare Worker secrets automatically:
+     - `FCM_TOKEN`: The device's active FCM registration token.
+     - `FIREBASE_SERVICE_ACCOUNT`: The Firebase relay service account credentials integrated automatically from the app (requiring zero manual JSON copying or Cloudflare dashboard editing).
+   - **Subdomain Routing:** Enables public routing via `POST /scripts/{name}/subdomain`.
+3. **One-Tap Verification:** The resulting URL (`https://chattree-webhook-relay.<subdomain>.workers.dev`) is persisted, and the user can test the end-to-end pipeline with the **Probar conexión** button.
 
 ---
 
-## 8. Testing Inbound Webhooks with PowerShell & cURL
+## 8. Persistent Webhook Activity History (`InboundActivityLog`)
 
-### A. Local Testing (USB / Wi-Fi LAN)
+To guarantee transparency and complete auditability, Chattree includes a persistent activity log (**Settings → Historial de actividad de webhooks**):
+
+- **Zero-Data-Loss Persistence:** Every inbound delivery (whether accepted, rejected, or diagnostic) is serialized to persistent disk storage (`inbound_activity_entries_v1`). Events are retained across app restarts and device reboots.
+- **Background Isolate Capture:** When a webhook arrives with Chattree closed or backgrounded, `fcmBackgroundHandler` records the event directly to persistent storage from the background isolate before waking the main UI.
+- **Atomic De-duplication & Merging:** When Chattree opens, in-memory and disk entries are atomically merged using unique delivery identifiers (`X-Chattree-Delivery-Id`), ensuring no events are dropped or duplicated.
+- **Diagnostic System Ping (`/plugins/system/test`):** A dedicated diagnostic route processed directly by the core runtime. Users can send test pings at any time to verify cloud delivery and trigger native notifications without requiring any third-party plugin to be installed.
+
+---
+
+## 9. Testing Inbound Webhooks with PowerShell & cURL
+
+### A. Diagnostic Cloud Ping (Verifies Cloudflare + FCM with App Open or Closed)
+```powershell
+$headers = @{
+    "Content-Type"           = "application/json"
+    "Authorization"          = "Bearer wa_secret"
+    "X-Chattree-Delivery-Id" = "diag_$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
+}
+
+$body = @{
+    source    = "Chattree-Settings-UI"
+    action    = "ping"
+    timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    message   = "Prueba de webhook y persistencia en segundo plano"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "https://chattree-webhook-relay.<subdomain>.workers.dev/plugins/system/test" -Method Post -Headers $headers -Body $body
+```
+
+### B. Local Testing (USB / Wi-Fi LAN)
 ```powershell
 # Forward local port if Android is connected via USB:
 adb forward tcp:8765 tcp:8765
@@ -244,21 +274,23 @@ $body = @{
 Invoke-RestMethod -Uri "http://127.0.0.1:8765/plugins/com.developer.webhook.hub/alerts" -Method Post -Headers $headers -Body $body
 ```
 
-### B. Remote Cloud Testing (24/7 Cloudflare Relay)
+### C. Remote Cloud Testing (Plugin Webhook)
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$url = "https://chattree-webhook-relay.<tu-subdominio>.workers.dev/plugins/com.developer.webhook.hub/alerts"
+$url = "https://chattree-webhook-relay.<tu-subdominio>.workers.dev/plugins/com.chattree.whatsapp.autoresponder/webhooks/whatsapp"
 
 $headers = @{
     "Content-Type"           = "application/json"
     "Authorization"          = "Bearer <TU_SECRET_COPIADO_DE_AJUSTES>"
-    "X-Chattree-Delivery-Id" = [System.Guid]::NewGuid().ToString()
+    "X-Chattree-Delivery-Id" = "wa_$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
 }
 $body = @{
-    event   = "webhook.alert"
-    title   = "Alerta Cloud 24/7"
-    message = "Webhook recibido exitosamente a traves de Cloudflare y FCM!"
+    event     = "whatsapp.message.received"
+    sender    = "521123456789"
+    pushName  = "Prueba Cloudflare 24/7"
+    message   = "Webhook recibido exitosamente a traves de Cloudflare y FCM!"
+    timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body

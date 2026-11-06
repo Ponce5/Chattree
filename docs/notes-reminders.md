@@ -28,11 +28,11 @@ Host API Layer (ChattreeHostApi):
 
 ---
 
-## 1. Conversational Chat Commands
+## 1. Conversational Chat Commands & Builtin Plugins
 
-Chattree provides explicit slash commands and structured natural language interactions for notes and reminders.
+Chattree exposes Notes and Reminders through dedicated, official first-class plugins (`NotePlugin` and `ReminderPlugin`) registered within `PluginRegistry.instance`. This architecture ensures unified discovery in the slash-command menu, consistent permission enforcement, and deterministic routing.
 
-### Notes
+### Notes (`NotePlugin`)
 
 - **Explicit Slash Command:** Users type `/note` directly for deterministic operations:
   ```text
@@ -89,6 +89,7 @@ To access these services, a plugin must declare the appropriate capabilities in 
   "chattree.reminders.read",
   "chattree.reminders.create",
   "chattree.reminders.update",
+  "chattree.reminders.complete",
   "chattree.reminders.delete"
 ]
 ```

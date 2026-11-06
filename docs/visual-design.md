@@ -8,7 +8,7 @@ This guide details the architectural pipeline, prompt engineering directives, se
 
 ## Architectural Pipeline Overview
 
-The Visual Design subsystem operates as a multi-stage resilient pipeline that bridges generative LLM inference with strict deterministic security, structural XML validation, and reactive Flutter rendering.
+The Visual Design subsystem operates as an official first-class plugin (`VisualPlugin`) registered in `PluginRegistry.instance`. It acts as a multi-stage resilient pipeline bridging generative LLM inference with strict deterministic security, structural XML validation, and reactive Flutter rendering.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐

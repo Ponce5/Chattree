@@ -15,7 +15,7 @@ A WASM plugin runs inside a **WebAssembly linear memory sandbox**.
 |--------|--------|
 | Native filesystem paths | ❌ Blocked |
 | Operating system sockets / raw TCP | ❌ Blocked |
-| SharedPreferences / SQLite directly | ❌ Blocked |
+| SharedPreferences / host SQLite directly | ❌ Blocked (plugins must use sandboxed `database.sql` private SQLite databases; direct host DB access is prohibited) |
 | Other plugins' private data | ❌ Blocked |
 | Unbounded full chat history | ❌ Blocked (`chat.history.read` is strictly capped at the 20 most recent messages) |
 | Unbounded or recursive AI tool loops | ❌ Blocked (`ai.context` is strictly single-turn and capped at 2,048 output tokens) |
@@ -79,17 +79,50 @@ The `pluginId` is **always injected by the runtime** — the plugin cannot forge
 | CPU fuel | 50 000 000 instructions | Yes — `fuelLimit` |
 | Async iterations | 50 round-trips | No |
 | Max concurrent HTTP per plugin | 20 | No |
-| HTTP request body | 4 MB | No |
-| HTTP response body | 8 MB | No |
+| HTTP request body | 4 MB (`4,194,304` bytes) | No |
+| HTTP response body | 8 MB (`8,388,608` bytes) | No |
 | Notification rate | 15 per hour (sliding window) | No |
-| File read limit | 8 MB | No |
-| File write limit | 8 MB | No |
+| Notification title max | 100 characters | No |
+| Notification body max | 500 characters | No |
+| File read limit | 8 MB (`8,388,608` bytes) | No |
+| File write limit | 8 MB (`8,388,608` bytes) | No |
 | Share text limit | 32,768 chars (32 KB) | No |
+| Share subject limit | 200 characters | No |
 | Clipboard read/write limit | 100 KB (`102,400` chars) | No |
-| Note content max | 50 000 chars | No |
+| Note title max | 300 characters | No |
+| Note content max | 50,000 characters | No |
+| Note search limit | 100 results (default 50) | No |
+| Reminder title max | 300 characters | No |
+| Reminder list limit | 100 results (default 50) | No |
+| Chat history messages limit | 20 recent messages | No |
+| Chat history message char limit | 4,000 characters per message | No |
+| AI embed text length max | 50,000 characters | No |
+| AI prompt length max | 16,000 characters | No |
+| AI completion max tokens | 2,048 tokens (default 512) | Configurable (16–2048) |
+| Inbound webhook max payload | 256 KB (`262,144` bytes) | No |
+| Inbound webhook body timeout | 10 seconds | No |
+| Inbound HTTP concurrent requests | 32 requests | No |
+| Outbound webhook response drain | 8 KB (`8,192` bytes) | No |
+| Outbound webhook concurrent | 16 global / 5 per extension | No |
+| Outbound webhook retry backoff | Base 10s + jitter (0..2s), up to 5 retries | Built-in |
+| Package archive size (compressed) | 25 MB (`26,214,400` bytes) | No |
+| Package uncompressed total size | 50 MB (`52,428,800` bytes) | No |
+| Package archive file count | 50 entries max | No |
 | Private storage key max | 256 chars | No |
 | Private storage value max | 256 KB (`262,144` bytes) | No |
 | Private storage quota per plugin | 500 keys / 2 MB (`2,097,152` bytes) total | No |
+| WebSocket concurrent sockets | 10 active connections per plugin | Atomic pre-handshake reservations |
+| WebSocket max frame size | 16 MB (`16,777,216` bytes) | Enforces RFC 6455 1009 closure on exceed |
+| WebSocket memory buffer | 500 messages per socket | Automatic FIFO queue |
+| UI elements per card | 60 elements max | Validated via `UiApiHandler.sanitizeUiCard` |
+| UI key-value items | 40 items max | Validated |
+| UI buttons per row | 8 buttons max | Security confirmation dialog for `/` commands |
+| Scheduled tasks per plugin | 25 active tasks max | Enforced by `PluginTaskScheduler` |
+| Scheduled task min interval | 60 seconds minimum | Anti-battery drain protection |
+| Scheduled task payload | 128 KB (`131,072` bytes) max | Structured JSON payload |
+| SQLite database storage quota | 200 MB (`209,715,200` bytes) | Calculates `.db` + `-wal` + `-shm` + `-journal` |
+| SQLite query result limit | 2,000 rows max per query | Memory OOM guard |
+| SQLite sandbox defense | Blocked `ATTACH`, `DETACH`, `VACUUM INTO`, `PRAGMA writable_schema` | Security boundary |
 
 ---
 

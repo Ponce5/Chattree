@@ -256,6 +256,42 @@ the URL violates allowed schemes.
 
 ---
 
+### `websocket connection limit reached` / `websocket frame too large`
+
+**What it means:** WebSocket connection or messaging constraints were exceeded.
+- **Connection limit reached:** The plugin has 10 active connections (or handshakes in progress). Additional `websocket.connect` attempts are rejected. Close unused sockets with `websocket.close`.
+- **Frame too large (Code 1009):** Inbound or outbound WebSocket frame exceeded the **16 MB** ceiling. The socket is automatically closed with RFC 6455 status code `1009` to prevent memory exhaustion.
+- **SSRF blocked:** Attempted connection to loopback or LAN without `network.local` capability.
+
+---
+
+### `ui card validation error` / `element limit exceeded`
+
+**What it means:** A declarative card failed validation in `UiApiHandler.sanitizeUiCard`.
+- Exceeded **60 elements per card**, **40 key-value items**, or **8 buttons per row**.
+- Attempted to nest beyond 3 levels deep.
+- Invalid or unknown element type, or missing required attributes.
+
+---
+
+### `scheduler minimum interval violation` / `scheduler task limit reached`
+
+**What it means:** A task schedule violates execution safety policies.
+- **Minimum interval violation:** Cron expression or interval specifies a frequency shorter than **60 seconds**. Increase the interval to protect device battery life.
+- **Task limit reached:** The plugin already has **25 active scheduled tasks**. Cancel unused tasks via `scheduler.cancel_task` before adding new ones.
+- **Invalid cron expression:** The 5-field expression cannot be parsed or contains syntax errors.
+
+---
+
+### `database quota exceeded` / `database unauthorized statement`
+
+**What it means:** Relational SQLite database constraints were violated.
+- **Quota exceeded:** The total database file size (`.db` + `-wal` + `-shm` + `-journal`) has exceeded the **200 MB** limit. Run `DELETE` or `VACUUM` queries to free space.
+- **Query limit exceeded:** A `database.query` call exceeded the **2,000 row** ceiling. Use `LIMIT` and pagination (`OFFSET`) in your SQL queries.
+- **Unauthorized statement:** The SQL statement included forbidden operations (`ATTACH DATABASE`, `DETACH DATABASE`, `VACUUM INTO`, modifying `sqlite_master`, or altering system pragmas).
+
+---
+
 ## Runtime-level errors (shown in chat)
 
 These errors are displayed directly in the Chattree chat as a tool error message.

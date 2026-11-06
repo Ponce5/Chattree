@@ -92,7 +92,8 @@ Plugins communicate with Chattree through a single imported function:
    - **Synchronous Operations** (e.g., `storage.*`, `core.*`): Executed immediately. The return value is the byte length written to `resPtr`.
    - **Asynchronous Operations** (e.g., `network.*`, `chattree.notes.*`): Returns `0` immediately. The host performs the operation asynchronously and invokes the plugin's exported `resume(resPtr, resLen)` function once complete.
 5. **Memory Safety:** If `reqLen` or `resMaxLen` exceeds allocated memory boundaries, `host_call` returns `-1` and aborts.
-6. **Direct Markdown Rendering & Conversational Bypassing:** When a plugin outputs formatted Markdown (text not wrapped in JSON brackets `{` or `[`), Chattree renders it straight into the chat bubble via Flutter's rich Markdown engine and completely bypasses the secondary LLM pass. This guarantees deterministic visual presentation and prevents local on-device models from corrupting structured output with strange symbols or hallucinations.
+6. **Direct Markdown & Declarative Interactive UI:** When a plugin outputs formatted Markdown, Chattree renders it straight into the chat bubble via Flutter's rich Markdown engine and completely bypasses the secondary LLM pass. Furthermore, plugins declaring `ui.components` can emit rich interactive cards (badges, progress bars, key-value tables up to 40 items, and button rows up to 8 buttons) with built-in security modals for sensitive command confirmation.
+7. **Extended Host Capabilities:** Includes full-duplex WebSockets (`network.websocket`, up to 10 sockets, 16 MB frame cap, 500 queued frames buffer), scheduled Cron tasks with anti-battery drain protection (`scheduler.task`, minimum 60s interval, up to 25 tasks), and dedicated private relational SQLite databases (`database.sql`, up to 200 MB quota with atomic transactions and sandbox isolation).
 
 ---
 

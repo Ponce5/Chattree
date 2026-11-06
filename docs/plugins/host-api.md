@@ -91,6 +91,10 @@ Your WASM module must declare this import to use any Host API:
 | `chattree.reminders` | Chattree Reminders CRUD | ❌ Async | `chattree.reminders.*` |
 | `chattree.context` | Current message & bounded chat history | ❌ Async | `chattree.context.read` / `chat.history.read` |
 | `ai` | Single-turn LLM completion, embeddings & RAG | ❌ Async | `ai.context` / `ai.embeddings` |
+| `websocket` | Real-time bidirectional WebSockets | ❌ Async | `network.websocket` (+ optional `network.local`) |
+| `ui` | Declarative rich UI cards, badges, progress & buttons | ✅ Sync | `ui.components` / `ui.render` |
+| `scheduler` | Wall-clock Cron & periodic background tasks | ❌ Async | `scheduler.task` / `scheduler.cron` |
+| `database` | Private isolated relational SQLite & transactions | ❌ Async | `database.sql` / `storage.database` |
 
 ---
 
@@ -363,6 +367,168 @@ The `ai` namespace provides bounded access to single-turn LLM completions (`ai.c
 
 ---
 
+## `websocket` Namespace
+
+The `websocket` namespace (`WebSocketApiHandler`) manages full-duplex WebSocket connections.
+
+### Operations
+
+#### `websocket.connect`
+Establishes a WebSocket connection with pre-reserved socket quota to prevent race conditions.
+- **Payload:**
+  - `url` (string, required): Target `ws://` or `wss://` endpoint.
+  - `headers` (object, optional): Custom headers for handshake.
+  - `protocols` (string[], optional): Subprotocols requested.
+  - `pingIntervalSeconds` (number, optional, default 30): Ping keep-alive interval.
+- **Response `data`:**
+  - `connectionId` (string): Unique identifier for this connection.
+  - `status` (string): `"connected"` or `"connecting"`.
+  - `url` (string): Endpoint connected to.
+
+#### `websocket.send`
+Sends a text or binary message over the active socket.
+- **Payload:**
+  - `connectionId` (string, required): Identifier returned by `connect`.
+  - `message` (string, required): Text payload or Base64-encoded string for binary.
+  - `isBinary` (boolean, optional, default false): Set to `true` when sending binary data.
+- **Response `data`:**
+  - `sent` (boolean): `true` on successful dispatch.
+  - `bytes` (number): Number of bytes transferred.
+
+#### `websocket.receive` / `websocket.poll`
+Drains queued incoming messages from the in-memory socket buffer (up to 500 frames).
+- **Payload:**
+  - `connectionId` (string, required): Identifier returned by `connect`.
+  - `maxMessages` (number, optional, default 50): Maximum messages to retrieve in one call.
+- **Response `data`:**
+  - `messages` (array): Array of objects: `[{ "data": string, "isBinary": boolean, "timestamp": string }]`.
+  - `count` (number): Number of messages drained.
+
+#### `websocket.status`
+Queries current connection state and memory buffer statistics.
+- **Payload:**
+  - `connectionId` (string, required): Identifier returned by `connect`.
+- **Response `data`:**
+  - `connectionId` (string): The connection queried.
+  - `state` (string): `"connected"`, `"connecting"`, `"closing"`, or `"closed"`.
+  - `bufferedAmount` (number): Bytes queued in the native socket.
+  - `queuedMessages` (number): Number of unpolled messages in the memory queue.
+
+#### `websocket.close`
+Closes an active socket cleanly with optional status code and reason string.
+- **Payload:**
+  - `connectionId` (string, required): Identifier returned by `connect`.
+  - `code` (number, optional, default 1000): WebSocket close code.
+  - `reason` (string, optional): Close reason string.
+- **Response `data`:**
+  - `closed` (boolean): `true`.
+  - `connectionId` (string): The connection closed.
+
+---
+
+## `ui` Namespace
+
+The `ui` namespace (`UiApiHandler`) enables plugins to emit structured interactive UI cards.
+
+### Operations
+
+#### `ui.render` / `ui.show_card`
+Sanitizes and renders an interactive UI card in the chat.
+- **Payload:**
+  - `card` (object, required): Structured card specification:
+    - `title` (string, required): Card headline.
+    - `subtitle` (string, optional): Secondary caption.
+    - `elements` (array, required): Array of UI element objects (max 60 elements).
+- **Supported Elements:**
+  - `text`: `{ "type": "text", "content": "Hello", "style": "body", "markdown": true }`
+  - `badge`: `{ "type": "badge", "text": "OK", "variant": "success" }`
+  - `progress`: `{ "type": "progress", "value": 75, "label": "75%" }`
+  - `key_value`: `{ "type": "key_value", "items": [{ "label": "Status", "value": "Active" }] }` (max 40 items)
+  - `divider`: `{ "type": "divider" }`
+  - `button_row`: `{ "type": "button_row", "buttons": [{ "label": "Run", "action": "command", "payload": "/mycommand" }] }` (max 8 buttons)
+- **Response `data`:**
+  - `rendered` (boolean): `true`.
+  - `elementCount` (number): Number of elements rendered after sanitization.
+
+---
+
+## `scheduler` Namespace
+
+The `scheduler` namespace (`PluginTaskScheduler` / `SchedulerApiHandler`) registers recurring Cron and interval-based background tasks.
+
+### Operations
+
+#### `scheduler.schedule_task`
+Schedules a recurring task with anti-battery drain enforcement.
+- **Payload:**
+  - `taskId` (string, required): Unique task ID within the plugin.
+  - `cron` (string, optional): 5-field Cron expression (e.g., `0 * * * *`, `*/15 * * * *`).
+  - `intervalSeconds` (number, optional): Recurrent interval in seconds (minimum 60).
+  - `payload` (any, optional): Structured JSON payload dispatched with the event (max 128 KB).
+  - `description` (string, optional): Human-readable task description.
+- **Response `data`:**
+  - `scheduled` (boolean): `true`.
+  - `taskId` (string): The registered task ID.
+  - `nextExecution` (string): ISO 8601 timestamp of next trigger.
+
+#### `scheduler.cancel_task`
+Cancels and removes an active scheduled task.
+- **Payload:**
+  - `taskId` (string, required): Task ID to cancel.
+- **Response `data`:**
+  - `cancelled` (boolean): `true`.
+  - `taskId` (string): The cancelled task ID.
+
+#### `scheduler.list_tasks`
+Lists all active scheduled tasks for this plugin.
+- **Payload:** `{}`
+- **Response `data`:**
+  - `tasks` (array): Array of registered task descriptors.
+  - `count` (number): Total tasks registered (max 25).
+
+---
+
+## `database` Namespace
+
+The `database` namespace (`PluginDatabaseManager` / `DatabaseApiHandler`) provides an isolated relational SQLite database (`plugin_<pluginId>.db`) with 200 MB quota and atomic transactions.
+
+### Operations
+
+#### `database.query`
+Executes a SQL SELECT query returning rows and columns.
+- **Payload:**
+  - `sql` (string, required): SQL query string (e.g. `SELECT * FROM items WHERE status = ?`).
+  - `params` (array, optional): Positional query parameters.
+- **Response `data`:**
+  - `rows` (array): Array of result row objects (up to 2,000 rows).
+  - `rowCount` (number): Number of returned rows.
+  - `columns` (string[]): Column names.
+
+#### `database.execute`
+Executes a DDL or DML statement (`CREATE TABLE`, `INSERT`, `UPDATE`, `DELETE`).
+- **Payload:**
+  - `sql` (string, required): SQL statement string.
+  - `params` (array, optional): Parameter bindings.
+- **Response `data`:**
+  - `changes` (number): Rows modified or inserted.
+  - `lastInsertRowId` (number, optional): Auto-increment primary key ID.
+
+#### `database.transaction`
+Executes an atomic batch transaction with automatic rollback if any statement fails.
+- **Payload:**
+  - `statements` (array, required): Array of `{ "sql": string, "params"?: any[] }`.
+- **Response `data`:**
+  - `success` (boolean): `true`.
+  - `results` (array): Execution result summary per statement.
+
+#### `database.tables`
+Inspects all user tables created within the plugin's private database.
+- **Payload:** `{}`
+- **Response `data`:**
+  - `tables` (string[]): List of table names.
+
+---
+
 ## Output format from your WASM function
 
 When your exported function finishes, it must:
@@ -394,6 +560,21 @@ Chattree wraps this in `ToolResult.direct(text)`.
   "type": "permissionDenied",
   "missingCapabilities": ["network.http"],
   "operation": "network.http_request"
+}
+```
+
+**Declarative UI Card output**:
+```json
+{
+  "type": "card",
+  "displayText": "Task Summary",
+  "ui": {
+    "title": "System Monitor",
+    "elements": [
+      { "type": "badge", "text": "ONLINE", "variant": "success" },
+      { "type": "progress", "value": 45, "label": "CPU Load 45%" }
+    ]
+  }
 }
 ```
 

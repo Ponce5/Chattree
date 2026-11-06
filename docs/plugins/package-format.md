@@ -7,22 +7,31 @@ Chattree treats any file with this extension as a plugin package.
 
 ## Archive structure
 
-```
+```text
 my-plugin.chattree-plugin  (ZIP archive)
 ├── plugin.json            ← REQUIRED — plugin manifest
 ├── plugin.wasm            ← REQUIRED for runtime="wasm"
-└── icon.png               ← OPTIONAL — plugin icon
+├── icon.png               ← OPTIONAL — plugin icon (512x512 PNG)
+├── README.md              ← OPTIONAL — documentation / usage notes
+└── LICENSE                ← OPTIONAL — license text (.txt, .md, or bare)
 ```
 
-### Rules
+### Rules & Safety Quotas
 
-- Package files must be at the archive root. The app rejects unsafe paths and unexpected root files; the repository CLI and Marketplace validator enforce their own accepted file lists. Keep the archive to documented root files and do not include subdirectories.
+- **Root Level Only:** All package files must reside strictly at the archive root. Subdirectories, path traversal sequences (`..`), leading slashes, and drive letters are rejected by the app and package validators.
+- **Allowed Archive Root Files:** Only the following filenames (case-insensitive) are permitted at the package root:
+  - `plugin.json` (mandatory)
+  - `plugin.wasm` (mandatory for WASM runtime)
+  - `icon.png` (optional icon, recommended 512×512 PNG)
+  - `readme.md` (optional)
+  - `license`, `license.txt`, `license.md` (optional)
+- **Compressed Package Size Limit:** Maximum **25 MB (`26,214,400` bytes)**.
+- **Uncompressed Total Size Limit:** Maximum **50 MB (`52,428,800` bytes)** across all entries (zip-bomb defense).
+- **Entry Count Limit:** Maximum **50 files** per archive.
 - `plugin.json` must be present and parseable.
 - `plugin.wasm` must match `plugin.json → wasmPath` (always `"plugin.wasm"`).
-- The `wasmSha256` field in `plugin.json` must match the actual SHA-256 of `plugin.wasm`.
-  Chattree computes this on import and will reject mismatches.
-- `icon.png` is optional. If absent, Chattree uses a default icon.
-  Recommended size: 512 × 512 pixels.
+- The `wasmSha256` field in `plugin.json` must match the actual SHA-256 of `plugin.wasm`. Chattree computes this on import and rejects any mismatch.
+- `icon.png` is optional. If absent, Chattree uses a default icon. Recommended size: 512 × 512 pixels.
 
 ---
 
