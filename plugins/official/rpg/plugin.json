@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.rpg",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "Text RPG Simulator",
-  "description": "Official interactive Text RPG simulator and deterministic adventure engine for Chattree. Features rich narrative combat, dice rolls, inventory verification, declarative UI cards, and private SQLite savegame persistence.",
+  "description": "Official interactive Retro MMORPG simulator and continuous narrative campaign engine for Chattree. Features procedural atmospheric prologues, deterministic dice combat, verified inventories, Tibia-style pixel art UI cards, and private SQLite save persistence.",
   "author": "Chattree Core Team",
   "authorEmail": "support@chattree.app",
   "homepageUrl": "https://chattree.app",
@@ -27,17 +27,19 @@
     "adventure",
     "dice",
     "narrative",
+    "tibia",
+    "pixelart",
     "sqlite",
     "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/icon.png?v=1.0.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/banner.png?v=1.0.0",
-  "changelog": "1.0.0: Initial release of official Text RPG Simulator with deterministic combat, inventory checks, declarative UI cards and SQLite save persistence.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/icon.png?v=1.1.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/banner.png?v=1.1.0",
+  "changelog": "1.1.0: Authentic Tibia-inspired 16-bit pixel art assets, dynamic continuous campaign prologue, rich Game Master narrative directives, and UI card improvements.",
   "runtime": "wasm",
   "entrypoint": "rpg_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "092f75bffe081361656857e9a03aef88887a983c98de44df0f69bcafc28258b0",
+  "wasmSha256": "c911ee8419f80941874da80dd050550383fe1faab34fcaaf9acda6e87b6f75af",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 15000,
@@ -50,7 +52,7 @@
       "id": "com.chattree.official.rpg.engine",
       "command": "rpg",
       "displayName": "RPG Adventure Engine",
-      "description": "Simulador de rol interactivo y motor de aventura determinista. Permite iniciar una campaña (/rpg start [guerrero|mago|picaro]), ver tu ficha (/rpg status), ejecutar acciones narrativas en combate o exploración (/rpg action <accion>), y guardar o cargar partida (/rpg save, /rpg load). Cuando el usuario dé una orden en lenguaje natural en el contexto de su aventura, emite JSON con action='action' y query='<accion limpia>'.",
+      "description": "Motor de rol narrativo continuo y simulador de aventura determinista estilo MMORPG clásico (Tibia/Zork). Al iniciar (/rpg o /rpg start), tú como IA Game Master debes generar una introducción rica, inmersiva, atmosférica y diferente cada vez, tejiendo una historia lineal continua con misterio y peligro. Cada decisión del jugador avanza la historia con causa y efecto real. NUNCA inventes números de vida ni ítems de inventario; respeta matemáticamente los datos que emite el motor WASM y usa tu talento literario para narrar cada golpe, suspenso y ambiente.",
       "capabilities": [
         "database.sql",
         "storage.private",
@@ -66,34 +68,33 @@
           "load",
           "help"
         ],
-        "description": "Interpreta órdenes de rol y aventura en lenguaje natural y emite una llamada JSON válida para el motor WASM de RPG.",
+        "description": "Interpreta cualquier acción de rol, combate o exploración en lenguaje natural y genera la llamada al motor de la campaña.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'start' (comenzar aventura), 'status' (ver estadísticas), 'action' (ejecutar acción de combate o exploración), 'save' (guardar partida) o 'load' (cargar partida).",
+            "description": "Acción a realizar: 'start' (iniciar o reiniciar la historia), 'status' (ver estadísticas completas), 'action' (ejecutar acción en la historia), 'save' (guardar partida) o 'load' (cargar partida).",
             "required": true
           },
           {
             "name": "query",
             "key": "query",
             "type": "string",
-            "description": "Detalle de la acción en lenguaje natural (ej. 'atacar al goblin con la espada', 'beber una poción', 'abrir el cofre con la ganzúa', 'explorar las ruinas').",
+            "description": "Acción del jugador en lenguaje natural (ej. 'atacar al centinela', 'beber pocion', 'avanzar con cautela').",
             "required": false
           }
         ],
         "examples": [
           {
-            "input": "inicia una nueva aventura de rol como guerrero",
+            "input": "inicia una aventura de rol",
             "output": {
               "tool": "rpg",
-              "action": "start",
-              "query": "guerrero"
+              "action": "start"
             }
           },
           {
-            "input": "ataco al goblin con mi espada",
+            "input": "ataco al centinela con mi espada",
             "output": {
               "tool": "rpg",
               "action": "action",
@@ -101,7 +102,7 @@
             }
           },
           {
-            "input": "bebo una poción de vida para curarme",
+            "input": "me tomo una poción curativa",
             "output": {
               "tool": "rpg",
               "action": "action",
@@ -109,14 +110,14 @@
             }
           },
           {
-            "input": "muéstrame el estado de mi personaje y mi inventario",
+            "input": "muéstrame el estado de mi héroe",
             "output": {
               "tool": "rpg",
               "action": "status"
             }
           },
           {
-            "input": "guarda mi progreso en el juego",
+            "input": "guarda mi progreso",
             "output": {
               "tool": "rpg",
               "action": "save"
