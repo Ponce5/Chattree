@@ -49,8 +49,10 @@ External Source (e.g., Local CLI / Dev Tool / Service)
 The local webhook listener is powered by `InboundHttpServer`.
 
 ### Key Characteristics:
-- **Loopback by Default + Optional LAN Mode:** By default, the server binds strictly to `127.0.0.1` (`InternetAddress.loopbackIPv4`). Users can optionally enable **LAN / Wi-Fi connections (`0.0.0.0`)** in **Settings → Plugins → [Plugin] → Webhooks Entrantes** to receive authenticated webhooks from desktop machines, Home Assistant, or IoT devices on the same local network.
+- **Loopback by Default + Optional LAN Mode (IPv4 & IPv6):** By default, the server binds strictly to `127.0.0.1` (`InternetAddress.loopbackIPv4`) and accepts IPv4/IPv6 loopback (`127.0.0.1`, `::1`, `[::1]`). Users can enable **Permitir dispositivos en red local (LAN)** directly in **Settings → Inbound Webhooks** (or in **Settings → Plugins → [Plugin] → Webhooks Entrantes**) to bind to `0.0.0.0` and accept authenticated requests from RFC 1918 LAN addresses (`10.x`, `172.16–31.x`, `192.168.x`) and IPv6 ULA (`fc00::/7`).
 - **Configurable Port:** The default listening port is `8765`. Users can configure any custom port (0–65535) in **Settings → Inbound Webhooks**.
+- **Immediate Dispatch on Local Ingestion:** Validated `2xx` requests ingested by `InboundHttpRouter` immediately trigger `EventRuntime.instance.processDueDeliveries()` so subscribed WASM handlers execute without polling latency.
+- **Built-In Local Diagnostic Route (`/plugins/system/test`):** `InboundHttpRouter` natively supports authenticated diagnostic pings on `/plugins/system/test` (matching the cloud relay behavior) so users can verify local and LAN connectivity even before installing a third-party webhook plugin.
 - **Foreground Operation:** To respect mobile battery life and avoid requiring a permanent, intrusive foreground service notification in Android, the server operates while Chattree is active.
 - **Graceful Pause and Resume:**
   - When the app is backgrounded or minimized, Android suspends open socket listeners. Chattree cleans up the socket safely without dropping database records.
@@ -64,15 +66,15 @@ The local webhook listener is powered by `InboundHttpServer`.
 The inbound pipeline implements defense-in-depth:
 
 ### A. SSRF Protection (`WebhookSsrfGuard`)
-Prevents server-side request forgery by ensuring all internal routing targets adhere to strict loopback constraints:
-- Rejects non-loopback IP addresses and loopback bypass attempts (`0.0.0.0`, external IPv4/IPv6, multicast).
-- Blocks sensitive internal system ports and unauthorized redirection.
+Prevents server-side request forgery by ensuring all internal routing targets adhere to strict loopback or explicitly authorized LAN constraints:
+- Rejects non-loopback IP addresses when LAN mode is off, and supports bracketed IPv6 (`[::1]`, `::1`) and IPv6 Unique Local Addresses (`fc00::/7` / `fd00::/8`) when LAN mode is enabled.
+- Permanently blocks cloud metadata endpoints (`169.254.0.0/16`), multicast, and sensitive system ports.
 
 ### B. Endpoint Authentication (`bearer` & `hmacSha256Raw`)
 Inbound webhook endpoints support two cryptographic authentication modes configured in `inboundWebhooks`:
 - **Bearer Token (`bearer`):** Validates `Authorization: Bearer <token>` against the active (or rotating) endpoint secret stored in `WebhookSecretStore`.
-- **HMAC-SHA256 Signature (`hmacSha256Raw`):** Validates `X-Chattree-Signature-256: sha256=<hex_digest>` computed over the raw UTF-8 request body using the endpoint secret.
-- **Timing-Attack Resistance:** Both token and signature comparisons use constant-time byte comparison (`fixedTimeEquals`) to prevent side-channel timing attacks.
+- **HMAC-SHA256 Signature (`hmacSha256Raw`):** Validates `X-Chattree-Signature-256: sha256=<hex_digest>` computed over the raw UTF-8 request body using the UTF-8 encoded endpoint secret.
+- **Timing-Attack Resistance:** Both token and signature comparisons use constant-time SHA-256 digest comparison (`WebhookSigner.secureSignatureCompare`) to prevent side-channel timing attacks.
 
 ### C. Idempotency & Deduplication
 Every request includes a unique delivery identifier:
@@ -98,8 +100,9 @@ Users have full control over both the global listener and per-plugin webhook end
 
 ### Global Listener (**Settings → Inbound Webhooks**)
 - **Enable / Disable Toggle:** Starts or stops the HTTP listener on demand. The preference is persisted across app restarts.
+- **LAN / Wi-Fi Access Toggle (`Permitir dispositivos en red local (LAN)`):** Switches the listener between loopback-only (`127.0.0.1`) and local network binding (`0.0.0.0`) directly from the global server card.
 - **Port Configuration:** Customize the listening port (default `8765`).
-- **Endpoint URL Preview:** Displays the active listener URL (e.g., `http://127.0.0.1:8765`).
+- **Dynamic Endpoint Route Preview:** Displays the active listener base URL (`http://127.0.0.1:8765` or `http://0.0.0.0:8765`) along with the active plugin webhook path (or `/plugins/system/test` diagnostic route).
 - **Clear Status & Diagnostics:** Displays live status badges (`Activo`, `Detenido`, `Iniciando`, `Error`) with actionable error messages when conflicts occur.
 
 ### Per-Plugin Endpoint Management (**Settings → Plugins → [Plugin] → Webhooks Entrantes**)
@@ -200,7 +203,10 @@ External Cloud Emitter (GitHub / Stripe / IoT / CLI)
 ### Key Technical Properties:
 1. **100% Free & Open Source:** Uses Cloudflare Workers free tier (up to 100,000 requests/day) and Google Firebase Cloud Messaging free Spark tier.
 2. **Strict Google Play Compliance:** Does not keep persistent TCP sockets open in the background. Android wakes the app briefly via FCM data push only when an actual event arrives.
-3. **Guaranteed Delivery:** If the app is closed, events are queued safely in the persistent pending inbox. Once Chattree opens, `drainPendingInbox()` processes every pending event through the full validation and WASM dispatch pipeline.
+3. **Priority Plugin Route Resolution:** When a cloud webhook arrives, `FcmInboundRelayService` resolves installed plugins in `InboundEndpointResolver` first before falling back to built-in diagnostic routes, ensuring installed plugins (including `com.developer.webhook.hub` and custom WASM plugins) execute their handlers reliably.
+4. **Total FCM Payload Byte Guard (`MAX_DATA_BYTES = 3800`):** The Cloudflare Worker measures the combined UTF-8 byte length of `path`, `body`, and serialized `headers` before calling FCM HTTP v1, returning a deterministic `413 payload_too_large` response if the payload would exceed FCM's 4 KB data envelope limit, and uses loop-safe Base64URL encoding for JWT signing.
+5. **Guaranteed Delivery with Serialized Drain & Bounded Retries (`kFcmMaxInboxRetries = 3`):** If the app is closed, events are queued safely in the persistent pending inbox. Once Chattree opens, `drainPendingInbox()` processes pending events under an atomic concurrency lock (`_drainInFlight`) and caps unresolvable route retries (`404`) at 3 attempts to prevent infinite retry loops.
+6. **FCM Token Rotation Awareness:** Tracks `last_deployed_fcm_token` against the current device FCM token and notifies the user in Settings if a token refresh requires a one-tap Worker update.
 
 ---
 

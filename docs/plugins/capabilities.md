@@ -136,6 +136,148 @@ Allows sending and cancelling **local device notifications**.
 
 ---
 
+### 🔴 notifications.read
+
+**Category:** Device  
+**Status:** ✅ Available  
+**Permission required:** Explicit user authorization + Android Notification Listener Access  
+**Host API namespace:** `notifications`, `events`
+
+Allows plugins to receive real-time streaming events when notifications are posted or updated by other applications on the device (e.g., messaging apps, email, calendar).
+
+**Events Emitted on `HostEventBus`:**
+
+| Event Type | Description | Payload Schema |
+|------------|-------------|----------------|
+| `device.notification.received` | Fired when a notification arrives or updates | `{ id, logicalId, packageName, title, text, category, postTime, isClearable, hasReplyAction, isUpdate, actions }` |
+| `device.notification.removed` | Fired when a notification is dismissed | `{ id, logicalId, packageName, postTime }` |
+
+**Event Payload Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique notification identifier from Android (`StatusBarNotification.id` + tag) |
+| `logicalId` | string | Deterministic key for deduplication: `${packageName}_${id}_${tag}` |
+| `packageName` | string | Originating app package ID (e.g. `com.whatsapp`, `org.telegram.messenger`) |
+| `title` | string | Notification title or sender name |
+| `text` | string | Message body or summary text |
+| `category` | string? | Android category (`msg`, `email`, `social`, `alarm`, `promo`, etc.) |
+| `postTime` | integer | Timestamp when notification was posted (ms since Unix epoch) |
+| `isClearable` | boolean | True if the notification can be swiped away or dismissed |
+| `hasReplyAction` | boolean | True if an inline `RemoteInput` direct reply is available |
+| `isUpdate` | boolean | True if this event updates an already active notification session |
+| `actions` | array | Available quick actions: `[{ title: string, hasRemoteInput: boolean, isQuickReply: boolean }]` |
+
+**Security & Privacy Safeguards:**
+- **Native OTP / 2FA Exclusion:** Any notification containing one-time passwords, verification codes (regex `\b\d{4,8}\b` with security keywords like *code*, *OTP*, *2FA*, *verificación*), or marked with security flags is immediately dropped in the Android native service. It never enters Dart memory, EventBus, or plugin sandboxes.
+- **Zero-Persistence in Host Core:** Chattree Core does not persist notification text or metadata to disk. Plugins requiring historical retention must manage their own storage using their isolated SQLite database (`database.sql`).
+- **Debounced Stream:** Burst updates (e.g. rapid group chat messages) are throttled with a 200ms debounce per notification session to protect CPU and memory.
+
+---
+
+### 🟡 notifications.query
+
+**Category:** Device  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `notifications`
+
+Allows plugins to inspect the status of the native notification listener service and retrieve currently active status bar notifications.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `notifications.getStatus` | `{}` | `{ status: "active" \| "disconnected" \| "unsupported" }` |
+| `notifications.getActive` | `{}` | `{ notifications: DeviceNotificationSummary[] }` |
+
+**Example Response (`notifications.getStatus`):**
+```json
+{
+  "status": "active"
+}
+```
+
+**Example Response (`notifications.getActive`):**
+```json
+{
+  "notifications": [
+    {
+      "id": "1001",
+      "logicalId": "com.whatsapp_1001_chat_42",
+      "packageName": "com.whatsapp",
+      "title": "Alice Smith",
+      "text": "Are we still meeting at 3 PM?",
+      "category": "msg",
+      "postTime": 1711234567890,
+      "isClearable": true,
+      "hasReplyAction": true,
+      "isUpdate": false,
+      "actions": [
+        { "title": "Reply", "hasRemoteInput": true, "isQuickReply": true }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### 🔴 notifications.reply
+
+**Category:** Device  
+**Status:** ✅ Available  
+**Permission required:** Explicit user authorization  
+**Host API namespace:** `notifications`
+
+Allows plugins to execute inline direct replies to active notifications using Android's native `RemoteInput` API (e.g. auto-replies or AI-drafted responses to WhatsApp, Telegram, or SMS).
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `notifications.reply` | `{ notificationKey: string, reply: string }` | `{ success: boolean, notificationKey: string }` |
+
+**Input fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `notificationKey` | string | ✅ | Identifier of the active notification (as received in `DeviceNotificationSummary.id` or `logicalId`) |
+| `reply` | string | ✅ | Text content to send (max **4,000 characters**) |
+
+**Safety & Lifetime Boundaries:**
+- The native `RemoteInput` and `PendingIntent` objects reside exclusively in an Android in-memory `LruCache` (500 capacity). They are never saved to disk and are invalidated immediately when the user dismisses the notification.
+- Max payload length is strictly capped at **4,000 characters** to protect against Android Binder `TransactionTooLargeException`.
+- Fails safely with `reply_action_unavailable` or `notification_not_found` if the notification has been dismissed or lacks a reply action.
+
+---
+
+### 🟡 notifications.action
+
+**Category:** Device  
+**Status:** ✅ Available  
+**Permission required:** User consent  
+**Host API namespace:** `notifications`
+
+Allows plugins to programmatically dismiss or clear active notifications from the Android status bar.
+
+**Operations:**
+
+| Operation | Input | Output |
+|-----------|-------|--------|
+| `notifications.dismiss` | `{ notificationKey: string }` | `{ success: boolean, notificationKey: string }` |
+
+**Input fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `notificationKey` | string | ✅ | Target notification identifier (`StatusBarNotification.key` or `id`) |
+
+**Limitations:**
+- Only succeeds for notifications where `isClearable: true` (ongoing system alerts or foreground services cannot be dismissed).
+
+---
+
 ### 🟡 files.pick
 
 **Category:** Data  

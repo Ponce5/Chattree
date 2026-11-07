@@ -1,0 +1,65 @@
+{
+  "$schema": "../../schemas/plugin.manifest.v2.schema.json",
+  "schemaVersion": 2,
+  "id": "com.chattree.notification.tracker",
+  "version": "1.0.0",
+  "name": "Notification Smart Tracker & Responder",
+  "description": "Developer example: Capture Android notifications in real-time, log to an isolated private SQLite database, and execute AI-powered inline replies via RemoteInput.",
+  "author": "Chattree Community",
+  "authorEmail": "developer@example.com",
+  "homepageUrl": "https://chattree.chat/docs/plugins/capabilities",
+  "primaryCommand": "notifs",
+  "aliases": ["tracker", "replier"],
+  "type": "imported",
+  "category": "productivity",
+  "capabilities": [
+    "notifications.read",
+    "notifications.query",
+    "notifications.reply",
+    "notifications.action",
+    "database.sql",
+    "storage.database",
+    "storage.private",
+    "ai.context"
+  ],
+  "tags": ["notifications", "android", "sqlite", "quick-reply", "remote-input", "automation"],
+  "changelog": "1.0.0: Initial release of the Notification Hub smart tracker and responder example.",
+  "runtime": "wasm",
+  "entrypoint": "tracker_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "9dd8ed1480ce0435851c56aa5de7113e76e1ec1085e4249759ba33731a0424f8",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 16,
+  "timeoutMs": 15000,
+  "fuelLimit": 50000000,
+  "tools": [
+    {
+      "id": "com.chattree.notification.tracker.control",
+      "command": "notifs",
+      "displayName": "Notification Tracker",
+      "description": "Shows captured notifications, checks listener status, queries logs, and triggers replies.",
+      "capabilities": [
+        "notifications.query",
+        "notifications.reply",
+        "notifications.action",
+        "database.sql",
+        "storage.database"
+      ]
+    }
+  ],
+  "eventConsumers": [
+    {
+      "id": "notification-tracker-consumer",
+      "eventTypes": [
+        "device.notification.received",
+        "device.notification.updated",
+        "device.notification.removed"
+      ],
+      "targetAction": "com.chattree.notification.tracker.control",
+      "requiredPermissions": [
+        "notifications.read",
+        "notifications.query"
+      ]
+    }
+  ]
+}

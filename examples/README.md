@@ -27,6 +27,15 @@ This directory contains official, runnable developer examples demonstrating how 
   - JSON payload serialization and deserialization in linear memory.
   - Real integration with Chattree's local Vector RAG Notes subsystem.
 
+### 3. [Notification Smart Tracker & Responder (`examples/notification-tracker/`)](./notification-tracker/)
+- **Command:** `/notifs`
+- **Host API Capabilities:** `notifications.read`, `notifications.query`, `notifications.reply`, `notifications.action`, `database.sql`, `storage.database`
+- **Features Demonstrated:**
+  - Subscribing to real-time `device.notification.received` events from Android apps.
+  - Initializing and storing custom tables in an isolated SQLite database (`database.sql`).
+  - Native inline direct reply via Android `RemoteInput` with `notifications.reply`.
+  - Zero-persistence in Core with native OS-level OTP/2FA automatic redaction.
+
 ---
 
 ## Quick Start: Building & Packaging Examples

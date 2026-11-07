@@ -9,29 +9,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Added
+- **Resilient Local Plugin Importer & In-Place Plugin Updates (`PluginImporter`, `PluginPackageManager`, `PluginRegistry`)**:
+  - **In-Place Plugin Updates & Reinstalls (`allowUpdate: true`)**: Importing a `.chattree-plugin` or `.json` manifest for an already-installed plugin ID now updates or reinstalls the plugin directly in place without requiring manual uninstallation first. Preserves original `installedAt` metadata, user settings, private storage, and isolated SQLite databases, and displays a version diff badge (`v1.0.0 → v2.0.0`) with localized **Actualizar plugin** / **Reinstalar plugin** confirmation dialogs.
+  - **OS/Browser Copy-Suffix Normalization**: Automatically normalizes duplicate filename suffixes added by operating systems and browsers (e.g., `plugin (1).chattree-plugin`, `my-plugin (2).zip`, `plugin.chattree-plugin (1)`, `plugin - copia.json`, `plugin (1).wasm`).
+  - **Single-Folder ZIP Flattening & OS Metadata Filtering**: Transparently flattens archives re-compressed with a single parent directory (`my-plugin/plugin.json`) during local import and ignores OS metadata artifacts (`__MACOSX/`, `.DS_Store`, `Thumbs.db`, `desktop.ini`).
+  - **Magic-Byte Package Inspection**: Inspects ZIP magic bytes (`PK\x03\x04`) and JSON headers (`{`) so packages renamed by mobile download managers or content URIs are validated accurately.
+- **Inbound Webhooks Subsystem Hardening (Local HTTP & 24/7 Cloud Relay)**:
+  - **Priority Route Resolution for Installed Plugins (`FcmInboundRelayService`)**: Cloud relay routes now resolve against installed plugins in `InboundEndpointResolver` first before falling back to built-in diagnostic handlers, ensuring custom and official webhook plugins (such as `com.developer.webhook.hub`) execute their WASM handlers end-to-end.
+  - **Serialized Inbox Drain & Bounded Retries (`kFcmMaxInboxRetries = 3`)**: Added an in-flight mutex (`_drainInFlight`) to `drainPendingInbox()` to prevent duplicate concurrent processing on app resume, and capped retries for unresolvable routes (`404`) at 3 attempts to prevent infinite retry loops.
+  - **Cloudflare Worker Payload Byte Guard (`MAX_DATA_BYTES = 3800`) & Stack-Safe Base64URL**: Enforced total UTF-8 byte validation across `path` + `body` + `headers` in `cloudflare-relay-worker.js` before calling FCM HTTP v1 (returning a deterministic `413 payload_too_large` instead of `502 fcm_rejected`) and replaced spread-based `b64url` encoding with a loop-safe implementation.
+  - **Local `/plugins/system/test` Diagnostic Route & IPv6 Support (`InboundHttpRouter`)**: Added authenticated local diagnostic ping support on `/plugins/system/test`, IPv6 loopback (`::1` / `[::1]`) and IPv6 ULA (`fc00::/7`) validation in `WebhookSsrfGuard`, and immediate `EventRuntime.instance.processDueDeliveries()` dispatch upon 2xx local ingestion.
+  - **Global LAN Toggle & Real Worker Reachability Probe (`InboundWebhookListenerSettings`)**: Added the LAN/Wi-Fi switch (`Permitir dispositivos en red local (LAN)`) directly inside **Settings → Inbound Webhooks**, dynamic active plugin endpoint paths in test dialogs, FCM token rotation tracking (`last_deployed_fcm_token`), and real `/plugins/system/test` reachability verification.
 - **Phase 1 — Real-Time WebSockets (`WebSocketApiHandler`, capability `network.websocket`)**:
-  - Full-duplex WebSocket connection manager allowing plugins to establish up to 10 concurrent sockets.
+  - Full-duplex WebSocket connection manager allowing plugins to establish up to 10 concurrent sockets isolated per plugin.
   - Memory message buffer supporting up to 500 queued frames per socket with polling and streaming support.
   - 16 MB frame ceiling (`16,777,216` bytes) with automatic RFC 6455 status code 1009 termination upon violation.
   - Pre-handshake atomic connection quota reservations preventing race conditions during concurrent asynchronous handshakes.
-  - Built-in SSRF defense with `network.local` critical capability gating for LAN/localhost connections and permanent cloud metadata protection.
+  - Built-in SSRF defense (`WebhookSsrfGuard.validateTarget`) with `network.local` critical capability gating for LAN/localhost connections and permanent cloud metadata protection.
 - **Phase 2 — Declarative Interactive UI Components (`DeclarativeUiBubble`, capability `ui.components` / `ui.render`)**:
   - Rich interactive UI rendering in chat for progress bars, status badges, structured key-value tables (up to 40 items), and action button rows (up to 8 buttons per row).
   - Global centralized card sanitization (`UiApiHandler.sanitizeUiCard`) enforcing schema constraints across both Host API `ui.render` calls and direct WASM `ToolResult.ui` returns (max 60 elements per card, max depth 3).
-  - Interactive Action Security Confirmation: Mandatory user confirmation modal before executing sensitive action buttons or commands starting with `/` to prevent clickjacking or unauthorized commands by third-party plugins.
+  - Interactive Action Security Confirmation: Mandatory user confirmation modal before executing sensitive action buttons or commands starting with `/` (`command`, `prompt`, `message`, `send`, `url`, `copy`) to prevent clickjacking or unauthorized commands by third-party plugins.
 - **Phase 3 — Scheduled Tasks & Cron Automations (`PluginTaskScheduler`, capability `scheduler.task` / `scheduler.cron`)**:
-  - Wall-clock Cron evaluation (`calculateNextCronExecution`) supporting standard 5-part cron syntax (`*/N * * * *`, `0 * * * *`, `0 0 * * *`, `M H * * *`) and periodic intervals.
+  - Wall-clock Cron evaluation (`calculateNextCronExecution`) supporting standard 5-part cron syntax (`*/N * * * *`, `0 * * * *`, `0 0 * * *`, `M H * * *`, Vixie Cron DOM/DOW OR semantics) and periodic intervals, with dynamic timer re-arming when earlier tasks are scheduled.
   - Anti-battery drain guard enforcing a strict minimum execution interval of 60 seconds.
-  - Central event publication on `HostEventBus` (`scheduler.trigger`) delivering task payloads up to 128 KB, with a ceiling of 25 active tasks per plugin.
+  - Central event publication on `HostEventBus` (`scheduler.trigger`) with automatic event consumer registration for plugins declaring `scheduler.task` or `scheduler.cron`, delivering payloads up to 128 KB and up to 25 active tasks per plugin.
   - Automatic task cleanup and cancellation upon plugin disable or uninstallation.
 - **Phase 4 — Private Relational SQLite Database (`PluginDatabaseManager`, capability `database.sql` / `storage.database`)**:
-  - Private isolated SQLite database file per plugin (`plugin_<pluginId>.db`) with complete sandbox separation.
-  - Production-expanded 200 MB storage quota accurately measuring `.db`, `.db-wal`, `.db-shm`, and `.db-journal` files.
+  - Private isolated SQLite database file per plugin (`plugin_<pluginId>.db`) with complete sandbox separation and path sanitization.
+  - Production-expanded 200 MB storage quota accurately measuring `.db`, `.db-wal`, `.db-shm`, and `.db-journal` files, plus `PRAGMA busy_timeout = 5000` concurrency protection.
+  - Accurate query dispatch distinguishing `SELECT`, `WITH ... SELECT`, and allowed `PRAGMA` statements (`rawQuery`) from `INSERT`, `UPDATE`, and `DELETE` mutations (`rawInsert`/`rawUpdate`/`rawDelete`).
   - Atomic batch transactions (`database.transaction`) with automatic rollback on error.
   - Query memory guard returning up to 2,000 rows per query with column metadata.
   - Automatic type normalization for booleans (`1`/`0`) and structured maps/lists (JSON strings).
   - Sandbox escape protection prohibiting `ATTACH DATABASE`, `DETACH DATABASE`, `VACUUM INTO`, and unauthorized pragma operations.
   - Zero-orphan file cleanup purging all database files on plugin uninstallation.
+- **Notification Hub Subsystem (`NotificationCaptureService`, `DeviceNotificationService`, capabilities `notifications.read`, `notifications.query`, `notifications.reply`, `notifications.action`)**:
+  - Native Android `NotificationListenerService` capturing active status bar notifications and streaming `device.notification.received` and `device.notification.removed` events to Flutter through `EventChannel` (`chattree/notification_events`) and `HostEventBus`.
+  - Collision-free `logicalId` construction (`${packageName}_${sbn.id}_${sbn.tag}`) and automatic cleanup of debounce state on notification dismissal (`onNotificationRemoved`).
+  - Zero-persistence in Chattree Core: external notification bodies and metadata are never persisted to core database tables, ensuring data minimization. Plugins requiring historical retention must manage their own storage using their isolated SQLite database (`database.sql`).
+  - Strict native OTP and security redaction: automatic OS-level filtering of one-time passwords, verification codes, and 2FA credentials before events ever cross into Flutter or `HostEventBus`.
+  - Ephemeral Android `LruCache` session manager (500 capacity) for native `PendingIntent` and `RemoteInput` references, avoiding storage on disk and preventing memory leaks.
+  - Granular RBAC capabilities: `notifications.read` for event bus subscriptions (and active queries), `notifications.query` for active alerts inspection (`getStatus`, `getActive`), `notifications.reply` for direct replies via `RemoteInput`, and `notifications.action` for programmatic dismissals (`notifications.dismiss`).
+  - IPC and Binder protection: enforced 4,000-character payload ceiling on `notifications.reply` preventing Android `TransactionTooLargeException`.
+  - Debounced event dispatching (200ms per thread) preventing UI thread starvation during group chat message bursts.
 - **24/7 Cloud Background Webhooks (`FcmInboundRelayService`)**: Added cloud webhook delivery pipeline combining a personal, free Cloudflare Worker relay and Google Firebase Cloud Messaging (FCM HTTP v1). When the app is closed or locked, FCM data messages wake a dedicated lightweight background isolate (`fcmBackgroundHandler`) without battery drain or keeping open TCP sockets, queuing raw payloads in `kFcmPendingInboxKey` and triggering native notifications. On app launch/resume, `drainPendingInbox` completes full validation and event dispatch.
 - **Automated Cloudflare Worker Deployment (`CloudflareDeployService`)**: Integrated in-app deployment from **Settings → Inbound Webhooks**. Users enter their Cloudflare API Token, and Chattree automatically connects to Cloudflare API v4, uploads the Worker script, registers encrypted secrets (`FCM_TOKEN` and Firebase credentials), and binds public subdomain routes in seconds.
 - **Tolerant Webhook Idempotency Fallback**: If an external webhook payload does not supply `X-Chattree-Delivery-Id`, `FcmInboundRelayService` automatically generates a deterministic fallback delivery key (`fcm-{timestamp}-{hashCode}`) to prevent event loss while guaranteeing deduplication.

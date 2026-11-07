@@ -19,7 +19,7 @@ When a plugin behaves unexpectedly, verify these items first:
 ## Installation & Import Issues
 
 ### Error: "Invalid Package / Archive Corrupted"
-- **Cause:** The archive is either corrupted during transfer or contains a nested folder.
+- **Cause:** The archive is corrupted during transfer, exceeds the 25 MB compressed / 50 MB uncompressed limit, or is missing `plugin.json` / `plugin.wasm`. (Note: Chattree's local importer automatically tolerates OS copy suffixes like `plugin (1).chattree-plugin`, flattens a single wrapper directory like `my-plugin/plugin.json`, and ignores `__MACOSX` or `.DS_Store` metadata, but strict CLI/Marketplace submission still requires root-level files.)
 - **Solution:** Run `unzip -l my-plugin.chattree-plugin` on Linux/macOS or inspect the archive. You should see:
   ```text
   Archive:  my-plugin.chattree-plugin
@@ -28,10 +28,14 @@ When a plugin behaves unexpectedly, verify these items first:
         849  2026-10-14 12:00   plugin.json
        1944  2026-10-14 12:00   plugin.wasm
   ```
-  If `my-plugin/plugin.json` appears with a prefix path, recreate the archive from inside the directory:
+  For Marketplace submission, always package files directly at the root of the archive:
   ```bash
   cd my-plugin && zip ../my-plugin.chattree-plugin plugin.json plugin.wasm
   ```
+
+### Updating an Already Installed Plugin Locally
+- **Behavior:** You do **not** need to uninstall an existing plugin before importing a newer (or rebuilt) `.chattree-plugin` file with the same `id`.
+- **Solution:** Simply import the new `.chattree-plugin` file from **Settings → Plugins → Importar plugin**. Chattree will recognize the installed plugin ID, display the version transition (`v1.0.0 → v1.1.0`), and update it in place while preserving your configured settings, private storage, and SQLite database.
 
 ### Error: "SHA-256 Mismatch"
 - **Cause:** `plugin.wasm` was recompiled or modified without updating `wasmSha256` in `plugin.json`.

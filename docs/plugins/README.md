@@ -90,6 +90,10 @@ Native service (Notes, Network, Storage, …)
 | `ui.components` / `ui.render` | ✅ Available (Phase 2 — Visual Components) |
 | `scheduler.task` / `scheduler.cron` | ✅ Available (Phase 3 — Scheduled Tasks) |
 | `database.sql` / `storage.database` | ✅ Available (Phase 4 — Relational Database) |
+| `notifications.read` | ✅ Available (Notification Hub — Real-time listener & events) |
+| `notifications.query` | ✅ Available (Notification Hub — Query active notifications) |
+| `notifications.reply` | ✅ Available (Notification Hub — Direct RemoteInput reply) |
+| `notifications.action` | ✅ Available (Notification Hub — Dismiss/cancel active alerts) |
 
 See [capabilities.md](capabilities.md) for full details.
 

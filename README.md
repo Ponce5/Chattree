@@ -58,6 +58,7 @@ The runtime provides high-performance, sandboxed host capabilities for plugins:
 - **Declarative Interactive UI (`ui.components`):** Rich cards in chat with progress bars, status badges, metric tables (up to 40 items), and action buttons with security confirmation modals.
 - **Scheduled Tasks & Cron Automations (`scheduler.task`):** Standard 5-field Cron jobs and periodic background tasks with anti-battery drain protection (minimum 60s interval, up to 25 tasks, 128 KB payload).
 - **Private Relational SQLite Database (`database.sql`):** Fully isolated relational databases (`plugin_<pluginId>.db`) with 200 MB storage quota, atomic batch transactions, and up to 2,000 rows per query.
+- **Notification Hub Subsystem (`notifications.read`, `notifications.query`, `notifications.reply`, `notifications.action`):** Deep integration with Android system notifications. Plugins can stream real-time incoming alerts via `HostEventBus`, query active status bar notifications, perform inline direct replies using native `RemoteInput` (capped at 4,000 chars), and dismiss alerts, with automatic OS-level OTP/2FA redaction and zero core persistence.
 
 Plugins are distributed as `.chattree-plugin` ZIP archives. The package includes a SHA-256 digest for the WASM binary; this detects package changes, but is not a publisher signature or proof of publisher identity. Marketplace submission is available through the **Chattree Marketplace**:
 - **Distribution:** Hosted as public binary assets on GitHub Releases.

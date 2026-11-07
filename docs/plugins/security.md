@@ -123,6 +123,22 @@ The `pluginId` is **always injected by the runtime** — the plugin cannot forge
 | SQLite database storage quota | 200 MB (`209,715,200` bytes) | Calculates `.db` + `-wal` + `-shm` + `-journal` |
 | SQLite query result limit | 2,000 rows max per query | Memory OOM guard |
 | SQLite sandbox defense | Blocked `ATTACH`, `DETACH`, `VACUUM INTO`, `PRAGMA writable_schema` | Security boundary |
+| Notification reply max length | 4,000 characters | Android Binder IPC `TransactionTooLargeException` guard |
+| Notification native cache | 500 sessions max (Android `LruCache`) | Ephemeral in-memory only; zero disk persistence in Core |
+| Notification burst debounce | 200 ms per notification thread | Prevents CPU/EventBus flooding |
+| Notification OTP/2FA filter | Native Android regex & category drop | Strips 4-8 digit codes, passwords, and 2FA tokens before Dart |
+
+---
+
+## Notification Hub Security Model
+
+The Notification Hub subsystem connects Chattree plugins to Android status bar notifications with strict privacy and memory safety guarantees:
+
+1. **Zero-Persistence in Host Core:** Chattree Core maintains zero historical tables or logs for third-party notifications. Any plugin wishing to record notification history must request `database.sql` / `storage.database` and persist data in its own private, isolated SQLite database (`chattree_plugin_<id>.db`).
+2. **Ephemeral Native References:** Native Android `PendingIntent` and `RemoteInput` references are held strictly in the Android `NotificationCaptureService` RAM (`LruCache` with 500 entries). They are never saved to disk, cannot be inspected by plugins, and are automatically purged when the user dismisses the notification.
+3. **Hardware & Native OTP / 2FA Exclusion:** Before any notification crosses into the Flutter engine or `HostEventBus`, the Android native listener evaluates titles, bodies, and Android notification categories against regular expressions and security keywords (`\b\d{4,8}\b`, *código*, *verification code*, *OTP*, *2FA*, *seguridad*). All matching alerts are discarded at the OS level.
+4. **Binder IPC Protection:** Plugin replies sent via `notifications.reply` are enforced with a strict 4,000-character limit, preventing Android system server `TransactionTooLargeException` crashes.
+5. **Granular RBAC:** A plugin cannot listen to notifications without `notifications.read`, cannot query active notifications without `notifications.query`, cannot reply without `notifications.reply`, and cannot dismiss without `notifications.action`. Every capability requires explicit user approval.
 
 ---
 

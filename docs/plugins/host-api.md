@@ -78,7 +78,7 @@ Your WASM module must declare this import to use any Host API:
 | `storage` | Private key-value store | ✅ Sync | `storage.private` (auto) |
 | `network` | HTTP/HTTPS requests | ❌ Async | `network.http` (+ optional `network.local` for LAN/loopback) |
 | `files` | File pick / read / write | ❌ Async | `files.pick`/`files.read`/`files.write` |
-| `notifications` | Local notifications | ❌ Async | `notifications.send` |
+| `notifications` | Local alerts, Notification Hub & Listener | ❌ Async | `notifications.send`, `notifications.read`, `notifications.query`, `notifications.reply`, `notifications.action` |
 | `location` | GPS position | ❌ Async | `location.current` |
 | `camera` | Photo capture | ❌ Async | `camera.capture` |
 | `contacts` | Address book | ❌ Async | `contacts.read`/`.create`/`.update` |
@@ -194,10 +194,51 @@ If you return an unknown, unavailable, or another plugin’s handle, Chattree dr
 
 ### notifications.*
 
-| Operation | Sync | Input | Output |
-|-----------|------|-------|--------|
-| `notifications.send` | ❌ | `{ title, body? }` | `{ notificationId, sent, remainingQuota }` |
-| `notifications.cancel` | ❌ | `{ notificationId }` | `{ notificationId, cancelled }` |
+The `notifications` namespace covers both local notification dispatch and full Notification Hub device integration (querying active alerts, listening to real-time incoming notifications, direct reply via `RemoteInput`, and dismissing).
+
+| Operation | Sync | Capability Required | Input | Output |
+|-----------|------|---------------------|-------|--------|
+| `notifications.send` | ❌ | `notifications.send` | `{ title, body? }` | `{ notificationId, sent, remainingQuota }` |
+| `notifications.cancel` | ❌ | `notifications.send` | `{ notificationId }` | `{ notificationId, cancelled }` |
+| `notifications.getStatus` | ❌ | `notifications.query` | `{}` | `{ status: "active" \| "disconnected" \| "unsupported" }` |
+| `notifications.getActive` | ❌ | `notifications.query` | `{}` | `{ notifications: DeviceNotificationSummary[] }` |
+| `notifications.reply` | ❌ | `notifications.reply` | `{ notificationKey: string, reply: string }` | `{ success: boolean, notificationKey: string }` |
+| `notifications.dismiss` | ❌ | `notifications.action` | `{ notificationKey: string }` | `{ success: boolean, notificationKey: string }` |
+
+#### Real-Time EventBus Subscriptions (`notifications.read`)
+
+When `notifications.read` is granted, the plugin receives events on `HostEventBus`:
+
+- **`device.notification.received`**: Published when a notification arrives or updates on the device.
+  ```json
+  {
+    "id": "1042",
+    "logicalId": "com.whatsapp_1042_thread_9",
+    "packageName": "com.whatsapp",
+    "title": "Sarah Connor",
+    "text": "Check out this document",
+    "category": "msg",
+    "postTime": 1711234567890,
+    "isClearable": true,
+    "hasReplyAction": true,
+    "isUpdate": false,
+    "actions": [
+      { "title": "Reply", "hasRemoteInput": true, "isQuickReply": true }
+    ]
+  }
+  ```
+- **`device.notification.removed`**: Published when a notification is cleared or cancelled.
+  ```json
+  {
+    "id": "1042",
+    "logicalId": "com.whatsapp_1042_thread_9",
+    "packageName": "com.whatsapp",
+    "postTime": 1711234567890
+  }
+  ```
+
+#### Direct Reply (`notifications.reply`)
+Replies are sent through the native Android `RemoteInput` pipeline with a 4,000 character payload ceiling. If the notification is no longer active or was dismissed, the call returns an error (`notification_not_found` or `reply_action_unavailable`). Native references are held in ephemeral memory and never saved to disk.
 
 ---
 

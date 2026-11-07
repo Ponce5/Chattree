@@ -17,6 +17,7 @@
  */
 
 const MAX_BODY_CHARS = 3500; // FCM permite ~4 KB en "data"
+const MAX_DATA_BYTES = 3800;
 const FORWARDED_HEADERS = new Set([
   'authorization',
   'content-type',
@@ -49,7 +50,9 @@ export default {
     }
 
     const body = await request.text();
-    if (body.length > MAX_BODY_CHARS) {
+    const encoder = new TextEncoder();
+    const bodyBytes = encoder.encode(body).length;
+    if (body.length > MAX_BODY_CHARS || bodyBytes > MAX_BODY_CHARS) {
       return json({ error: 'payload_too_large', maxChars: MAX_BODY_CHARS }, 413);
     }
     // Chattree exige un objeto JSON; se descarta basura antes de gastar un push.
@@ -79,6 +82,15 @@ export default {
       return json({ error: 'missing_credentials' }, 401);
     }
 
+    const headersJson = JSON.stringify(headers);
+    const totalDataBytes =
+      encoder.encode(url.pathname).length +
+      bodyBytes +
+      encoder.encode(headersJson).length;
+    if (totalDataBytes > MAX_DATA_BYTES) {
+      return json({ error: 'payload_too_large', maxBytes: MAX_DATA_BYTES }, 413);
+    }
+
     let account;
     try {
       account = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT);
@@ -103,7 +115,7 @@ export default {
               data: {
                 path: url.pathname,
                 body,
-                headers: JSON.stringify(headers),
+                headers: headersJson,
               },
               android: { priority: 'HIGH' },
             },

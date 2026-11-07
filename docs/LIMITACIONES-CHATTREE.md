@@ -1,8 +1,8 @@
 # Chattree — Plugins y limitaciones actuales
 
 > Documento de referencia basado en la documentación oficial y el código fuente actual del repositorio (`content/reference/` y `lib/`).
-> Fecha de actualización: 3 de noviembre de 2026.
-> Refleja todas las mejoras de arquitectura, capacidades y cuotas implementadas en el runtime.
+> Fecha de actualización: 6 de noviembre de 2026.
+> Refleja todas las mejoras de arquitectura, auditorías de seguridad, capacidades y cuotas implementadas en el runtime.
 
 ---
 
@@ -201,7 +201,19 @@ Proporciona una base de datos SQLite relacional privada y completamente aislada 
 | **Transacciones financieras/atómicas** | Operaciones ACID con rollback automático ante errores |
 | **Caché relacional masiva** | Almacenar miles de registros estructurados con consultas rápidas (`SELECT ... WHERE`) |
 
-**Límites y garantías:** Cuota de almacenamiento de **200 MB** (contabilizando `.db` + `-wal` + `-shm` + `-journal`); hasta **2,000 filas por consulta**; normalización transparente de tipos (`bool` a 1/0, objetos a JSON); protección estricta contra escape del sandbox (`ATTACH`, `DETACH`, `VACUUM INTO`, `PRAGMA writable_schema` prohibidos); y eliminación total de archivos sin residuos al desinstalar.
+**Límites y garantías:** Cuota de almacenamiento de **200 MB** (contabilizando `.db` + `-wal` + `-shm` + `-journal`); `PRAGMA busy_timeout = 5000`; despacho diferenciado para `SELECT`/`WITH`/`PRAGMA` vs mutaciones; hasta **2,000 filas por consulta**; normalización transparente de tipos (`bool` a 1/0, objetos a JSON); protección estricta contra escape del sandbox (`ATTACH`, `DETACH`, `VACUUM INTO`, `PRAGMA writable_schema` prohibidos); y eliminación total de archivos sin residuos al desinstalar.
+
+### 2.15 `notifications.read`, `notifications.query`, `notifications.reply` y `notifications.action` — Hub de notificaciones del dispositivo
+
+Permite a los plugins autorizados escuchar notificaciones entrantes del sistema Android (`NotificationListenerService`), consultar notificaciones activas, responder en línea mediante `RemoteInput` y descartar notificaciones:
+
+| Plugin | Uso |
+|---|---|
+| **Auto-respuesta inteligente (WhatsApp / Telegram)** | Escucha notificaciones entrantes (`notifications.read`) y envía respuestas directas (`notifications.reply`) |
+| **Resumen y triaje de alertas** | Consulta las notificaciones activas (`notifications.query`), las clasifica en SQLite privado y limpia las irrelevantes (`notifications.action`) |
+| **Puente de mensajería a notas/recordatorios** | Convierte alertas importantes de otras apps en notas o recordatorios de Chattree |
+
+**Límites y garantías:** Filtrado nativo estricto de códigos OTP/2FA y alertas bancarias en Kotlin antes de cruzar a Flutter; cero persistencia en la base de datos central de Chattree; caché efímera en memoria (`LruCache` de 500 entradas) para `PendingIntent`/`RemoteInput`; `logicalId` libre de colisiones (`${packageName}_${sbn.id}_${sbn.tag}`); emisión tanto de llegada (`device.notification.received`) como de descarte (`device.notification.removed`); debounce de **200 ms** por hilo; y límite de **4,000 caracteres** en respuestas para proteger el Binder IPC de Android.
 
 ---
 
@@ -314,7 +326,7 @@ Las tres capacidades que anteriormente estaban en preparación ahora están **10
 
 ### Capacidades de hardware/SO que no existen por diseño
 
-No existen capabilities para: SMS directo, llamadas directas sin pasar por el marcador, Bluetooth, NFC, micrófono/grabación de audio, grabación de vídeo, captura de pantalla, sensores continuos (acelerómetro, podómetro), lectura de notificaciones de otras apps, geofencing o seguimiento continuo de ubicación en segundo plano.
+No existen capabilities para: SMS directo por telefonía celular, llamadas directas sin pasar por el marcador, Bluetooth, NFC, micrófono/grabación de audio, grabación de vídeo, captura de pantalla, sensores continuos (acelerómetro, podómetro), geofencing o seguimiento continuo de ubicación en segundo plano. (La lectura e interacción con notificaciones de otras apps sí está disponible de forma segura mediante `notifications.read`, `notifications.query`, `notifications.reply` y `notifications.action` con filtrado nativo de OTP/2FA).
 
 ---
 
@@ -352,16 +364,18 @@ No existen capabilities para: SMS directo, llamadas directas sin pasar por el ma
 - Cuerpo de petición **4 MB**; respuesta **8 MB**; hasta **20 peticiones concurrentes** por plugin.
 - Timeout por defecto 30 s, máximo 60 s.
 
-### 9.2 Webhooks entrantes
+### 9.2 Webhooks entrantes (Servidor Local y Relay Cloud 24/7)
 
-- **Loopback por defecto (`127.0.0.1`) + Modo LAN opcional (`0.0.0.0`):** desde **Ajustes → Plugins → [Plugin] → Webhooks Entrantes**, el usuario puede activar el interruptor para aceptar conexiones desde otros equipos o dispositivos IoT en la misma red Wi-Fi/LAN.
-- **Solo en primer plano:** al minimizar la app se pausa el socket y se reanuda automáticamente al volver a abrir Chattree.
-- **Un solo listener global**, puerto configurable (por defecto 8765).
-- Autenticación **Bearer o HMAC-SHA256** con secretos rotables y deduplicación por `X-Chattree-Delivery-Id` en SQLite.
+- **Loopback por defecto (`127.0.0.1` / `::1`) + Modo LAN opcional (`0.0.0.0`):** desde **Ajustes → Webhooks entrantes** (o en **Ajustes → Plugins → [Plugin] → Webhooks Entrantes**), el usuario puede activar **Permitir dispositivos en red local (LAN)** para aceptar conexiones desde otros equipos o dispositivos IoT en la misma red Wi-Fi/LAN (incluyendo RFC 1918 e IPv6 ULA `fc00::/7`).
+- **Despacho inmediato y ruta diagnóstica local (`/plugins/system/test`):** las entregas locales `2xx` disparan inmediatamente `EventRuntime.instance.processDueDeliveries()` y soportan pruebas autenticadas en `/plugins/system/test`.
+- **Relay en la nube 24/7 (`FcmInboundRelayService` + Cloudflare Worker):** permite recibir webhooks con la app cerrada vía Google FCM HTTP v1. El Worker valida que el tamaño total en bytes UTF-8 (`path` + `body` + `headers`) no supere `MAX_DATA_BYTES = 3800` antes de invocar a FCM (devolviendo `413 payload_too_large` si excede el límite). Al abrir la app, `drainPendingInbox()` procesa la cola con bloqueo de concurrencia (`_drainInFlight`), prioriza la resolución de plugins instalados sobre rutas de diagnóstico y limita los reintentos de rutas inexistentes a `kFcmMaxInboxRetries = 3`.
+- **Servidor local solo en primer plano:** al minimizar la app se pausa el socket TCP local y se reanuda automáticamente al volver a abrir Chattree.
+- **Un solo listener local global**, puerto configurable (por defecto 8765).
+- Autenticación **Bearer o HMAC-SHA256** (codificación UTF-8 completa y comparación en tiempo constante) con secretos rotables y deduplicación por `X-Chattree-Delivery-Id` en SQLite.
 
 ---
 
-## 10. Limitaciones de distribución y Marketplace
+## 10. Limitaciones de distribución, importación local y Marketplace
 
 | Límite | Valor (Alineado en App, CLI y Web) |
 |---|---|
@@ -373,9 +387,11 @@ No existen capabilities para: SMS directo, llamadas directas sin pasar por el ma
 | Versiones de esquema (`schemaVersion`) | `1` y `2` en App, CLI y Web |
 | Rate limit de envíos | **5 por hora por IP** |
 
-### Reglas de publicación y versiones
+### Reglas de importación local, actualización in-situ y publicación
 
-- **Validación estricta de orden SemVer:** el endpoint `POST /api/plugins/submit` rechaza tanto versiones duplicadas (`409 VERSION_ALREADY_EXISTS`) como versiones inferiores o iguales a la última publicada (`409 VERSION_NOT_NEWER`).
+- **Actualización y reinstalación in-situ (`allowUpdate: true`):** al importar un archivo `.chattree-plugin` (o manifiesto `.json`) cuyo `id` ya está instalado, Chattree actualiza o reinstala el plugin directamente sin requerir desinstalarlo primero, mostrando el cambio de versión (`v1.0.0 → v2.0.0`) y conservando su fecha `installedAt`, ajustes configurados, permisos, `storage.private` y base de datos SQLite.
+- **Tolerancia a sufijos de copia y re-empaquetado local:** el importador local normaliza automáticamente sufijos agregados por navegadores o gestores de archivos (`plugin (1).chattree-plugin`, `my-plugin (2).zip`, `plugin - copia.chattree-plugin`, `plugin (1).json`, `plugin (1).wasm`), aplana archivos ZIP re-comprimidos con una única carpeta raíz (`mi-plugin/plugin.json`), ignora metadatos del sistema operativo (`__MACOSX/`, `.DS_Store`, `Thumbs.db`, `desktop.ini`) y verifica cabeceras por magic bytes (`PK\x03\x04`).
+- **Validación estricta de orden SemVer en Marketplace:** el endpoint `POST /api/plugins/submit` rechaza tanto versiones duplicadas (`409 VERSION_ALREADY_EXISTS`) como versiones inferiores o iguales a la última publicada (`409 VERSION_NOT_NEWER`).
 - **El SHA-256 es verificación de integridad:** garantiza que `plugin.wasm` no fue alterado respecto a `plugin.json`.
 - Los plugins importados empiezan con **cero permisos sensibles/críticos**.
 
@@ -464,7 +480,10 @@ Todas las discrepancias detectadas previamente entre el runtime de Flutter, el v
 | `network.websocket` (Fase 1) | No existía en el runtime | **Implementado y auditado:** `WebSocketApiHandler`, 10 sockets max con reserva atómica pre-handshake, tramas 16 MB con cierre 1009, buffer 500 tramas, SSRF protegido con `network.local`. |
 | `ui.components` / `ui.render` (Fase 2) | Salida solo Markdown/texto plano | **Implementado y auditado:** `DeclarativeUiBubble`, sanitización global `UiApiHandler.sanitizeUiCard`, hasta 60 elementos, 40 pares clave-valor, 8 botones, modal de confirmación en comandos `/`. |
 | `scheduler.task` / `scheduler.cron` (Fase 3) | Sin programación periódica | **Implementado y auditado:** `PluginTaskScheduler`, expresiones Cron de reloj de pared, anti-battery drain (mínimo 60s), hasta 25 tareas, 128 KB payload, entrega por `HostEventBus`. |
-| `database.sql` / `storage.database` (Fase 4) | Solo key-value en SharedPreferences | **Implementado y auditado:** `PluginDatabaseManager`, SQLite privado `plugin_<pluginId>.db`, cuota ampliada a 200 MB, transacciones atómicas, 2,000 filas/query, protección escape sandbox. |
+| `database.sql` / `storage.database` (Fase 4) | Solo key-value en SharedPreferences | **Implementado y auditado:** `PluginDatabaseManager`, SQLite privado `plugin_<pluginId>.db`, cuota ampliada a 200 MB, `busy_timeout = 5000`, despacho `SELECT`/`WITH`/`PRAGMA`, transacciones atómicas, 2,000 filas/query, protección escape sandbox. |
+| `notifications.read / query / reply / action` (Fase 5) | Sin acceso a notificaciones del sistema | **Implementado y auditado:** `NotificationCaptureService` + `DeviceNotificationService`, filtrado nativo OTP/2FA, `logicalId` sin colisiones, eventos `received` y `removed`, respuestas `RemoteInput` hasta 4,000 chars y `LruCache` efímera. |
+| Importación local y actualización de plugins | Rechazaba archivos con sufijos `(1)` o carpeta raíz y exigía desinstalar para actualizar | **Resiliente y actualización in-situ:** `PluginImporter` / `PluginPackageManager` normalizan sufijos `(1)`, `- copia`, aplanan carpeta raíz única, ignoran `__MACOSX`/`.DS_Store` y actualizan in-situ (`allowUpdate: true`) preservando datos. |
+| Webhooks entrantes (Local y Cloud Cloudflare/FCM) | Colisión de ruta en `webhook.hub`, sin límite UTF-8 total en Worker ni mutex en `drainPendingInbox` | **Auditado y endurecido:** prioridad a plugins instalados en `FcmInboundRelayService`, mutex `_drainInFlight` y `kFcmMaxInboxRetries = 3`, validación UTF-8 `MAX_DATA_BYTES = 3800` en Worker, `/plugins/system/test` local, soporte IPv6 y switch LAN global. |
 | `clipboard.read` / `clipboard.write` | Documentado pero sin handler en el runtime | **Implementado y registrado** (`ClipboardApiHandler`, hasta 100 KB) |
 | `chat.history.read`, `ai.context`, `ai.embeddings` | Marcadas como no disponibles en WASM | **Implementadas y enrutadas** (`ContextApiHandler` y `AiApiHandler`) |
 | Despacho multi-comando (`tools[]`) | Sobrescribía `command` con `primaryCommand` | **Corregido:** respeta `tools[].command` y soporta `tools[].entrypoint` |
