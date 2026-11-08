@@ -271,6 +271,32 @@ export function validatePlugin(targetPath) {
         }
       }
     }
+
+    if (manifest.eventConsumers !== undefined) {
+      if (!Array.isArray(manifest.eventConsumers)) {
+        errors.push("'eventConsumers' must be an array.");
+      } else {
+        for (let i = 0; i < manifest.eventConsumers.length; i++) {
+          const c = manifest.eventConsumers[i];
+          if (!c || typeof c !== "object") {
+            errors.push(`eventConsumers[${i}] must be an object.`);
+            continue;
+          }
+          if (!c.id || typeof c.id !== "string") {
+            errors.push(`eventConsumers[${i}] is missing a valid 'id'.`);
+          }
+          if (!Array.isArray(c.eventTypes) || c.eventTypes.length === 0) {
+            errors.push(`eventConsumers[${i}] must declare a non-empty 'eventTypes' array.`);
+          }
+          if (!c.targetAction || typeof c.targetAction !== "string") {
+            errors.push(`eventConsumers[${i}] is missing 'targetAction' (must reference a tool id).`);
+          }
+          if (c.filter !== undefined && (typeof c.filter !== "object" || c.filter === null || Array.isArray(c.filter))) {
+            errors.push(`eventConsumers[${i}].filter must be a JSON object when provided.`);
+          }
+        }
+      }
+    }
   }
 
   // 4. Validate WASM binary

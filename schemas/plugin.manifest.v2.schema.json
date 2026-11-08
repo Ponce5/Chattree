@@ -438,6 +438,10 @@
           "items": { "type": "string" },
           "description": "List of event types this consumer subscribes to."
         },
+        "filter": {
+          "type": "object",
+          "description": "Optional key-value filter evaluated by HostEventBus before dispatching to WASM (values may be scalars or arrays of allowed scalars, e.g. {\"packageName\": [\"com.whatsapp\", \"com.whatsapp.w4b\"], \"canReply\": true})."
+        },
         "targetAction": {
           "type": "string",
           "description": "Exact tool ID or command invoked when the event fires."

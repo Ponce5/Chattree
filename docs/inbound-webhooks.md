@@ -138,6 +138,16 @@ WASM plugins consume inbound webhooks by declaring `schemaVersion: 2` (or `1`), 
     "network.webhook_inbound",
     "chattree.notes.create"
   ],
+  "tools": [
+    {
+      "id": "com.example.notifier.alert",
+      "command": "notifier",
+      "entrypoint": "run",
+      "displayName": "Local Notifier",
+      "description": "Processes incoming webhook and notification alerts.",
+      "capabilities": ["network.webhook_inbound", "chattree.notes.create"]
+    }
+  ],
   "inboundWebhooks": [
     {
       "id": "alert_hook",
@@ -150,14 +160,18 @@ WASM plugins consume inbound webhooks by declaring `schemaVersion: 2` (or `1`), 
     {
       "id": "alert_consumer",
       "eventTypes": ["alert.critical"],
-      "handlerExport": "handle_alert"
+      "targetAction": "com.example.notifier.alert",
+      "filter": {
+        "severity": ["high", "critical"]
+      },
+      "requiredPermissions": ["network.webhook_inbound", "chattree.notes.create"]
     }
   ]
 }
 ```
 
 ### In WebAssembly Binary:
-When an event arrives, Chattree invokes the plugin's exported `handle_alert` function passing the deserialized event payload. The plugin can then interact with the Chattree Host API (e.g., creating a note, scheduling a reminder, or updating conversational context).
+When an event arrives and matches the optional `filter`, Chattree invokes the tool specified in `targetAction` (`com.example.notifier.alert` -> exported `run` function), passing the serialized event envelope (`eventId`, `type`, `source`, `timestamp`, `data`). Event deliveries have a **45-second execution timeout** (`EventDispatcher.defaultHandlerTimeout`) so handlers can safely invoke `ai.complete` (`ai.context`), `chattree.notes.*`, `database.sql`, or `notifications.reply`.
 
 ---
 

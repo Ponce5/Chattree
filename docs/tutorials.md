@@ -316,7 +316,7 @@ Your WASM binary can write a structured JSON card directly to linear memory offs
 This tutorial shows how to schedule recurrent jobs and receive event callbacks.
 
 ### 1. Manifest Configuration
-Use `schemaVersion: 2` and declare `scheduler.task`:
+Use `schemaVersion: 2` and declare `scheduler.task` (or `notifications.read` for device notification listeners). You can also provide an optional `filter` object in `eventConsumers` so `HostEventBus` pre-filters events (supporting scalar equality or arrays of allowed values) before instantiating WASM:
 
 ```json
 {
@@ -326,7 +326,17 @@ Use `schemaVersion: 2` and declare `scheduler.task`:
     {
       "id": "morning_check",
       "eventTypes": ["scheduler.trigger"],
-      "targetAction": "run_morning_check"
+      "targetAction": "com.example.plugin.morning_check"
+    },
+    {
+      "id": "whatsapp_autoreply",
+      "eventTypes": ["device.notification.received", "device.notification.updated"],
+      "filter": {
+        "packageName": ["com.whatsapp", "com.whatsapp.w4b"],
+        "canReply": true
+      },
+      "targetAction": "com.example.plugin.wa",
+      "requiredPermissions": ["notifications.read", "notifications.reply", "ai.context"]
     }
   ]
 }

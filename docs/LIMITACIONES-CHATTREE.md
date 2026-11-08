@@ -213,7 +213,7 @@ Permite a los plugins autorizados escuchar notificaciones entrantes del sistema 
 | **Resumen y triaje de alertas** | Consulta las notificaciones activas (`notifications.query`), las clasifica en SQLite privado y limpia las irrelevantes (`notifications.action`) |
 | **Puente de mensajería a notas/recordatorios** | Convierte alertas importantes de otras apps en notas o recordatorios de Chattree |
 
-**Límites y garantías:** Filtrado nativo estricto de códigos OTP/2FA y alertas bancarias en Kotlin antes de cruzar a Flutter; cero persistencia en la base de datos central de Chattree; caché efímera en memoria (`LruCache` de 500 entradas) para `PendingIntent`/`RemoteInput`; `logicalId` libre de colisiones (`${packageName}_${sbn.id}_${sbn.tag}`); emisión tanto de llegada (`device.notification.received`) como de descarte (`device.notification.removed`); debounce de **200 ms** por hilo; y límite de **4,000 caracteres** en respuestas para proteger el Binder IPC de Android.
+**Límites y garantías:** Filtrado nativo estricto de códigos OTP/2FA y alertas bancarias en Kotlin antes de cruzar a Flutter; pre-filtrado declarativo opcional en `eventConsumers[].filter` dentro del `HostEventBus` (con soporte para listas de `packageName` y `canReply: true` sin despertar el motor WASM por notificaciones ajenas); cero persistencia en la base de datos central de Chattree; caché efímera en memoria (`LruCache` de 500 entradas) para `PendingIntent`/`RemoteInput`; `logicalId` libre de colisiones (`${packageName}_${sbn.id}_${sbn.tag}`); emisión de llegada (`device.notification.received`), actualización (`device.notification.updated`) y descarte (`device.notification.removed`); debounce inteligente por `${logicalId}_${canReply}_${bodySig}` para no perder actualizaciones rápidas de mensajería; despacho inmediato en primer y segundo plano con timeout de **45 segundos** para permitir inferencia de IA (`ai.complete`); y límite de **4,000 caracteres** en respuestas para proteger el Binder IPC de Android.
 
 ---
 
@@ -281,9 +281,9 @@ El sandbox es estricto pero cuenta con cuotas amplias para flujos reales:
 
 | Recurso | Límite |
 |---|---|
-| Timeout por llamada | **5 s por defecto**, configurable hasta **60 s (`60000` ms)** en `plugin.json` |
+| Timeout por llamada | **5 s por defecto** en comandos directos (**45 s** en `EventDispatcher`), configurable hasta **60 s (`60000` ms)** en `plugin.json` |
 | Fuel de CPU | **50 000 000 instrucciones** |
-| Memoria WASM | **32 MB por defecto**, máximo **64 MB** (`maxMemoryPages` hasta 1024 páginas) |
+| Memoria WASM | **32 MB por defecto**, máximo **64 MB** (`maxMemoryPages` hasta 1024 páginas; asignación dinámica sin reserva estática de 8 GiB y liberación inmediata con `instance.dispose()`) |
 | Buffer ABI v1 | **1 024 bytes** por defecto (ampliable con `outputOffset`) |
 | Payload ABI v2 | **12 MB por defecto**, máximo **16 MB** (`maxPayloadSizeBytes`) |
 | Iteraciones asíncronas | **50** round-trips al Host API por invocación |

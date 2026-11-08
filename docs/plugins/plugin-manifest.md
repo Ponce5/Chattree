@@ -180,7 +180,21 @@ Plugins can declare an optional `intentContract` inside any tool definition. Whe
 | Moderate JSON parsing | 4–16 (256 KB – 1 MB) |
 | Image processing / large responses | 64–256 (4 MB – 16 MB) |
 
-> Chattree will reject modules that exceed `maxMemoryPages` at load time.
+> Chattree will reject modules that exceed `maxMemoryPages` at load time. When authoring WAT directly, always specify both initial and maximum page bounds (e.g., `(memory (export "memory") 8 8)`). Chattree's Wasmtime engine uses dynamic memory sizing (`staticMemoryMaximumSize: 0`) and immediately disposes each `WasmInstance` after execution so virtual address space is never retained across calls.
+
+---
+
+### Event Consumers (`schemaVersion: 2`, optional)
+
+Plugins that react to device notifications (`device.notification.received`, `device.notification.updated`), scheduled tasks (`scheduler.trigger`), or inbound webhooks declare `eventConsumers`:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `eventConsumers[].id` | `string` | ✅ | Unique consumer identifier within the plugin. |
+| `eventConsumers[].eventTypes` | `string[]` | ✅ | Explicit event types to subscribe to (wildcards `*` are rejected). |
+| `eventConsumers[].targetAction` | `string` | ✅ | Exact `tools[].id` invoked when a matching event is dispatched. |
+| `eventConsumers[].filter` | `object` | ❌ | Key-value pre-filter evaluated by `HostEventBus` before instantiating WASM. Values can be scalars or arrays of allowed values (e.g. `{"packageName": ["com.whatsapp", "com.whatsapp.w4b"], "canReply": true}`). |
+| `eventConsumers[].requiredPermissions` | `string[]` | ❌ | Capabilities required before the event delivery is dispatched. |
 
 ---
 
