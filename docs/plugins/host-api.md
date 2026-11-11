@@ -194,51 +194,107 @@ If you return an unknown, unavailable, or another plugin’s handle, Chattree dr
 
 ### notifications.*
 
-The `notifications` namespace covers both local notification dispatch and full Notification Hub device integration (querying active alerts, listening to real-time incoming notifications, direct reply via `RemoteInput`, and dismissing).
+The `notifications` namespace covers local notification dispatch and the full universal Notification Hub device integration (querying active alerts, listening to real-time incoming notifications, direct replies via `RemoteInput`, programmatically dismissing notifications, and invoking native actions via cryptographically secure `ActionHandle` tokens).
 
-| Operation | Sync | Capability Required | Input | Output |
-|-----------|------|---------------------|-------|--------|
-| `notifications.send` | ❌ | `notifications.send` | `{ title, body? }` | `{ notificationId, sent, remainingQuota }` |
-| `notifications.cancel` | ❌ | `notifications.send` | `{ notificationId }` | `{ notificationId, cancelled }` |
-| `notifications.getStatus` | ❌ | `notifications.query` | `{}` | `{ status: "active" \| "disconnected" \| "unsupported" }` |
-| `notifications.getActive` | ❌ | `notifications.query` | `{}` | `{ notifications: DeviceNotificationSummary[] }` |
-| `notifications.reply` | ❌ | `notifications.reply` | `{ notificationKey: string, reply: string }` | `{ success: boolean, notificationKey: string }` |
-| `notifications.dismiss` | ❌ | `notifications.action` | `{ notificationKey: string }` | `{ success: boolean, notificationKey: string }` |
+> [!IMPORTANT]
+> **Package Scope Isolation (`allowedNotificationPackages`)**  
+> Every notification operation (`getActive`, `reply`, `dismiss`, `invokeAction`, and push event delivery) requires the target application's Android package name to be explicitly declared in the plugin manifest (`plugin.json` under `allowedNotificationPackages`). Calls targeting undeclared packages are rejected with `403 Forbidden` (`packageScopeViolation: true`).
+
+| Operation | Sync | Capability Required | Input | Output | Description |
+|-----------|------|---------------------|-------|--------|-------------|
+| `notifications.send` | ❌ | `notifications.send` | `{ title: string, body?: string }` | `{ notificationId, sent, remainingQuota }` | Sends a local system alert (rate limited to 15/hr). |
+| `notifications.cancel` | ❌ | `notifications.send` | `{ notificationId: number }` | `{ notificationId, cancelled: boolean }` | Cancels a local notification previously posted by this plugin. |
+| `notifications.getStatus` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ status: "active" \| "disconnected" \| "permission_required" \| "reconnecting" \| "unsupported" }` | Returns current Android Notification Listener service status. |
+| `notifications.getActive` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ notifications: DeviceNotificationSummary[] }` | Queries active status bar alerts, filtered strictly by `allowedNotificationPackages`. |
+| `notifications.reply` | ❌ | `notifications.reply` | `{ packageName: string, logicalId: string, reply: string }` | `{ success: boolean, logicalId: string }` | Sends inline quick reply via Android native `RemoteInput` (max 4,000 characters). |
+| `notifications.dismiss` | ❌ | `notifications.action` | `{ packageName: string, logicalId: string }` | `{ success: boolean, logicalId: string }` | Swipes away / cancels an active notification from the Android status bar. |
+| `notifications.invokeAction` | ❌ | `notifications.action` | `{ actionHandle: string, packageName: string, logicalId?: string }` | `{ success: boolean, actionInvoked: boolean, actionHandle: string }` | Triggers a native action button via its single-use, cryptographically secure `ActionHandle`. |
+| `notifications.subscribe` | ❌ | `notifications.read` | `{}` | `{ subscribed: boolean }` | Ensures the platform event listener is initialized. |
+| `notifications.openSettings` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ opened: boolean }` | Launches Android OS Notification Listener Access settings screen. |
 
 #### Real-Time EventBus Subscriptions (`notifications.read`)
 
-When `notifications.read` is granted, the plugin receives events on `HostEventBus`:
+When `notifications.read` is granted, the plugin receives ephemeral in-memory events on `HostEventBus`. Events are filtered at the dispatcher level so that the plugin **only** receives notifications from applications declared in its `allowedNotificationPackages` whitelist:
 
-- **`device.notification.received`**: Published when a notification arrives or updates on the device.
+- **`device.notification.received`**: Published when a new notification arrives on the device.
+- **`device.notification.updated`**: Published when an existing active notification thread updates (e.g. new message in conversation).
   ```json
   {
-    "id": "1042",
-    "logicalId": "com.whatsapp_1042_thread_9",
+    "logicalId": "com.whatsapp_1042_null",
     "packageName": "com.whatsapp",
-    "title": "Sarah Connor",
-    "text": "Check out this document",
-    "category": "msg",
     "postTime": 1711234567890,
-    "isClearable": true,
-    "hasReplyAction": true,
-    "isUpdate": false,
+    "title": "Juan Pérez",
+    "body": "Hola, ¿cómo estás?",
+    "subText": "WhatsApp",
+    "category": "msg",
+    "isGroupSummary": false,
+    "canReply": true,
+    "conversationTitle": "Familia",
+    "isGroup": true,
+    "senderName": "Juan Pérez",
+    "textLines": ["Juan: Hola, ¿cómo estás?"],
+    "messageHistory": [
+      {
+        "text": "Hola, ¿cómo estás?",
+        "timestamp": 1711234567890,
+        "sender": "Juan Pérez"
+      }
+    ],
     "actions": [
-      { "title": "Reply", "hasRemoteInput": true, "isQuickReply": true }
+      {
+        "actionHandle": "act_4f8b9123cde4a7812bcdeff012345678",
+        "title": "Responder",
+        "isReply": true,
+        "index": 0
+      },
+      {
+        "actionHandle": "act_8e2a149b561c437a89ff0123456789ab",
+        "title": "Marcar como leído",
+        "isReply": false,
+        "index": 1
+      }
     ]
   }
   ```
-- **`device.notification.removed`**: Published when a notification is cleared or cancelled.
+- **`device.notification.removed`**: Published when a notification is dismissed by the user or cancelled by the source app.
   ```json
   {
-    "id": "1042",
-    "logicalId": "com.whatsapp_1042_thread_9",
+    "logicalId": "com.whatsapp_1042_null",
     "packageName": "com.whatsapp",
     "postTime": 1711234567890
   }
   ```
+- **`device.notification.status`**: Published when the listener service status transitions (e.g. `active`, `disconnected`).
 
-#### Direct Reply (`notifications.reply`)
-Replies are sent through the native Android `RemoteInput` pipeline with a 4,000 character payload ceiling. If the notification is no longer active or was dismissed, the call returns an error (`notification_not_found` or `reply_action_unavailable`). Native references are held in ephemeral memory and never saved to disk.
+#### Action Invocation (`notifications.invokeAction`) & ActionHandle Security
+
+Action buttons attached to Android notifications (such as *Mark as read*, *Archive*, *Snooze*, or *Approve*) are exposed to plugins via opaque, cryptographically random `ActionHandle` tokens:
+
+```json
+{
+  "api": "notifications",
+  "operation": "invokeAction",
+  "payload": {
+    "actionHandle": "act_4f8b9123cde4a7812bcdeff012345678",
+    "packageName": "com.whatsapp",
+    "logicalId": "com.whatsapp_1042_null"
+  }
+}
+```
+
+**Security Guarantees:**
+1. **Cryptographic Unpredictability:** `actionHandle` tokens are generated using UUID v4 (128-bit entropy) prefixed with `act_`. They cannot be synthesized or guessed.
+2. **Replay Protection (Single-Use):** Once an action is executed, it is immediately marked as used and evicted from memory. Subsequent calls with the same handle return `ACTION_ALREADY_USED` or `ACTION_EXPIRED`.
+3. **Dual-Layer Cross-App Binding (Dart + Kotlin):** Calling `invokeAction` validates that the caller plugin is authorized for `packageName`, and native Kotlin strictly verifies `boundAction.packageName == packageName`. Cross-application action hijacking is impossible.
+4. **Time-To-Live (TTL):** Action handles expire automatically after **5 minutes** or immediately when the notification is dismissed from the status bar.
+5. **Background Activity Launch (BAL) Safety:** Compliant with Android 14+ (API 34+) `MODE_BACKGROUND_ACTIVITY_START_ALLOWED` restrictions.
+
+#### True Zero-Persistence Architecture
+
+Device notification payloads (titles, bodies, sender names, and message text) are treated as strictly ephemeral in-memory signals:
+* **Zero Disk Persistence:** Notification events are never written to SQLite `events` or `deliveries` tables in `EventJournal`.
+* **Zero Leakage on Crash or Failure:** In the event of plugin exceptions, timeouts, or application crashes, no notification data remains on disk.
+* **Independent Plugin Storage:** Plugins requiring retention (e.g. an expense tracker or CRM logger) must explicitly request `database.sql` / `storage.database` and persist structured data into their own private, isolated SQLite database file (`plugin_<id>.db`).
 
 ---
 

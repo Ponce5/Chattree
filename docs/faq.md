@@ -47,6 +47,19 @@ Reminders are scheduled using Android's native `AlarmManager` (exact alarms via 
 ### Can the inbound webhook server run in the background?
 The local webhook listener (`127.0.0.1`) operates while Chattree is in the foreground. Mobile operating systems suspend unprivileged TCP listener sockets when apps are minimized. To avoid draining your battery with an intrusive persistent Android Foreground Service notification, Chattree pauses the socket when backgrounded and automatically re-binds it when you bring the app back to the foreground.
 
+### What is the maximum payload size for inbound webhooks?
+- **Local Webhooks (`InboundHttpServer`):** Supports payloads up to **256 KB** (`maxInboundHttpPayloadBytes`), accommodating local tools, large JSON reports, and automated scripts.
+- **Cloud Webhooks (`Cloudflare Worker + FCM`):** Bounded to **~3.5 KB** (`MAX_DATA_BYTES = 3800` bytes total) because Google Firebase Cloud Messaging imposes a strict 4 KB limit on the `data` message envelope. Payloads exceeding this limit receive an HTTP `413 payload_too_large` response from the Worker.
+
+### Do cloud webhooks execute WebAssembly plugin logic when Chattree is closed?
+When Chattree is closed or the device is locked, Google FCM push wakes a lightweight background isolate (`fcmBackgroundHandler`). To protect mobile battery life and comply with Android memory limits, this isolate does not start heavy AI or WASM engines; it commits the payload safely to disk (`kFcmPendingInboxKey`) and alerts you via a native notification. When you tap the notification or open Chattree, `drainPendingInbox()` immediately feeds the queue into `EventJournal` and executes the plugin.
+
+### How are Firebase Service Account credentials secured?
+Production guidelines strictly prohibit embedding plaintext Firebase Service Account private keys in source code. Credentials are stored in hardware-backed Android Keystore (`SecureCredentialStore` with AES-256) or provided as encrypted secrets directly in Cloudflare Workers (`wrangler secret put FIREBASE_SERVICE_ACCOUNT`).
+
+### What happens if Google Play Services rotates my device's FCM token?
+Google Play Services periodically rotates FCM registration tokens. Chattree listens for `onTokenRefresh`, flags the outdated deployment in Settings (`last_deployed_fcm_token` mismatch), and allows you to push the new token to Cloudflare with a single tap of **Auto-desplegar en Cloudflare**.
+
 ### Can plugins read my chat history?
 By default, no. The `chattree.context.read` capability only exposes the single message passed to the current command. If a plugin explicitly declares the sensitive `chat.history.read` capability and you grant consent, it can read a bounded window of up to **20 recent messages** (truncated at 4,000 characters each) from the active conversation, and returns an empty list in restricted mode.
 

@@ -110,13 +110,15 @@ Chattree reads it before executing any WASM code.
 |-------|------|----------|-------------|
 | `capabilities` | `string[]` | ❌ | Capability IDs required by this plugin. See [capabilities.md](capabilities.md). |
 | `optionalCapabilities` | `string[]` | ❌ | Capabilities the plugin can use if available, but does not strictly require. |
+| `allowedNotificationPackages` | `string[]` | ❌ | Whitelist of application package IDs permitted for notification access (e.g. `["com.whatsapp", "com.google.android.gm"]` or `["*"]`). Enforced strictly across Push, EventBus, and Host APIs whenever `notifications.read`, `notifications.query`, `notifications.reply`, or `notifications.action` is requested. If omitted, access is denied by default (`[]`). |
 
 **Examples:**
 ```json
-"capabilities": ["network.http", "chattree.notes.read", "storage.private"]
+"capabilities": ["notifications.read", "notifications.reply", "notifications.action"],
+"allowedNotificationPackages": ["com.whatsapp", "org.telegram.messenger"]
 ```
 
-> Do NOT list capabilities you do not use. Users see every item in the permission dialog.
+> Do NOT list capabilities or packages you do not use. Users see every item in the permission dialog.
 
 ---
 

@@ -41,27 +41,40 @@ my-plugin.chattree-plugin  (ZIP archive)
 2. File picker opens (or a `.chattree-plugin` / `.zip` file is selected, including files with browser/OS copy suffixes like `my-plugin (1).chattree-plugin` or `my-plugin - copia.chattree-plugin`).
 3. Chattree inspects the file header (magic bytes `PK\x03\x04` for ZIP archives or `{` for JSON manifests) and reads the package in memory.
 4. Normalizes single-folder wrapper directories and ignores OS metadata (`__MACOSX`, `.DS_Store`, `Thumbs.db`).
-5. Extracts `plugin.json` → validates all fields.
-6. Extracts `plugin.wasm` → verifies SHA-256.
-7. If the plugin ID is **already installed**, Chattree detects the existing installation and displays an **in-place update / reinstall preview** (`v1.0.0 → v2.0.0`) with an **Actualizar plugin** (or **Reinstalar plugin**) button—no manual uninstallation required.
-8. User confirms → Chattree atomically replaces the package in its private directory while preserving user settings, granted permissions, private storage, and isolated SQLite databases.
+5. Extracts `plugin.json` → validates all fields and schema structure.
+6. Extracts `plugin.wasm` → verifies SHA-256 integrity against `manifest.wasmSha256`.
+7. **Cryptographic Signature & Trust Verification:** If signed, verifies Ed25519 signatures and community certificates against `rootKeyId = "chattree-official-v1"`.
+8. **Anti-Downgrade Watermark Check:** Verifies against `PluginStateStore` that the version is not lower than the maximum version historically installed for that plugin ID. Any version downgrade is blocked immediately.
+9. If the plugin ID is **already installed**, Chattree detects the existing installation and displays an **in-place update / reinstall preview** (`v1.0.0 → v2.0.0`) with an **Actualizar plugin** (or **Reinstalar plugin**) button—no manual uninstallation required.
+10. User confirms → Chattree executes an **atomic transaction**: extracts to staging, verifies state, atomically commits to package directory, updates metadata, and preserves existing settings, storage, and SQLite databases. Any failure triggers a clean, fail-closed rollback with zero leftover artifacts.
 
 ---
 
 ## Creating the archive
 
-### Option 1: Using the Chattree Developer Packager Tool
+### Option 1: Using the Official Chattree CLI (Recommended)
 
-The official CLI packager automatically computes the SHA-256 hash of `plugin.wasm`, ensures `plugin.json` is updated, and bundles all required files at the root of the archive:
+The official `@chattree/cli` automatically validates the manifest, computes the SHA-256 checksum of `plugin.wasm`, updates `manifest.wasmSha256`, and packages all required files at the root of the archive:
 
 ```bash
-# From the repository root
-node tools/package-plugin.mjs path/to/my-plugin/
+# Inside your plugin project directory
+npx @chattree/cli package
+
+# Or specifying a path
+npx @chattree/cli package path/to/my-plugin/
 ```
 
 This outputs `<id>-v<version>.chattree-plugin` ready for installation or marketplace publishing.
 
-### Option 2: Using Standard ZIP Tools
+### Option 2: Using the Standalone Repository Script
+
+From the repository root:
+
+```bash
+node tools/package-plugin.mjs path/to/my-plugin/
+```
+
+### Option 3: Using Standard ZIP Tools
 
 Ensure that all files (`plugin.json`, `plugin.wasm`, and optionally `icon.png`) are located at the **root** of the ZIP archive:
 

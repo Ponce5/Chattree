@@ -5,7 +5,39 @@ No prior Chattree knowledge required.
 
 ---
 
-## Prerequisites
+## 🚀 Fast Track: Using the Official Chattree CLI (Recommended)
+
+The easiest way to create, compile, test, and package a plugin is using the official `@chattree/cli`. No global installation is required:
+
+```bash
+# 1. Create a new plugin with interactive scaffolding (AssemblyScript, Rust, or WAT)
+npx @chattree/cli create plugin my-plugin
+
+# 2. Enter project directory
+cd my-plugin
+
+# 3. Compile source code to WebAssembly and auto-synchronize SHA-256 checksum
+npx @chattree/cli build
+
+# 4. Simulate & test plugin execution locally in terminal
+npx @chattree/cli test
+
+# 5. Validate manifest contract and security boundaries
+npx @chattree/cli validate
+
+# 6. Package into a ready-to-use .chattree-plugin bundle
+npx @chattree/cli package
+```
+
+The generated `.chattree-plugin` file is ready to install in the Chattree app (**Settings → Plugins → Importar plugin**) or publish to the Marketplace.
+
+---
+
+## 🛠 Manual Workflow (Alternative)
+
+If you prefer building without the CLI, follow the step-by-step instructions below.
+
+### Prerequisites
 
 - A compiler that can produce WebAssembly `.wasm` binaries:
   - **WAT** (WebAssembly Text format) via `wat2wasm` — simplest, no toolchain needed
@@ -240,12 +272,14 @@ plugin.wasm     ← compiled WASM binary (required for runtime="wasm")
 icon.png        ← optional icon (512×512 PNG recommended)
 ```
 
-### Option A: Using the Chattree Developer Packager Tool
+### Option A: Using the Official Chattree CLI
 
 The official CLI tool automatically synchronizes the `wasmSha256` checksum and bundles the files at root level:
 
 ```bash
-node tools/package-plugin.mjs path/to/my-hello-plugin/
+npx @chattree/cli package
+# Or for a specific directory:
+npx @chattree/cli package path/to/my-hello-plugin/
 ```
 
 ### Option B: Using Standard ZIP Tools

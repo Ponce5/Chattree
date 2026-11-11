@@ -8,6 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const targets = [
   "examples/hello",
   "examples/notes-demo",
+  "examples/notification-tracker",
+  "examples/webhook-hub",
   "templates/plugin",
   "plugins/official/calendar",
   "plugins/official/mail",

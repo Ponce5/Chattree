@@ -21,7 +21,9 @@ A WASM plugin runs inside a **WebAssembly linear memory sandbox**.
 | Unbounded or recursive AI tool loops | ❌ Blocked (`ai.context` is strictly single-turn and capped at 2,048 output tokens) |
 | Dart VM heap or native objects | ❌ Blocked |
 | Device hardware without a capability | ❌ Blocked |
-| Private IPs / loopback addresses | ❌ Blocked by default (SSRF protection; requires critical `network.local` capability for LAN/loopback, and cloud metadata `169.254.x.x` is always blocked) |
+| Private IPs / loopback addresses | ❌ Blocked by default (`WebhookSsrfGuard` blocks all IANA special IPv4/IPv6 ranges including Carrier-Grade NAT, Benchmarking, ULA, 6to4, Teredo, loopback, and cloud metadata `169.254.x.x`; multi-IP DNS pre-validates every IP with fallback; requires critical `network.local` capability for LAN/loopback) |
+| Inbound Webhook Replay / Body Leaks | ❌ Blocked (max 72h replay window; request bodies and secrets strictly censored from activity logs; KV store-and-forward purged atomically) |
+| Persistent Background Sockets | ❌ Blocked (LAN server operates strictly in foreground with immediate OS lifecycle suspension, zero foreground services) |
 | `file://`, `javascript:`, `intent:` URIs | ❌ Blocked |
 | Spawning background threads or processes | ❌ Blocked |
 | Persisting data without `storage.private` | ❌ Blocked |
@@ -132,13 +134,18 @@ The `pluginId` is **always injected by the runtime** — the plugin cannot forge
 
 ## Notification Hub Security Model
 
-The Notification Hub subsystem connects Chattree plugins to Android status bar notifications with strict privacy and memory safety guarantees:
+The Notification Hub subsystem connects Chattree plugins to Android status bar notifications with strict privacy, authorization, and memory safety guarantees:
 
-1. **Zero-Persistence in Host Core:** Chattree Core maintains zero historical tables or logs for third-party notifications. Any plugin wishing to record notification history must request `database.sql` / `storage.database` and persist data in its own private, isolated SQLite database (`chattree_plugin_<id>.db`).
-2. **Ephemeral Native References:** Native Android `PendingIntent` and `RemoteInput` references are held strictly in the Android `NotificationCaptureService` RAM (`LruCache` with 500 entries). They are never saved to disk, cannot be inspected by plugins, and are automatically purged when the user dismisses the notification.
-3. **Hardware & Native OTP / 2FA Exclusion:** Before any notification crosses into the Flutter engine or `HostEventBus`, the Android native listener evaluates titles, bodies, and Android notification categories against regular expressions and security keywords (`\b\d{4,8}\b`, *código*, *verification code*, *OTP*, *2FA*, *seguridad*). All matching alerts are discarded at the OS level.
-4. **Binder IPC Protection:** Plugin replies sent via `notifications.reply` are enforced with a strict 4,000-character limit, preventing Android system server `TransactionTooLargeException` crashes.
-5. **Granular RBAC:** A plugin cannot listen to notifications without `notifications.read`, cannot query active notifications without `notifications.query`, cannot reply without `notifications.reply`, and cannot dismiss without `notifications.action`. Every capability requires explicit user approval.
+1. **True Zero-Persistence Core:** Chattree Core maintains zero historical tables, journals, or disk logs for device notifications. Notifications are treated as ephemeral in-memory signals and bypass the SQLite `EventJournal` (0 rows created in `events` / `event_deliveries`). Any plugin wishing to record notification history must request `database.sql` / `storage.database` and persist data in its own private, isolated SQLite database (`chattree_plugin_<id>.db`).
+2. **Package Scope Whitelist (`allowedNotificationPackages`):** Notification events, active status queries, direct replies, and action invocations are strictly bounded by the `allowedNotificationPackages` list declared in the plugin manifest. A plugin cannot observe or interact with notifications from unauthorized applications. Omission of this field results in a strict deny-all default (`[]`).
+3. **Cryptographically Secure Action Handles:** Quick actions are identified by unguessable, 128-bit UUID v4 tokens (`act_<uuid4>`). Deterministic or sequential IDs are prohibited.
+4. **Single-Use Replay Protection:** Each `actionHandle` can only be invoked once. Upon triggering, the native service flags `isUsed = true` and purges the token immediately to prevent replay or race conditions.
+5. **Triple-Binding Validation:** Actions are cryptographically bound to the tuple `(pluginId, notificationKey, packageName)`. Dart and native Kotlin independently verify that the caller matches the authorized plugin and target application package before executing any `PendingIntent`.
+6. **Action Lifespan & TTL:** Action handles expire automatically after **5 minutes** from generation, or immediately upon notification dismissal/removal from the status bar. Obsolete actions cannot be executed.
+7. **Background Activity Launch (BAL) Restrictions:** On Android 14+ (API 34+), actions that trigger background activities are invoked with explicit `ActivityOptions.makeBasic().setPendingIntentBackgroundActivityStartMode(...)`. On Android 10–13, background activity launches remain governed by native OS restrictions when no foreground service is active.
+8. **Hardware & Native OTP / 2FA Exclusion:** Before any notification crosses into the Flutter engine or `HostEventBus`, the Android native listener evaluates titles, bodies, and Android notification categories against regular expressions and security keywords (`\b\d{4,8}\b`, *código*, *verification code*, *OTP*, *2FA*, *seguridad*). All matching alerts are discarded at the OS level.
+9. **Binder IPC Protection:** Plugin replies sent via `notifications.reply` are enforced with a strict 4,000-character limit, preventing Android system server `TransactionTooLargeException` crashes.
+10. **Granular RBAC:** A plugin cannot listen to notifications without `notifications.read`, cannot query active notifications without `notifications.query`, cannot reply without `notifications.reply`, and cannot dismiss or invoke actions without `notifications.action`. Every capability requires explicit user approval.
 
 ---
 
@@ -233,6 +240,58 @@ Chattree will report the OS denial clearly in the Host API error response.
 
 ---
 
+## Cryptographic Trust Boundaries & Signature Architecture
+
+The Chattree plugin ecosystem incorporates an enterprise-grade trust architecture to guarantee package authenticity, prevent rollback attacks, and secure the execution runtime against in-memory tampering:
+
+### 1. Inmutable Ed25519 Root of Trust (`PluginTrustStore`)
+- **Official Public Root:** Chattree embeds a single, immutable official Ed25519 public root key constant (`officialKeyBytesV1`) in production.
+- **Offline Private Key Custody:** The official private signing key is held strictly offline in secure hardware custody by Chattree maintainers. No private keys, mock keypairs, or deterministic test seeds exist anywhere within the production codebase (`lib/`) or compiled application binaries (`libapp.so`).
+- **Sealed Production Authority:** Dynamic re-registration or runtime mutation of the official root key is strictly blocked in production instances. Test injection helpers (`createIsolatedForTesting`) operate exclusively within isolated test contexts and cannot influence the production trust store.
+
+### 2. Marketplace & Certified Developer PKI
+- **Marketplace Community Packages:** Distributed freely via GitHub Releases and cataloged via the official Chattree directory. Integrity is enforced by SHA-256 binary validation, manifest conformance, and sandbox memory/capability boundaries without requiring community developers to handle complex offline cryptographic key signing.
+- **Enterprise & Certified Packages:** Where required, developer keys can be accompanied by an Ed25519 certificate issued and signed by the Chattree official root authority (`rootKeyId = "chattree-official-v1"`).
+- **Strict Validation Matrix:** When a signature envelope is present, the runtime enforces verification across multiple critical dimensions:
+  1. `rootKeyId` must match the embedded official root authority.
+  2. The certificate's cryptographic signature is verified against the official root public key.
+  3. `developerId` and package publisher identity must bind strictly to the public key.
+  4. Validity timestamps (`validFrom` / `validUntil`) are strictly validated against UTC time.
+  5. Minimum application version compatibility (`minAppVersion`) is checked prior to trust registration.
+- **Atomic Registration:** Community key and certificate registration enforces atomic, fail-closed disk persistence. If storage persistence fails, in-memory registrations are immediately rolled back.
+
+### 3. Persistent Anti-Downgrade Watermark (`PluginStateStore`)
+To prevent **rollback attacks** (where an attacker supplies an older, officially signed version containing known vulnerabilities):
+- Chattree maintains an append-only, persistent version watermark in `PluginStateStore` recording the maximum historical SemVer installed for every plugin ID.
+- Any attempt to import, install, or update a plugin to a version lower than the recorded historical maximum is unconditionally rejected with a `SecurityException`:
+  > *"Degradación de versión rechazada: La versión \"X\" es inferior a la versión máxima registrada históricamente (\"Y\")."*
+- Reinstalling the *same* version (`v1.0.0 → v1.0.0`) is permitted for repairs, but any downgrade is blocked.
+
+### 4. Single-Use Cryptographic WASM Authorization (`WasmExecutionAuthorization`)
+- **Execution Tokens:** A WASM module cannot be executed directly by calling the runtime. The runtime requires a cryptographically validated, single-use `WasmExecutionAuthorization` token.
+- **Package Manager Identity Binding:** Tokens are minted exclusively by `PluginPackageManager` after full package integrity and manifest validation, and are referentially bound to `PluginPackageManager.instance`. Any token generated by an isolated test instance or forged context is rejected with `SecurityException` by the production runtime.
+- **One-Time Consumption:** Tokens are invalidated immediately upon first use (`claimAndConsumeSync()`), preventing token reuse or replay attacks.
+
+### 5. Production Runtime Mutator Sealing (`lockForProduction`)
+To prevent test mutators from compromising security state in production:
+- On application startup (`main()`), production singletons are permanently locked:
+  - `PluginStateStore.instance.lockForProduction()`
+  - `PluginPackageManager.instance.lockForProduction()`
+  - `PluginDownloadManager.lockForProduction()`
+- Once locked, calls to memory clearing or test directory overrides (`clearMemoryCache()`, `clearForTesting()`, `setBaseDirectoryForTesting()`, `setMockArchiveProviderForTesting()`) immediately throw `SecurityException`.
+- This guarantees that revocation lists, version watermarks, package storage paths, and download providers remain completely immutable during production app execution.
+
+### 6. Atomic Transnational Installation & Fail-Closed Rollback
+Plugin installations follow strict ACID transaction semantics:
+1. Packages are validated and extracted into a staging directory (`.staging_<uuid>`).
+2. Manifest structure, WASM SHA-256 hash, and digital signatures are verified before any permanent state change.
+3. If any step fails (extraction failure, I/O error, signature mismatch, storage persistence failure), Chattree initiates a clean, fail-closed rollback:
+   - Staging directories and partial files are permanently purged.
+   - Any temporary in-memory key or certificate registrations are reverted.
+   - Zero orphaned files or residual untrusted state remain on disk or memory.
+
+---
+
 ## Summary for plugin developers
 
 > **Your plugin runs in a strict, auditable sandbox.**  
@@ -240,4 +299,5 @@ Chattree will report the OS denial clearly in the Host API error response.
 > your `plugin.json` AND accepted by the user.  
 > The user can revoke permissions at any time.  
 > Chattree verifies your WASM binary's SHA-256 before execution.  
+> Package authenticity is secured via Ed25519 digital signatures and anti-downgrade watermarks.  
 > No background execution, no persistent processes, no raw system access.

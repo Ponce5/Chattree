@@ -111,6 +111,14 @@ Plugin updates can be distributed through two channels:
 1. **Marketplace:** Publish a new unique version record using the portal/API in the publishing guide. The submit endpoint enforces strict SemVer monotonicity (`409 VERSION_NOT_NEWER` if the submitted version is lower than or equal to an existing version) and rejects duplicate `(plugin id, version)` pairs (`409 VERSION_ALREADY_EXISTS`). Verify in-app update discovery in the target app release.
 2. **Direct local import (`.chattree-plugin`):** Share the updated `.chattree-plugin` archive directly; users import it via **Settings → Plugins → Importar plugin** without needing to uninstall the previous version first. Chattree detects the existing plugin ID, displays the version transition (`v1.0.0 → v1.1.0`), and performs an in-place update (`allowUpdate: true`) that preserves the plugin's `installedAt` timestamp, user settings, private key-value storage, and SQLite database. Duplicate filename suffixes added by browsers or file managers (such as `my-plugin (1).chattree-plugin` or `my-plugin - copia.chattree-plugin`) are automatically normalized during import.
 
+### Anti-Downgrade Version Watermark Guarantee
+
+Both distribution channels are backed by a persistent anti-downgrade watermark enforced in the mobile client runtime (`PluginStateStore`):
+- Chattree tracks the highest historical SemVer installed for each plugin ID across the lifetime of the application instance.
+- Any attempt to install, import, or update a plugin to an older version (e.g., attempting to install `v1.0.0` after having installed `v2.0.0`) is rejected with a `SecurityException`:
+  > *"Degradación de versión rechazada: La versión \"1.0.0\" es inferior a la versión máxima registrada históricamente (\"2.0.0\")."*
+- Reinstalling the exact active version (`v2.0.0 → v2.0.0`) is supported for repair or re-synchronization, but downgrades are strictly prevented to eliminate rollback attacks.
+
 
 ---
 

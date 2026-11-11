@@ -1,10 +1,30 @@
-# Chattree Developer Tools
+# Chattree Developer Tools & CLI
 
-This directory contains official developer tools and command-line utilities for creating, validating, and packaging Chattree WebAssembly plugins.
+This directory and the [`packages/cli`](../../../packages/cli) workspace contain official developer tools and command-line utilities for creating, validating, and packaging Chattree WebAssembly plugins.
 
 ---
 
-## Utilities Overview
+## ⚡ Unified Developer CLI (`@chattree/cli`)
+
+The official all-in-one CLI tool is published on [npm as `@chattree/cli`](https://www.npmjs.com/package/@chattree/cli). No prior installation is required:
+
+```bash
+# Crear un nuevo plugin (asistente interactivo con plantillas WAT, AssemblyScript o Rust)
+npx @chattree/cli create plugin mi-plugin
+
+# Compilar fuente a WASM y actualizar checksums
+npx @chattree/cli build
+
+# Validar contrato e integridad
+npx @chattree/cli validate
+
+# Empaquetar en .chattree-plugin listo para importar en Chattree
+npx @chattree/cli package
+```
+
+---
+
+## Standalone Utilities Overview
 
 | Tool | Script | Description |
 |---|---|---|

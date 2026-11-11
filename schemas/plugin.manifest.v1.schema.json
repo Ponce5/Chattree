@@ -133,6 +133,14 @@
       },
       "description": "Capabilities requested on an opportunistic basis."
     },
+    "allowedNotificationPackages": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      },
+      "description": "Whitelist of Android package identifiers permitted for notification access (e.g. ['com.whatsapp', 'com.google.android.gm'] or ['*']). Required when requesting notification capabilities."
+    },
     "tags": {
       "type": "array",
       "items": {

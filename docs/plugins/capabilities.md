@@ -140,10 +140,13 @@ Allows sending and cancelling **local device notifications**.
 
 **Category:** Device  
 **Status:** ✅ Available  
-**Permission required:** Explicit user authorization + Android Notification Listener Access  
+**Permission required:** Explicit user authorization + Android Notification Listener Access + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`, `events`
 
 Allows plugins to receive real-time streaming events when notifications are posted or updated by other applications on the device (e.g., messaging apps, email, calendar).
+
+> [!IMPORTANT]
+> **Package Scope Isolation:** Access is strictly bounded by `allowedNotificationPackages` in the plugin manifest. A plugin configured with `["com.whatsapp"]` will only receive notifications originating from WhatsApp. Omission of this field results in a strict deny-all.
 
 **Events Emitted on `HostEventBus`:**
 
@@ -166,11 +169,11 @@ Allows plugins to receive real-time streaming events when notifications are post
 | `isClearable` | boolean | True if the notification can be swiped away or dismissed |
 | `hasReplyAction` | boolean | True if an inline `RemoteInput` direct reply is available |
 | `isUpdate` | boolean | True if this event updates an already active notification session |
-| `actions` | array | Available quick actions: `[{ title: string, hasRemoteInput: boolean, isQuickReply: boolean }]` |
+| `actions` | array | Available quick actions: `[{ title: string, hasRemoteInput: boolean, isQuickReply: boolean, actionHandle: string }]` |
 
 **Security & Privacy Safeguards:**
 - **Native OTP / 2FA Exclusion:** Any notification containing one-time passwords, verification codes (regex `\b\d{4,8}\b` with security keywords like *code*, *OTP*, *2FA*, *verificación*), or marked with security flags is immediately dropped in the Android native service. It never enters Dart memory, EventBus, or plugin sandboxes.
-- **Zero-Persistence in Host Core:** Chattree Core does not persist notification text or metadata to disk. Plugins requiring historical retention must manage their own storage using their isolated SQLite database (`database.sql`).
+- **True Zero-Persistence Core:** Chattree Core does NOT persist notification text or metadata to disk or SQLite `EventJournal`. Notifications are delivered as transient in-memory signals. Plugins requiring historical retention must manage their own storage using their isolated SQLite database (`database.sql`).
 - **Debounced Stream:** Burst updates (e.g. rapid group chat messages) are throttled with a 200ms debounce per notification session to protect CPU and memory.
 
 ---
@@ -179,10 +182,10 @@ Allows plugins to receive real-time streaming events when notifications are post
 
 **Category:** Device  
 **Status:** ✅ Available  
-**Permission required:** User consent  
+**Permission required:** User consent + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
-Allows plugins to inspect the status of the native notification listener service and retrieve currently active status bar notifications.
+Allows plugins to inspect the status of the native notification listener service and retrieve currently active status bar notifications filtered by the plugin's package authorization.
 
 **Operations:**
 
@@ -214,7 +217,7 @@ Allows plugins to inspect the status of the native notification listener service
       "hasReplyAction": true,
       "isUpdate": false,
       "actions": [
-        { "title": "Reply", "hasRemoteInput": true, "isQuickReply": true }
+        { "title": "Reply", "hasRemoteInput": true, "isQuickReply": true, "actionHandle": "act_8f7b2c1409d1e56b..." }
       ]
     }
   ]
@@ -227,7 +230,7 @@ Allows plugins to inspect the status of the native notification listener service
 
 **Category:** Device  
 **Status:** ✅ Available  
-**Permission required:** Explicit user authorization  
+**Permission required:** Explicit user authorization + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
 Allows plugins to execute inline direct replies to active notifications using Android's native `RemoteInput` API (e.g. auto-replies or AI-drafted responses to WhatsApp, Telegram, or SMS).
@@ -247,34 +250,50 @@ Allows plugins to execute inline direct replies to active notifications using An
 
 **Safety & Lifetime Boundaries:**
 - The native `RemoteInput` and `PendingIntent` objects reside exclusively in an Android in-memory `LruCache` (500 capacity). They are never saved to disk and are invalidated immediately when the user dismisses the notification.
+- Double-checked package authorization: The plugin must have the target app in its `allowedNotificationPackages`.
 - Max payload length is strictly capped at **4,000 characters** to protect against Android Binder `TransactionTooLargeException`.
 - Fails safely with `reply_action_unavailable` or `notification_not_found` if the notification has been dismissed or lacks a reply action.
 
 ---
 
-### 🟡 notifications.action
+### 🔴 notifications.action
 
 **Category:** Device  
 **Status:** ✅ Available  
-**Permission required:** User consent  
+**Permission required:** Explicit user authorization + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
-Allows plugins to programmatically dismiss or clear active notifications from the Android status bar.
+Allows plugins to programmatically interact with active notifications: dismiss them from the status bar or trigger interactive quick actions (e.g. "Mark as Read", "Archive", "Call Back", custom inline prompts).
 
 **Operations:**
 
 | Operation | Input | Output |
 |-----------|-------|--------|
 | `notifications.dismiss` | `{ notificationKey: string }` | `{ success: boolean, notificationKey: string }` |
+| `notifications.invokeAction` | `{ actionHandle: string, notificationKey?: string, actionIndex?: integer, actionTitle?: string, inputs?: object }` | `{ success: boolean, actionHandle: string, executedAt: integer }` |
 
-**Input fields:**
+**Input fields (`notifications.dismiss`):**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `notificationKey` | string | ✅ | Target notification identifier (`StatusBarNotification.key` or `id`) |
 
-**Limitations:**
-- Only succeeds for notifications where `isClearable: true` (ongoing system alerts or foreground services cannot be dismissed).
+**Input fields (`notifications.invokeAction`):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `actionHandle` | string | ✅ | Cryptographic single-use token (`act_<uuid4>`) identifying the action |
+| `notificationKey` | string | ❌ | Expected notification key (validated against token binding) |
+| `actionIndex` | integer | ❌ | Expected action index (validated against token binding) |
+| `actionTitle` | string | ❌ | Action title label (informative) |
+| `inputs` | object | ❌ | Optional key-value inputs for actions requiring `RemoteInput` parameters |
+
+**Security & Lifetime Boundaries for Actions:**
+- **Cryptographic Handle:** `actionHandle` is an unguessable 128-bit UUID v4 token generated when the notification is parsed.
+- **Single-Use Guard:** Once triggered, the token is marked `isUsed` and immediately purged to prevent replay attacks.
+- **Triple-Binding Verification:** Tokens are cryptographically bound to `(pluginId, notificationKey, packageName)`. A plugin cannot invoke an action from another plugin or another app.
+- **TTL Expiration:** Actions expire automatically after **5 minutes** or upon notification dismissal.
+- **Background Activity Launch (BAL):** On Android 14+ (API 34+), actions execute with `PendingIntent.send(ActivityOptions.makeBasic().setPendingIntentBackgroundActivityStartMode(...))`. On Android 10–13, background activity launches are restricted by the OS if no foreground service is active.
 
 ---
 

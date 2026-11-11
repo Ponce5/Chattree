@@ -2,7 +2,27 @@
 
 This guide describes how to package a community plugin, host it on GitHub Releases, and submit its listing to the Chattree Marketplace. Official plugins follow a separate maintainer workflow. Portal/API behavior and app update discovery can change; verify against the deployed service before announcing a release.
 
-Plugins are distributed as `.chattree-plugin` ZIP packages, commonly attached to GitHub Releases, and registered through the web portal or REST API. The WASM SHA-256 is an integrity check, not a digital signature; submission does not authenticate the package author or independently audit source code.
+Plugins are distributed as `.chattree-plugin` ZIP packages, commonly attached to GitHub Releases, and registered through the web portal or REST API. In addition to WASM SHA-256 integrity checks, the Chattree runtime enforces Ed25519 digital signature verification, developer certificate validation against the official root authority (`rootKeyId = "chattree-official-v1"`), persistent anti-downgrade watermarks, and atomic transaction rollback.
+
+---
+
+## Trust Model & Cryptographic Verification Architecture
+
+Chattree enforces a rigorous multi-layered trust model for plugins installed from the Marketplace:
+
+1. **WASM Binary Integrity (`wasmSha256`):**
+   - The `plugin.json` manifest declares the exact SHA-256 digest of `plugin.wasm`.
+   - The runtime recomputes the SHA-256 on import/download; any mismatch triggers immediate rejection.
+2. **Catalog Publication & Digital Signatures:**
+   - **Community Plugins:** Distributed directly via GitHub Releases and registered in the Chattree Marketplace catalog. Packages are validated via SHA-256 package/WASM integrity and strict sandboxing—community developers do not need to generate Ed25519 keypairs or manage Root CA certificates.
+   - **Official & Certified Plugins:** Official core plugins and enterprise-certified bundles are signed with an Ed25519 developer certificate anchored to the official root authority (`chattree-official-v1`), binding the developer's public key, identity (`developerId`), and validity window (`validFrom` / `validUntil`).
+3. **Anti-Downgrade Version Watermark:**
+   - The Chattree client records the highest historical SemVer installed for every plugin in persistent storage.
+   - Rollback attacks (attempting to replace a plugin with an older version containing known vulnerabilities) are permanently blocked. Re-installing the identical version is permitted, but downgrades are rejected.
+4. **Transactional Atomic Installation:**
+   - Installations take place in a staging sandbox. If signature verification, package extraction, or storage configuration fails at any step, all state is rolled back cleanly (fail-closed, leaving zero residual keys or orphan files).
+5. **Runtime Token Isolation:**
+   - Plugin execution requires a one-time cryptographic authorization token (`WasmExecutionAuthorization`) referentially bound to the production `PluginPackageManager.instance`. Fake or isolated test tokens are rejected.
 
 ---
 
@@ -119,16 +139,29 @@ The `plugin.json` file is the contract that defines your plugin's identity, perm
 
 A `.chattree-plugin` package is a standard ZIP archive containing the manifest, the compiled WebAssembly binary, and an optional icon at the root level.
 
+### Recommended: Using the Official Chattree CLI
+
+The easiest and safest way to bundle your plugin is using [`@chattree/cli`](https://www.npmjs.com/package/@chattree/cli). It automatically checks your manifest, synchronizes `wasmSha256`, and packages files directly at the archive root:
+
+```bash
+# In your plugin project directory:
+npx @chattree/cli package
+```
+
+This outputs `<id>-v<version>.chattree-plugin` ready to host on GitHub Releases.
+
+### Alternative: Manual Archiving
+
 > **CRITICAL:** All files must reside directly in the **root of the ZIP archive**. Do not package them inside an enclosing subfolder.
 
-### Windows (PowerShell)
+#### Windows (PowerShell)
 ```powershell
 # In the directory containing plugin.json, plugin.wasm, and icon.png:
 Compress-Archive -Path plugin.json, plugin.wasm, icon.png -DestinationPath weather-v1.0.0.zip -Force
 Rename-Item "weather-v1.0.0.zip" "weather-v1.0.0.chattree-plugin"
 ```
 
-### Linux / macOS (Bash)
+#### Linux / macOS (Bash)
 ```bash
 zip -9 weather-v1.0.0.chattree-plugin plugin.json plugin.wasm icon.png
 ```

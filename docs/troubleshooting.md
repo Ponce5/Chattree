@@ -132,6 +132,57 @@ When a plugin behaves unexpectedly, verify these items first:
 
 ---
 
+## Inbound Webhooks & Cloud Relay Troubleshooting
+
+### Error: HTTP 401 "missing_credentials" (Cloudflare Worker)
+- **Cause:** Cloudflare Worker requires at least one authentication credential to prevent public spam or abuse of the relay.
+- **Solution:** Include an `Authorization: Bearer <secret>` header or a recognized webhook signature header (e.g. `X-Hub-Signature-256`, `X-Chattree-Signature-256`, `X-Gitlab-Token`, `Stripe-Signature`).
+
+### Error: HTTP 413 "payload_too_large" (Cloudflare Worker Relay)
+- **Cause:** The combined UTF-8 byte length of `path`, `body`, and forwarded headers exceeded **3,800 bytes** (`MAX_DATA_BYTES`). Google FCM enforces a hard **4 KB** limit on the `data` payload envelope.
+- **Solution:**
+  1. For heavy cloud emitters (such as GitHub push events with large commit histories or Stripe invoices with extensive line items), configure the webhook emitter to send minimal payloads (e.g. headers and IDs only).
+  2. For payloads between 4 KB and 256 KB, deliver via the local HTTP listener (`http://<IP_TELEFONO>:8765`), which supports full payloads up to **256 KB**.
+
+### Error: HTTP 502 "fcm_rejected" / Silent Cloud Delivery Failure
+- **Cause:**
+  1. **FCM Token Rotation:** Google Play Services rotated the phone's FCM registration token, rendering the `FCM_TOKEN` secret in Cloudflare invalid (`UNREGISTERED` / `404`).
+  2. **OAuth2 Clock Skew or Revoked Credentials:** The cached access token or service account was rejected by Google FCM.
+- **Solution:**
+  1. Open Chattree and navigate to **Settings → Inbound Webhooks**.
+  2. Tap **Auto-desplegar en Cloudflare** to push the freshly rotated FCM token to your Cloudflare Worker secrets.
+  3. Verify that your Firebase Service Account JSON has not expired or been deleted from Google Cloud Console.
+
+### Error: HTTP 401 "unauthorized" on Diagnostic Ping (`/plugins/system/test`)
+- **Cause:** The diagnostic test route requires Bearer token authentication matching the diagnostic secret displayed in Settings.
+- **Solution:** Include `Authorization: Bearer <DIAGNOSTIC_SECRET_COPIADO_DE_AJUSTES>` in your test request. Unauthenticated requests are rejected to prevent status bar notification flooding.
+
+### Webhook Received while App was Closed Did Not Execute Plugin Logic Immediately
+- **Cause:** For battery and memory preservation, Android's `fcmBackgroundHandler` runs in a lightweight background isolate that does not instantiate heavy WASM runtimes or AI engines. It safely stores the event in the pending inbox (`kFcmPendingInboxKey`) and alerts you via a status bar notification.
+- **Solution:** Tap the notification or open Chattree. Upon launch/resume, `drainPendingInbox()` immediately processes queued payloads, authenticates them, commits receipts to `EventJournal`, and executes the plugin handler.
+
+### Error: HTTP 404 "route_not_found"
+- **Cause:** The requested path (e.g. `/plugins/com.example/webhook`) is not registered by any currently installed plugin, or the path is misspelled.
+- **Solution:** 
+  1. For testing connectivity without installing a plugin, use the built-in diagnostic path: `/plugins/system/test` (or `/plugins/test/ping`).
+  2. For plugin webhooks, ensure the plugin is installed and declares the exact endpoint path in its manifest under `inboundWebhooks`.
+
+### Error: HTTP 405 "method_not_allowed"
+- **Cause:** Inbound webhook endpoints strictly accept `POST` requests. Sending a `GET`, `PUT`, or `DELETE` to `/plugins/*` is rejected.
+- **Solution:** Change the client HTTP request method to `POST`.
+
+### Connection Timed Out / Refused on Local LAN (Port 8765)
+- **Cause:** The mobile app is minimized, screen is locked, or LAN mode is disabled.
+- **Solution:**
+  1. Chattree strictly operates its local HTTP listener in the foreground to comply with Android battery and Google Play background socket policies. Open the app to reactivate the server.
+  2. In **Settings → Inbound Webhooks**, verify that **Permitir dispositivos en red local (LAN)** is enabled so the server binds to `0.0.0.0` rather than `127.0.0.1`.
+
+### Notifications Not Appearing when App is Open (Foreground)
+- **Cause:** Android Firebase SDK by default suppresses visual push notifications when the application is actively in the foreground.
+- **Solution:** Chattree includes built-in foreground presentation via `FirebaseMessaging.onMessage` triggering `FlutterLocalNotificationsPlugin.show` with high priority. Ensure system notification permissions are granted in Android Settings for Chattree.
+
+---
+
 ## Viewing Diagnostic Logs
 
 View live Flutter and plugin logs via Android Debug Bridge (ADB):
