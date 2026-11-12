@@ -132,7 +132,7 @@ chattree-repo/
 │   ├── ai_providers/     # Cloud & local LLM provider specifications
 │   ├── plugins/          # Plugin contracts, host APIs, security & package formats
 │   ├── app-features.md   # Core application features and capabilities
-│   └── LIMITACIONES.md   # Platform boundaries and sandbox quotas
+│   └── troubleshooting.md # Diagnostics, error resolution and FAQ
 ├── examples/             # Official developer examples (hello, notes-demo, trackers)
 ├── plugins/official/     # First-party plugins (calendar, mail, pdf, elevenlabs, notion)
 ├── templates/plugin/     # Authoritative starter templates
