@@ -195,7 +195,7 @@ Plugins that react to device notifications (`device.notification.received`, `dev
 | `eventConsumers[].id` | `string` | ✅ | Unique consumer identifier within the plugin. |
 | `eventConsumers[].eventTypes` | `string[]` | ✅ | Explicit event types to subscribe to (wildcards `*` are rejected). |
 | `eventConsumers[].targetAction` | `string` | ✅ | Exact `tools[].id` invoked when a matching event is dispatched. |
-| `eventConsumers[].filter` | `object` | ❌ | Key-value pre-filter evaluated by `HostEventBus` before instantiating WASM. Values can be scalars or arrays of allowed values (e.g. `{"packageName": ["com.whatsapp", "com.whatsapp.w4b"], "canReply": true}`). |
+| `eventConsumers[].filter` | `object` | ❌ | Declarative pre-filter evaluated by `EventFilterMatcher` before instantiating WASM. Supports scalar equality, arrays, boolean guards (`excludeOngoing`, `excludeFromMe`, `excludeGroupSummary`), and operator objects (`in`, `notIn`, `contains`, `containsAny`, `regex`, `not`). |
 | `eventConsumers[].requiredPermissions` | `string[]` | ❌ | Capabilities required before the event delivery is dispatched. |
 
 ---

@@ -70,7 +70,7 @@ To release a new version of an already published plugin:
    - Increment `version` following Semantic Versioning (e.g. `1.0.1` -> `1.0.2`).
    - Update `wasmSha256` with the new SHA-256 hash of `plugin.wasm`.
    - Update `changelog` describing what changed in this version.
-3. **Repackage:** Build the new `calendar-vX.Y.Z.chattree-plugin` bundle.
+3. **Repackage:** Build the new `<plugin-slug>-vX.Y.Z.chattree-plugin` bundle.
 4. **Git Commit & Release:** Commit changes, push to GitHub, and draft a new GitHub Release with the new version tag (e.g. `v1.0.2`), attaching the new `.chattree-plugin` file.
 5. **Marketplace Update:** Submit the new release download URL via the [Web Portal](https://chattree.chat/submit-plugin) or the REST API.
    - The marketplace automatically detects the plugin ID, validates that the new version is greater than the previous version, registers the new release, and marks it active.
@@ -82,7 +82,7 @@ To release a new version of an already published plugin:
 
 - **Code Style**: Follow the conventions specified in [`.editorconfig`](./.editorconfig).
 - **Security & Permissions**: Any plugin or tooling contribution must respect Chattree's strict capability isolation and permission models.
-- **Continuous Integration**: Once automated workflows are introduced, ensure all linting, schema validation, and test checks pass.
+- **Continuous Integration**: Ensure all linting, schema validation (`node scripts/validate-all.mjs`), and test checks pass before opening a pull request.
 
 ---
 

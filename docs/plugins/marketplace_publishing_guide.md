@@ -2,7 +2,7 @@
 
 This guide describes how to package a community plugin, host it on GitHub Releases, and submit its listing to the Chattree Marketplace. Official plugins follow a separate maintainer workflow. Portal/API behavior and app update discovery can change; verify against the deployed service before announcing a release.
 
-Plugins are distributed as `.chattree-plugin` ZIP packages, commonly attached to GitHub Releases, and registered through the web portal or REST API. In addition to WASM SHA-256 integrity checks, the Chattree runtime enforces Ed25519 digital signature verification, developer certificate validation against the official root authority (`rootKeyId = "chattree-official-v1"`), persistent anti-downgrade watermarks, and atomic transaction rollback.
+Plugins are distributed as `.chattree-plugin` ZIP packages, commonly attached to GitHub Releases, and registered through the web portal or REST API. In addition to WASM SHA-256 integrity checks, the Chattree runtime supports optional Ed25519 digital signature verification (validated when `signature.json` is present), persistent anti-downgrade watermarks, and atomic transaction rollback.
 
 ---
 

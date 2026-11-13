@@ -6,11 +6,11 @@ The Chattree team takes the security of our platform, ecosystem, and plugins ver
 
 ## Supported Versions
 
-Security updates and patches will be provided for currently supported versions once initial stable releases are published:
+Security updates and patches are provided for currently supported production releases:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| Initial | Under Active Setup |
+| Version | Supported |
+| ------- | --------- |
+| `1.0.x` | ✅ Supported |
 
 ---
 
@@ -37,7 +37,7 @@ Chattree enforces defense-in-depth principles across the application runtime, ma
 If you discover a potential security vulnerability within Chattree, its official plugins, schemas, or developer tools:
 
 1. **Do not open a public issue.** Please avoid disclosing the vulnerability publicly on issue trackers, forums, or social networks until it has been reviewed and resolved.
-2. **Responsible Disclosure**: Official dedicated security contact channels (such as private security advisories or a dedicated security reporting email) will be announced alongside the security team setup.
+2. **Responsible Disclosure**: Report vulnerabilities privately via [GitHub Private Security Advisories](https://github.com/Ponce5/Chattree/security/advisories/new) or by emailing **[support@chattree.chat](mailto:support@chattree.chat)** with the subject line `[SECURITY]`.
 3. **Information to Include**:
    - A detailed description of the vulnerability.
    - Clear steps or a proof of concept (PoC) to reproduce the issue.

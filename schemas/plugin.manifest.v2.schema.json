@@ -448,7 +448,7 @@
         },
         "filter": {
           "type": "object",
-          "description": "Optional key-value filter evaluated by HostEventBus before dispatching to WASM (values may be scalars or arrays of allowed scalars, e.g. {\"packageName\": [\"com.whatsapp\", \"com.whatsapp.w4b\"], \"canReply\": true})."
+          "description": "Optional declarative filter evaluated before dispatching to WASM. Supports scalar equality, arrays, boolean guards (excludeOngoing, excludeFromMe, excludeGroupSummary), and operator objects (in, notIn, contains, containsAny, regex, not)."
         },
         "targetAction": {
           "type": "string",

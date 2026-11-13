@@ -14,7 +14,7 @@ Welcome to the technical documentation library for the **Chattree** ecosystem â€
 - **[Notes & Reminders (Vector RAG)](./notes-reminders.md)**: Conversational slash commands (`/note`, `/reminder`) and programmatic Host API access with vector indexing.
 - **[Visual Design Architecture (`/visual`)](./visual-design.md)**: Generative vector SVG graphics pipeline, resilient two-pass extraction, SvgSanitizer security, and atomic persistence.
 - **[Inbound Webhooks & Event Pipeline](./inbound-webhooks.md)**: Local loopback HTTP listener, HMAC-SHA256 verification, SSRF protection, SQLite event journal, and lifecycle auto-resume.
-- **[External AI Providers](./ai_providers/architecture.md)**: Interface contracts, encrypted credential storage, and provider adapters for OpenAI, Gemini, and Anthropic.
+- **[External AI Providers](./ai_providers/architecture.md)**: Interface contracts, encrypted credential storage, and provider adapters for OpenAI, Gemini, Anthropic Claude, and OpenRouter.
 
 ### 2. WebAssembly Plugin SDK
 - **[Plugin SDK Overview](./plugins/README.md)**: Architecture of the plugin subsystem, execution lifecycle, memory layout, and runtime host boundary.
@@ -42,4 +42,4 @@ Welcome to the technical documentation library for the **Chattree** ecosystem â€
 
 ## Synchronization with Chattree Web
 
-English technical documentation in this directory is the source for the website's canonical English reference pages. The web application synchronizes Markdown and examples using `Web/scripts/sync-docs.mjs`. Some localized pages are maintained separately in `Web/lib/docs.ts`; update those translations when their English source behavior changes.
+English technical documentation in this directory is the source for the website's canonical English reference pages. The web application synchronizes Markdown and examples automatically using `Web/scripts/sync-docs.mjs`.

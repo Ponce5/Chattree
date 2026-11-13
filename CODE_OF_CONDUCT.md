@@ -34,4 +34,4 @@ Community leaders and maintainers are responsible for clarifying and enforcing o
 
 ## Reporting Issues
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers. Dedicated contact channels for conduct reporting will be published alongside the team governance rollout. All reports will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers at **[support@chattree.chat](mailto:support@chattree.chat)**. All reports will be reviewed and investigated promptly and fairly.

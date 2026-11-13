@@ -25,7 +25,7 @@
 - **🔒 100% Private & Offline:** Complete on-device model execution via llama.cpp. Zero telemetry, zero external tracking.
 - **⚡ WebAssembly Sandbox:** Run high-performance plugins in WAT, AssemblyScript, and Rust under strict linear memory and instruction-fuel boundaries.
 - **🧠 Vector RAG & Local Notes:** On-device semantic search powered by SQLite FTS5 and mobile vector embeddings.
-- **🛠 Universal Extension Contract (ABI v2):** 20 comprehensive Host API namespaces with dynamic 64-bit memory descriptors and cooperative async suspension.
+- **🛠 Universal Extension Contract (ABI v2):** 21 comprehensive Host API namespaces with dynamic 64-bit memory descriptors and cooperative async suspension.
 - **🛡 Enterprise Security Hardening:** Multi-layer defense with SSRF protection, DNS rebinding guards, SQLite jailbreaking filters, and Hardware KeyStore credential storage.
 
 ---
@@ -94,7 +94,7 @@ npx @chattree/cli package
 
 ---
 
-## 🔌 Host API Capabilities (20 Namespaces)
+## 🔌 Host API Capabilities (21 Namespaces)
 
 Chattree grants plugins sandboxed access to device and core features through declared manifest permissions:
 
@@ -108,6 +108,7 @@ Chattree grants plugins sandboxed access to device and core features through dec
 | `ui` | `ui.components`, `ui.render` | Render interactive cards with buttons, metrics, and progress bars. |
 | `scheduler`| `scheduler.task`, `scheduler.cron` | Background periodic tasks and standard 5-field Cron jobs. |
 | `ai` | `ai.context`, `ai.embeddings` | Access conversational context and generate semantic vector embeddings. |
+| `chattree.context` | `chattree.context.read`, `chat.history.read` | Read current message context and bounded conversation history. |
 | `notes` | `chattree.notes.read`, `.create`, `.update` | Interacting with native notes and semantic knowledge store. |
 | `reminders`| `chattree.reminders.read`, `.create` | Create scheduled notifications and Android AlarmManager alarms. |
 | `notifications` | `notifications.read`, `.reply`, `.action` | Read system alerts and trigger native inline replies. |
@@ -134,7 +135,7 @@ chattree-repo/
 │   ├── app-features.md   # Core application features and capabilities
 │   └── troubleshooting.md # Diagnostics, error resolution and FAQ
 ├── examples/             # Official developer examples (hello, notes-demo, trackers)
-├── plugins/official/     # First-party plugins (calendar, mail, pdf, elevenlabs, notion)
+├── plugins/official/     # First-party plugins (calendar, mail, pdf, elevenlabs, notion, github, rpg)
 ├── templates/plugin/     # Authoritative starter templates
 ├── schemas/              # JSON Schemas (plugin manifest v1 & v2)
 ├── scripts/              # Validation test scripts (validate-all.mjs)
