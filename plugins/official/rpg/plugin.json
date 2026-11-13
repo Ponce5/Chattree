@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.rpg",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "name": "Text RPG Simulator",
-  "description": "Official interactive Retro MMORPG simulator and continuous narrative campaign engine for Chattree. Features procedural atmospheric prologues, deterministic dice combat, verified inventories, Tibia-style pixel art UI cards, two-step safe game reset flow, and private SQLite save persistence.",
+  "description": "D&D-inspired interactive narrative RPG engine for Chattree. Features AI-generated 3-story openings, predefined Knight and Archer character selection in Flutter UI, 3-slot persistent campaigns, compact live campaign memory, and tension-driven d20 narrative pacing.",
   "author": "Chattree Core Team",
   "authorEmail": "support@chattree.app",
   "homepageUrl": "https://chattree.app",
@@ -17,29 +17,26 @@
   "type": "imported",
   "category": "utilities",
   "capabilities": [
-    "database.sql",
     "storage.private",
     "ui.components"
   ],
   "tags": [
     "rpg",
+    "dnd",
     "game",
     "adventure",
     "dice",
     "narrative",
-    "tibia",
-    "pixelart",
-    "sqlite",
     "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/icon.png?v=1.2.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/banner.png?v=1.2.0",
-  "changelog": "1.2.0: Added safe two-step game restart confirmation flow (/rpg reset -> confirmation prompt -> wipe SQLite & memory), resetting campaign state cleanly.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/icon.png?v=2.0.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/rpg/banner.png?v=2.0.0",
+  "changelog": "2.0.0: Added 3-slot persistent campaigns (/rpg games, /rpg switch), AI-generated 3-story opening selection in Flutter UI, predefined Knight/Archer ASCII symbol art selection, live compact campaign summary memory, tension + d20 D&D narrative pacing, and two-step /rpg delete confirmation.",
   "runtime": "wasm",
   "entrypoint": "rpg_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "938c092681f29230182b8f3f91c611c6395d27b0d362686a7f0557832628fc51",
+  "wasmSha256": "5ab8fdad490cd2330683b8bb5ea2bccf440af01bfb7f5e4764e4a4e8addadb03",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 15000,
@@ -52,9 +49,8 @@
       "id": "com.chattree.official.rpg.engine",
       "command": "rpg",
       "displayName": "RPG Adventure Engine",
-      "description": "Motor de rol narrativo continuo y simulador de aventura determinista estilo MMORPG clásico (Tibia/Zork). Al iniciar (/rpg o /rpg start), tú como IA Game Master debes generar una introducción rica, inmersiva, atmosférica y diferente cada vez, tejiendo una historia lineal continua con misterio y peligro. Cada decisión del jugador avanza la historia con causa y efecto real. NUNCA inventes números de vida ni ítems de inventario; respeta matemáticamente los datos que emite el motor WASM y usa tu talento literario para narrar cada golpe, suspenso y ambiente. Si el jugador solicita reiniciar partida, guía la confirmación segura antes de purgar los datos.",
+      "description": "D&D-inspired narrative RPG engine. If the active slot is empty or the user runs /rpg new, generate 3 distinct short story premises (s1_title, s1_premise, s2_title, s2_premise, s3_title, s3_premise) and call action='new'. When [RPG_STATE] is returned, narrate immersively in the user's language with rich sensory detail and clear narrative momentum (avoid repetitive 'What do you do?' endings and avoid filler combat). Respect the engine's phase (OPENING, EXPLORATION, SKILL_CHECK, COMBAT_AMBUSH, COMBAT_ROUND, COMBAT_VICTORY, CAMP_REST, GAME_OVER), d20 roll, tension, and HP. On every 'action' turn, provide a short summary_note (1-2 concise sentences) and tension_delta so the engine preserves long-term campaign memory.",
       "capabilities": [
-        "database.sql",
         "storage.private",
         "ui.components"
       ],
@@ -62,95 +58,157 @@
         "intent": "rpg_action",
         "validIntents": [
           "start",
-          "status",
+          "new",
+          "pick_story",
+          "select_class",
           "action",
-          "save",
-          "load",
-          "reset",
-          "confirm_reset",
+          "status",
+          "games",
+          "switch",
+          "delete",
+          "confirm_delete",
           "help"
         ],
-        "description": "Interpreta cualquier acción de rol, combate, exploración o reinicio de partida en lenguaje natural y genera la llamada al motor de la campaña.",
+        "description": "Manages campaigns, 3-story openings, Knight/Archer class selection, D&D turn resolution, and save slots.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'start' (iniciar historia), 'status' (ver estadísticas completas), 'action' (ejecutar acción en la historia), 'save' (guardar partida), 'load' (cargar partida), 'reset' (solicitar confirmación para reiniciar partida) o 'confirm_reset' (confirmar el reinicio definitivo de la partida y base de datos).",
+            "description": "Engine action: 'start', 'new', 'pick_story', 'select_class', 'action', 'status', 'games', 'switch', 'delete', 'confirm_delete', or 'help'.",
             "required": true
           },
           {
             "name": "query",
             "key": "query",
             "type": "string",
-            "description": "Acción del jugador en lenguaje natural (ej. 'atacar al centinela', 'beber pocion', 'reiniciar partida', 'confirmar reinicio').",
+            "description": "Player intent, story number (1-3), class ('knight'|'archer'), or slot number (1-3).",
+            "required": false
+          },
+          {
+            "name": "intent",
+            "key": "intent",
+            "type": "string",
+            "description": "Natural language player action for 'action' turns.",
+            "required": false
+          },
+          {
+            "name": "s1_title",
+            "key": "s1_title",
+            "type": "string",
+            "description": "AI-generated Story 1 title for action='new'.",
+            "required": false
+          },
+          {
+            "name": "s1_premise",
+            "key": "s1_premise",
+            "type": "string",
+            "description": "AI-generated Story 1 short premise for action='new'.",
+            "required": false
+          },
+          {
+            "name": "s2_title",
+            "key": "s2_title",
+            "type": "string",
+            "description": "AI-generated Story 2 title for action='new'.",
+            "required": false
+          },
+          {
+            "name": "s2_premise",
+            "key": "s2_premise",
+            "type": "string",
+            "description": "AI-generated Story 2 short premise for action='new'.",
+            "required": false
+          },
+          {
+            "name": "s3_title",
+            "key": "s3_title",
+            "type": "string",
+            "description": "AI-generated Story 3 title for action='new'.",
+            "required": false
+          },
+          {
+            "name": "s3_premise",
+            "key": "s3_premise",
+            "type": "string",
+            "description": "AI-generated Story 3 short premise for action='new'.",
+            "required": false
+          },
+          {
+            "name": "summary_note",
+            "key": "summary_note",
+            "type": "string",
+            "description": "Concise 1-sentence event/location update appended to the persistent campaign summary.",
+            "required": false
+          },
+          {
+            "name": "tension_delta",
+            "key": "tension_delta",
+            "type": "integer",
+            "description": "Tension adjustment (-40 to +40) based on danger/pacing.",
+            "required": false
+          },
+          {
+            "name": "roll_needed",
+            "key": "roll_needed",
+            "type": "boolean",
+            "description": "True if the action requires a d20 skill or attack check.",
+            "required": false
+          },
+          {
+            "name": "dc",
+            "key": "dc",
+            "type": "integer",
+            "description": "Difficulty Class (5-20) when roll_needed is true.",
+            "required": false
+          },
+          {
+            "name": "combat_outcome",
+            "key": "combat_outcome",
+            "type": "string",
+            "description": "Set to 'victory' when an active combat encounter is resolved.",
+            "required": false
+          },
+          {
+            "name": "rest",
+            "key": "rest",
+            "type": "boolean",
+            "description": "True when the party rests/camps to recover HP and lower tension.",
             "required": false
           }
         ],
         "examples": [
           {
-            "input": "inicia una aventura de rol",
+            "input": "start a new adventure",
             "output": {
               "tool": "rpg",
               "action": "start"
             }
           },
           {
-            "input": "ataco al centinela con mi espada",
+            "input": "show my saved campaigns",
+            "output": {
+              "tool": "rpg",
+              "action": "games"
+            }
+          },
+          {
+            "input": "I examine the cracked altar for hidden runes",
             "output": {
               "tool": "rpg",
               "action": "action",
-              "query": "atacar"
+              "intent": "examine the cracked altar for hidden runes",
+              "roll_needed": true,
+              "dc": 12,
+              "tension_delta": 10,
+              "summary_note": "Inspected the cracked altar for hidden runes."
             }
           },
           {
-            "input": "me tomo una poción curativa",
+            "input": "delete current campaign",
             "output": {
               "tool": "rpg",
-              "action": "action",
-              "query": "pocion"
-            }
-          },
-          {
-            "input": "muéstrame el estado de mi héroe",
-            "output": {
-              "tool": "rpg",
-              "action": "status"
-            }
-          },
-          {
-            "input": "guarda mi progreso",
-            "output": {
-              "tool": "rpg",
-              "action": "save"
-            }
-          },
-          {
-            "input": "reiniciar partida",
-            "output": {
-              "tool": "rpg",
-              "action": "reset"
-            }
-          },
-          {
-            "input": "quiero resetear el juego",
-            "output": {
-              "tool": "rpg",
-              "action": "reset"
-            }
-          },
-          {
-            "input": "sí, deseo reiniciar la partida",
-            "output": {
-              "tool": "rpg",
-              "action": "confirm_reset"
-            }
-          },
-          {
-            "input": "confirmar reinicio",
-            "output": {
-              "tool": "rpg",
-              "action": "confirm_reset"
+              "action": "delete"
             }
           }
         ],

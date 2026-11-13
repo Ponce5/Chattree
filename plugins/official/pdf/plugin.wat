@@ -14,11 +14,14 @@
 ;; Memory layout:
 ;;   0        input string (ABI v1 fallback)
 ;;   1024     output string (ToolResult JSON returned to chat)
-;;   2048     host_call request JSON
+;;   2048     (unused / legacy host_call request)
 ;;   4096     host_call response JSON (4096 bytes max)
 ;;   32000    WinAnsi title  (256 bytes)
 ;;   32256    WinAnsi subtitle (256 bytes)
 ;;   32512    WinAnsi footer   (256 bytes)
+;;   33000    decoded JSON title temp (256 bytes)
+;;   33256    decoded JSON subtitle temp (256 bytes)
+;;   33512    decoded JSON footer temp (256 bytes)
 ;;   49408    filename buffer (35 bytes)
 ;;   49664    handle buffer   (40 bytes)
 ;;   50000    base64 alphabet (64 bytes)
@@ -28,6 +31,7 @@
 ;;   801000   xref offset table
 ;;   1000000  PDF binary output
 ;;   1700000  base64-encoded PDF
+;;   2200000  host_call request JSON (up to 800 KB)
 ;;   3000000  NUL-terminated PDF fragment strings (data section)
 ;;   3100000  dynamic input buffer (ABI v2, up to 512 KB)
 ;;   3700000  body temp sanitize buffer (80000 bytes)
@@ -61,6 +65,8 @@
   (global $fname_len  (mut i32) (i32.const 0))
   (global $handle_len (mut i32) (i32.const 0))
   (global $page_count (mut i32) (i32.const 0))
+  (global $is_en      (mut i32) (i32.const 0))
+  (global $hdr_y      (mut i32) (i32.const 800))
   (global $heap_ptr   (mut i32) (i32.const 3100000))
 
   ;; ── helpers ───────────────────────────────────────────────────────────────
@@ -165,6 +171,61 @@
       )
     )
     (local.get $i)
+  )
+
+  ;; find_json_key: finds `"key"` (needle of len nlen including quotes) followed by
+  ;; optional whitespace, `:`, optional whitespace, and `"`.
+  ;; Returns byte offset in hay of the first char AFTER the opening `"`, or -1.
+  (func $find_json_key (param $hay i32) (param $hlen i32) (param $ndl i32) (param $nlen i32) (result i32)
+    (local $pos i32) (local $cur i32) (local $ch i32) (local $sub i32)
+    (local.set $pos (i32.const 0))
+    (loop $search
+      (if (i32.ge_s (local.get $pos) (local.get $hlen)) (then (return (i32.const -1))))
+      (local.set $sub (call $find_sub
+        (i32.add (local.get $hay) (local.get $pos))
+        (i32.sub (local.get $hlen) (local.get $pos))
+        (local.get $ndl)
+        (local.get $nlen)))
+      (if (i32.lt_s (local.get $sub) (i32.const 0)) (then (return (i32.const -1))))
+      (local.set $cur (i32.add (local.get $pos) (i32.add (local.get $sub) (local.get $nlen))))
+      ;; skip whitespace before ':'
+      (block $ws1_done
+        (loop $ws1
+          (if (i32.ge_s (local.get $cur) (local.get $hlen)) (then (br $ws1_done)))
+          (local.set $ch (i32.load8_u (i32.add (local.get $hay) (local.get $cur))))
+          (if (i32.or (i32.eq (local.get $ch) (i32.const 32))
+                      (i32.or (i32.eq (local.get $ch) (i32.const 9))
+                              (i32.or (i32.eq (local.get $ch) (i32.const 10)) (i32.eq (local.get $ch) (i32.const 13)))))
+            (then (local.set $cur (i32.add (local.get $cur) (i32.const 1))) (br $ws1))
+          )
+        )
+      )
+      (if (i32.and (i32.lt_s (local.get $cur) (local.get $hlen))
+                   (i32.eq (i32.load8_u (i32.add (local.get $hay) (local.get $cur))) (i32.const 58))) ;; ':'
+        (then
+          (local.set $cur (i32.add (local.get $cur) (i32.const 1)))
+          ;; skip whitespace after ':'
+          (block $ws2_done
+            (loop $ws2
+              (if (i32.ge_s (local.get $cur) (local.get $hlen)) (then (br $ws2_done)))
+              (local.set $ch (i32.load8_u (i32.add (local.get $hay) (local.get $cur))))
+              (if (i32.or (i32.eq (local.get $ch) (i32.const 32))
+                          (i32.or (i32.eq (local.get $ch) (i32.const 9))
+                                  (i32.or (i32.eq (local.get $ch) (i32.const 10)) (i32.eq (local.get $ch) (i32.const 13)))))
+                (then (local.set $cur (i32.add (local.get $cur) (i32.const 1))) (br $ws2))
+              )
+            )
+          )
+          (if (i32.and (i32.lt_s (local.get $cur) (local.get $hlen))
+                       (i32.eq (i32.load8_u (i32.add (local.get $hay) (local.get $cur))) (i32.const 34))) ;; '"'
+            (then (return (i32.add (local.get $cur) (i32.const 1))))
+          )
+        )
+      )
+      (local.set $pos (i32.add (local.get $pos) (i32.add (local.get $sub) (i32.const 1))))
+      (br $search)
+    )
+    (i32.const -1)
   )
 
   ;; ── base64 encoder ────────────────────────────────────────────────────────
@@ -310,6 +371,20 @@
                   (if (i32.eq (local.get $next) (i32.const 186)) (then (local.set $mapped (i32.const 250)))) ;; ú
                   (if (i32.eq (local.get $next) (i32.const 188)) (then (local.set $mapped (i32.const 252)))) ;; ü
                   (if (i32.eq (local.get $next) (i32.const 156)) (then (local.set $mapped (i32.const 220)))) ;; Ü
+                  (if (i32.eq (local.get $next) (i32.const 135)) (then (local.set $mapped (i32.const 199)))) ;; Ç
+                  (if (i32.eq (local.get $next) (i32.const 167)) (then (local.set $mapped (i32.const 231)))) ;; ç
+                  (if (i32.eq (local.get $next) (i32.const 151)) (then (local.set $mapped (i32.const 215)))) ;; ×
+                  (if (i32.eq (local.get $next) (i32.const 183)) (then (local.set $mapped (i32.const 247)))) ;; ÷
+                  (if (i32.eq (local.get $next) (i32.const 128)) (then (local.set $mapped (i32.const 192)))) ;; À
+                  (if (i32.eq (local.get $next) (i32.const 136)) (then (local.set $mapped (i32.const 200)))) ;; È
+                  (if (i32.eq (local.get $next) (i32.const 140)) (then (local.set $mapped (i32.const 204)))) ;; Ì
+                  (if (i32.eq (local.get $next) (i32.const 146)) (then (local.set $mapped (i32.const 210)))) ;; Ò
+                  (if (i32.eq (local.get $next) (i32.const 153)) (then (local.set $mapped (i32.const 217)))) ;; Ù
+                  (if (i32.eq (local.get $next) (i32.const 160)) (then (local.set $mapped (i32.const 224)))) ;; à
+                  (if (i32.eq (local.get $next) (i32.const 168)) (then (local.set $mapped (i32.const 232)))) ;; è
+                  (if (i32.eq (local.get $next) (i32.const 172)) (then (local.set $mapped (i32.const 236)))) ;; ì
+                  (if (i32.eq (local.get $next) (i32.const 178)) (then (local.set $mapped (i32.const 242)))) ;; ò
+                  (if (i32.eq (local.get $next) (i32.const 185)) (then (local.set $mapped (i32.const 249)))) ;; ù
                 )
               )
               (if (i32.eq (local.get $ch) (i32.const 194))
@@ -319,6 +394,16 @@
                   (if (i32.eq (local.get $next) (i32.const 176)) (then (local.set $mapped (i32.const 176)))) ;; °
                   (if (i32.eq (local.get $next) (i32.const 170)) (then (local.set $mapped (i32.const 170)))) ;; ª
                   (if (i32.eq (local.get $next) (i32.const 186)) (then (local.set $mapped (i32.const 186)))) ;; º
+                  (if (i32.eq (local.get $next) (i32.const 177)) (then (local.set $mapped (i32.const 177)))) ;; ±
+                  (if (i32.eq (local.get $next) (i32.const 171)) (then (local.set $mapped (i32.const 171)))) ;; «
+                  (if (i32.eq (local.get $next) (i32.const 187)) (then (local.set $mapped (i32.const 187)))) ;; »
+                  (if (i32.eq (local.get $next) (i32.const 169)) (then (local.set $mapped (i32.const 169)))) ;; ©
+                  (if (i32.eq (local.get $next) (i32.const 174)) (then (local.set $mapped (i32.const 174)))) ;; ®
+                  (if (i32.eq (local.get $next) (i32.const 178)) (then (local.set $mapped (i32.const 178)))) ;; ²
+                  (if (i32.eq (local.get $next) (i32.const 179)) (then (local.set $mapped (i32.const 179)))) ;; ³
+                  (if (i32.eq (local.get $next) (i32.const 183)) (then (local.set $mapped (i32.const 183)))) ;; ·
+                  (if (i32.eq (local.get $next) (i32.const 167)) (then (local.set $mapped (i32.const 167)))) ;; §
+                  (if (i32.eq (local.get $next) (i32.const 180)) (then (local.set $mapped (i32.const 180)))) ;; ´
                 )
               )
               (if (i32.and (i32.eq (local.get $ch) (i32.const 226))
@@ -338,7 +423,35 @@
                     )
                   )
                   (if (i32.and (i32.eq (local.get $next) (i32.const 130)) (i32.eq (local.get $third) (i32.const 172)))
-                    (then (local.set $mapped (i32.const 128)))
+                    (then (local.set $mapped (i32.const 128))) ;; €
+                  )
+                  ;; → (0xE2 0x86 0x92) -> "->"
+                  (if (i32.and (i32.eq (local.get $next) (i32.const 134)) (i32.eq (local.get $third) (i32.const 146)))
+                    (then
+                      (if (i32.lt_s (i32.add (local.get $out) (i32.const 1)) (local.get $max))
+                        (then
+                          (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 45))
+                          (i32.store8 (i32.add (local.get $dst) (i32.add (local.get $out) (i32.const 1))) (i32.const 62))
+                          (local.set $out (i32.add (local.get $out) (i32.const 2)))
+                        )
+                      )
+                      (local.set $i (i32.add (local.get $i) (i32.const 3)))
+                      (br $lp)
+                    )
+                  )
+                  ;; ← (0xE2 0x86 0x90) -> "<-"
+                  (if (i32.and (i32.eq (local.get $next) (i32.const 134)) (i32.eq (local.get $third) (i32.const 144)))
+                    (then
+                      (if (i32.lt_s (i32.add (local.get $out) (i32.const 1)) (local.get $max))
+                        (then
+                          (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 60))
+                          (i32.store8 (i32.add (local.get $dst) (i32.add (local.get $out) (i32.const 1))) (i32.const 45))
+                          (local.set $out (i32.add (local.get $out) (i32.const 2)))
+                        )
+                      )
+                      (local.set $i (i32.add (local.get $i) (i32.const 3)))
+                      (br $lp)
+                    )
                   )
                   (local.set $i (i32.add (local.get $i) (i32.const 1)))
                 )
@@ -394,10 +507,21 @@
     (local.get $p)
   )
 
+  ;; ── hex_val: converts ASCII hex char to 0..15, or -1 if invalid ──────────
+  (func $hex_val (param $c i32) (result i32)
+    (if (i32.and (i32.ge_s (local.get $c) (i32.const 48)) (i32.le_s (local.get $c) (i32.const 57)))
+      (then (return (i32.sub (local.get $c) (i32.const 48)))))
+    (if (i32.and (i32.ge_s (local.get $c) (i32.const 65)) (i32.le_s (local.get $c) (i32.const 70)))
+      (then (return (i32.sub (local.get $c) (i32.const 55)))))
+    (if (i32.and (i32.ge_s (local.get $c) (i32.const 97)) (i32.le_s (local.get $c) (i32.const 102)))
+      (then (return (i32.sub (local.get $c) (i32.const 87)))))
+    (i32.const -1)
+  )
+
   ;; ── parse_json_string: parse a JSON string value after the opening quote ──
   ;; Scans from $src for up to $max_len bytes, writing decoded bytes to $dst.
   ;; Correctly handles \" (keeps the quote), \n/\r (newline), \t (space),
-  ;; \\ (backslash). Stops at an unescaped closing quote.
+  ;; \\ (backslash), \/ (slash), \uXXXX (UTF-8 encoded). Stops at unescaped ".
   ;; Returns the number of bytes written.
   (func $parse_json_string
     (param $src i32)     ;; pointer to first byte AFTER the opening "
@@ -406,6 +530,7 @@
     (param $max i32)     ;; max output bytes
     (result i32)         ;; number of bytes written
     (local $i i32) (local $out i32) (local $ch i32) (local $next i32)
+    (local $h0 i32) (local $h1 i32) (local $h2 i32) (local $h3 i32) (local $cp i32)
     (loop $lp
       (if (i32.and
             (i32.lt_s (local.get $i) (local.get $slen))
@@ -460,10 +585,73 @@
                       (br $lp)
                     )
                   )
-                  ;; \u → skip 6 chars (\uXXXX)
+                  ;; \/ → slash
+                  (if (i32.eq (local.get $next) (i32.const 47))
+                    (then
+                      (i32.store8 (i32.add (local.get $dst) (local.get $out)) (i32.const 47))
+                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
+                      (br $lp)
+                    )
+                  )
+                  ;; \uXXXX → decode to UTF-8
                   (if (i32.eq (local.get $next) (i32.const 117))
                     (then
-                      (local.set $i (i32.add (local.get $i) (i32.const 6)))
+                      (if (i32.le_s (i32.add (local.get $i) (i32.const 6)) (local.get $slen))
+                        (then
+                          (local.set $h0 (call $hex_val (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 2))))))
+                          (local.set $h1 (call $hex_val (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 3))))))
+                          (local.set $h2 (call $hex_val (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 4))))))
+                          (local.set $h3 (call $hex_val (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 5))))))
+                          (if (i32.and
+                                (i32.and (i32.ge_s (local.get $h0) (i32.const 0)) (i32.ge_s (local.get $h1) (i32.const 0)))
+                                (i32.and (i32.ge_s (local.get $h2) (i32.const 0)) (i32.ge_s (local.get $h3) (i32.const 0))))
+                            (then
+                              (local.set $cp
+                                (i32.or (i32.shl (local.get $h0) (i32.const 12))
+                                  (i32.or (i32.shl (local.get $h1) (i32.const 8))
+                                    (i32.or (i32.shl (local.get $h2) (i32.const 4)) (local.get $h3)))))
+                              (if (i32.lt_s (local.get $cp) (i32.const 128))
+                                (then
+                                  (i32.store8 (i32.add (local.get $dst) (local.get $out)) (local.get $cp))
+                                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                                )
+                                (else
+                                  (if (i32.lt_s (local.get $cp) (i32.const 2048))
+                                    (then
+                                      (if (i32.lt_s (i32.add (local.get $out) (i32.const 1)) (local.get $max))
+                                        (then
+                                          (i32.store8 (i32.add (local.get $dst) (local.get $out))
+                                            (i32.or (i32.const 192) (i32.shr_u (local.get $cp) (i32.const 6))))
+                                          (i32.store8 (i32.add (local.get $dst) (i32.add (local.get $out) (i32.const 1)))
+                                            (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+                                          (local.set $out (i32.add (local.get $out) (i32.const 2)))
+                                        )
+                                      )
+                                    )
+                                    (else
+                                      (if (i32.lt_s (i32.add (local.get $out) (i32.const 2)) (local.get $max))
+                                        (then
+                                          (i32.store8 (i32.add (local.get $dst) (local.get $out))
+                                            (i32.or (i32.const 224) (i32.shr_u (local.get $cp) (i32.const 12))))
+                                          (i32.store8 (i32.add (local.get $dst) (i32.add (local.get $out) (i32.const 1)))
+                                            (i32.or (i32.const 128) (i32.and (i32.shr_u (local.get $cp) (i32.const 6)) (i32.const 63))))
+                                          (i32.store8 (i32.add (local.get $dst) (i32.add (local.get $out) (i32.const 2)))
+                                            (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+                                          (local.set $out (i32.add (local.get $out) (i32.const 3)))
+                                        )
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                          (local.set $i (i32.add (local.get $i) (i32.const 6)))
+                          (br $lp)
+                        )
+                      )
+                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
                       (br $lp)
                     )
                   )
@@ -484,6 +672,96 @@
       )
     )
     (local.get $out)
+  )
+
+  ;; ── emit_wrapped_header: wraps title/subtitle across lines, updates $hdr_y ──
+  ;; $is_title = 1: /F1 16 Tf (black), $is_title = 0: /F2 12 Tf (dark grey)
+  (func $emit_wrapped_header
+    (param $p i32) (param $src i32) (param $len i32)
+    (param $max_chars i32) (param $step_y i32) (param $is_title i32)
+    (result i32)
+    (local $start i32) (local $end i32) (local $last_sp i32) (local $k i32) (local $ch i32)
+    (local.set $start (i32.const 0))
+    (loop $wrap_lp
+      (if (i32.lt_s (local.get $start) (local.get $len))
+        (then
+          ;; skip leading spaces on continuation lines
+          (if (i32.and (i32.gt_s (local.get $start) (i32.const 0))
+                       (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $start))) (i32.const 32)))
+            (then (local.set $start (i32.add (local.get $start) (i32.const 1))) (br $wrap_lp))
+          )
+          (local.set $end (i32.add (local.get $start) (local.get $max_chars)))
+          (if (i32.ge_s (local.get $end) (local.get $len))
+            (then (local.set $end (local.get $len)))
+            (else
+              ;; find last space between start and end
+              (local.set $last_sp (i32.const -1))
+              (local.set $k (local.get $start))
+              (loop $find_sp
+                (if (i32.lt_s (local.get $k) (local.get $end))
+                  (then
+                    (if (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $k))) (i32.const 32))
+                      (then (local.set $last_sp (local.get $k))))
+                    (local.set $k (i32.add (local.get $k) (i32.const 1)))
+                    (br $find_sp)
+                  )
+                )
+              )
+              (if (i32.gt_s (local.get $last_sp) (local.get $start))
+                (then (local.set $end (local.get $last_sp)))
+              )
+            )
+          )
+          ;; emit BT ... 50 Y Td (slice) Tj ET
+          (if (local.get $is_title)
+            (then (local.set $p (call $zwrite (local.get $p) (i32.const 3000000))))
+            (else (local.set $p (call $zwrite (local.get $p) (i32.const 3005000))))
+          )
+          (local.set $p (call $write_int (local.get $p) (global.get $hdr_y)))
+          (local.set $p (call $zwrite (local.get $p) (i32.const 3000064))) ;; " Td\n("
+          (local.set $p (call $emit_pdf_literal
+            (local.get $p)
+            (i32.add (local.get $src) (local.get $start))
+            (i32.sub (local.get $end) (local.get $start))))
+          (local.set $p (call $zwrite (local.get $p) (i32.const 3000128))) ;; ") Tj\nET\n"
+          (global.set $hdr_y (i32.sub (global.get $hdr_y) (local.get $step_y)))
+          (local.set $start (local.get $end))
+          (br $wrap_lp)
+        )
+      )
+    )
+    (local.get $p)
+  )
+
+  ;; ── is_rule_line: returns 1 if line is --- / *** / ___ / |---|---| ────────
+  (func $is_rule_line (param $src i32) (param $len i32) (result i32)
+    (local $i i32) (local $ch i32) (local $dashes i32)
+    (if (i32.lt_s (local.get $len) (i32.const 3)) (then (return (i32.const 0))))
+    (loop $lp
+      (if (i32.lt_s (local.get $i) (local.get $len))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
+          (if (i32.or (i32.eq (local.get $ch) (i32.const 45))  ;; '-'
+                      (i32.or (i32.eq (local.get $ch) (i32.const 42))  ;; '*'
+                              (i32.eq (local.get $ch) (i32.const 95)))) ;; '_'
+            (then (local.set $dashes (i32.add (local.get $dashes) (i32.const 1))))
+            (else
+              (if (i32.and (i32.ne (local.get $ch) (i32.const 32))   ;; ' '
+                           (i32.and (i32.ne (local.get $ch) (i32.const 124)) ;; '|'
+                                    (i32.ne (local.get $ch) (i32.const 58)))) ;; ':'
+                (then (return (i32.const 0)))
+              )
+            )
+          )
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $lp)
+        )
+      )
+    )
+    (if (i32.ge_s (local.get $dashes) (i32.const 3))
+      (then (return (i32.const 1)))
+    )
+    (i32.const 0)
   )
 
   ;; ── assemble_dynamic_pdf ─────────────────────────────────────────────────
@@ -528,6 +806,7 @@
     (local $llen i32)
     (local $at_bol i32)
     (local $is_heading i32)
+    (local $is_quote i32)
     (local $word_start i32)
     (local $wrap_at i32)
 
@@ -537,7 +816,6 @@
     (local.set $line_h_head (i32.const 22))
     (local.set $lb (i32.const 62000))
     ;; A4 content area is 495 pt wide with balanced 50 pt side margins.
-    ;; 96 characters uses slightly more of that width than the 92-char cutoff.
     (local.set $wrap_at (i32.const 96))
 
     ;; ─ Start page 1 ─
@@ -545,33 +823,32 @@
     (local.set $ss (local.get $sp))
     (local.set $p (local.get $sp))
 
-    ;; ── Emit title: BT /F1 16 Tf 50 800 Td (title) Tj ET
-    (local.set $p (call $zwrite (local.get $p) (i32.const 3000000)))
-    (local.set $p (call $emit_pdf_literal (local.get $p) (local.get $tp) (local.get $tl)))
-    (local.set $p (call $zwrite (local.get $p) (i32.const 3000128)))
+    ;; ── Classic red top accent bar (50, 822, 495x3) ──
+    (local.set $p (call $zwrite (local.get $p) (i32.const 3005400)))
 
-    ;; ── Emit subtitle (if present): BT /F2 12 Tf 50 776 Td (subtitle) Tj ET
+    ;; ── Emit wrapped title (F1 16pt, 56 chars/line) & subtitle (F2 12pt, 76 chars/line) ──
+    (global.set $hdr_y (i32.const 800))
+    (local.set $p (call $emit_wrapped_header (local.get $p) (local.get $tp) (local.get $tl) (i32.const 56) (i32.const 20) (i32.const 1)))
     (if (i32.gt_s (local.get $stl) (i32.const 0))
       (then
-        (local.set $p (call $zwrite (local.get $p) (i32.const 3005000)))
-        (local.set $p (call $emit_pdf_literal (local.get $p) (local.get $stp) (local.get $stl)))
-        (local.set $p (call $zwrite (local.get $p) (i32.const 3000128)))
-        ;; Separator line (dashes): BT /F2 10 Tf 50 762 Td
-        (local.set $p (call $zwrite (local.get $p) (i32.const 3005128)))
-        ;; body starts at Y=745 when subtitle present
-        (local.set $cur_y (i32.const 745))
-      )
-      (else
-        ;; No subtitle: body starts at Y=755
-        (local.set $cur_y (i32.const 755))
+        (global.set $hdr_y (i32.sub (global.get $hdr_y) (i32.const 2)))
+        (local.set $p (call $emit_wrapped_header (local.get $p) (local.get $stp) (local.get $stl) (i32.const 76) (i32.const 16) (i32.const 0)))
       )
     )
+    ;; Vector separator line below header
+    (local.set $p (call $zwrite (local.get $p) (i32.const 3005500)))
+    (local.set $p (call $write_int (local.get $p) (i32.add (global.get $hdr_y) (i32.const 4))))
+    (local.set $p (call $zwrite (local.get $p) (i32.const 3005550)))
+    (local.set $p (call $write_int (local.get $p) (i32.add (global.get $hdr_y) (i32.const 4))))
+    (local.set $p (call $zwrite (local.get $p) (i32.const 3005600)))
+    (local.set $cur_y (i32.sub (global.get $hdr_y) (i32.const 16)))
 
     ;; Open the BT block for this page's body text: BT /F2 11 Tf
     (local.set $p (call $zwrite (local.get $p) (i32.const 3000256)))
 
     (local.set $at_bol (i32.const 1))
     (local.set $llen (i32.const 0))
+    (local.set $is_quote (i32.const 0))
     (local.set $i (i32.const 0))
 
     (loop $chars
@@ -584,16 +861,32 @@
             (then
               (if (i32.gt_s (local.get $llen) (i32.const 0))
                 (then
-                  ;; flush line at current Y position
-                  (local.set $p (call $emit_abs_line
-                    (local.get $p)
-                    (i32.const 62000) (local.get $llen)
-                    (local.get $is_heading)
-                    (local.get $cur_y)))
-                  ;; advance Y downward
-                  (if (local.get $is_heading)
-                    (then (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_head))))
-                    (else (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_body))))
+                  (if (call $is_rule_line (i32.const 62000) (local.get $llen))
+                    (then
+                      ;; Draw subtle vector horizontal rule instead of printing --- or |---|
+                      (local.set $p (call $zwrite (local.get $p) (i32.const 3000384))) ;; "ET\n"
+                      (local.set $p (call $zwrite (local.get $p) (i32.const 3005650)))
+                      (local.set $p (call $write_int (local.get $p) (i32.add (local.get $cur_y) (i32.const 4))))
+                      (local.set $p (call $zwrite (local.get $p) (i32.const 3005550)))
+                      (local.set $p (call $write_int (local.get $p) (i32.add (local.get $cur_y) (i32.const 4))))
+                      (local.set $p (call $zwrite (local.get $p) (i32.const 3005600)))
+                      (local.set $p (call $zwrite (local.get $p) (i32.const 3000256))) ;; "BT\n/F2 11 Tf\n"
+                      (local.set $cur_y (i32.sub (local.get $cur_y) (i32.const 10)))
+                    )
+                    (else
+                      ;; flush line at current Y position
+                      (local.set $p (call $emit_abs_line
+                        (local.get $p)
+                        (i32.const 62000) (local.get $llen)
+                        (local.get $is_heading)
+                        (local.get $is_quote)
+                        (local.get $cur_y)))
+                      ;; advance Y downward
+                      (if (local.get $is_heading)
+                        (then (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_head))))
+                        (else (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_body))))
+                      )
+                    )
                   )
                 )
                 (else
@@ -606,9 +899,10 @@
               (local.set $llen (i32.const 0))
               (local.set $at_bol (i32.const 1))
               (local.set $is_heading (i32.const 0))
+              (local.set $is_quote (i32.const 0))
               (local.set $word_start (i32.const 0))
 
-              ;; ── page break check ──
+              ;; ── page break check (max 55 pages so 120000+55*15000=945000 < 1000000) ──
               (if (i32.le_s (local.get $cur_y) (i32.const 60))
                 (then
                   ;; close current page BT block and save stream length
@@ -616,7 +910,7 @@
                   (local.set $sl (i32.sub (local.get $p) (local.get $ss)))
                   (i32.store (i32.add (i32.const 800000) (i32.mul (local.get $page) (i32.const 8))) (local.get $sl))
                   (local.set $page (i32.add (local.get $page) (i32.const 1)))
-                  (if (i32.ge_s (local.get $page) (i32.const 64)) (then (return (i32.const 0))))
+                  (if (i32.ge_s (local.get $page) (i32.const 55)) (then (return (i32.const 0))))
                   ;; start new page
                   (local.set $sp (i32.add (i32.const 120000) (i32.mul (local.get $page) (i32.const 15000))))
                   (local.set $ss (local.get $sp))
@@ -644,6 +938,22 @@
               (if (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 9)))
                 (then
                   (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                  (br $chars)
+                )
+              )
+              ;; > blockquote marker
+              (if (i32.eq (local.get $ch) (i32.const 62)) ;; '>'
+                (then
+                  (local.set $is_quote (i32.const 1))
+                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                  (if (i32.lt_s (local.get $i) (local.get $body_len))
+                    (then
+                      (if (i32.eq (i32.load8_u (i32.add (local.get $body) (local.get $i))) (i32.const 32))
+                        (then (local.set $i (i32.add (local.get $i) (i32.const 1))))
+                      )
+                    )
+                  )
+                  (local.set $at_bol (i32.const 0))
                   (br $chars)
                 )
               )
@@ -703,15 +1013,15 @@
                       (i32.or (i32.eq (local.get $ch) (i32.const 95))   ;; '_'
                               (i32.eq (local.get $ch) (i32.const 96)))) ;; '`'
             (then
-              (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              ;; also skip second * or _ if present (** or __)
-              (if (i32.lt_s (local.get $i) (local.get $body_len))
-                (then
+              (block $strip_done
+                (loop $strip_lp
+                  (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                  (if (i32.ge_s (local.get $i) (local.get $body_len)) (then (br $strip_done)))
                   (local.set $ch (i32.load8_u (i32.add (local.get $body) (local.get $i))))
                   (if (i32.or (i32.eq (local.get $ch) (i32.const 42))
                               (i32.or (i32.eq (local.get $ch) (i32.const 95))
                                       (i32.eq (local.get $ch) (i32.const 96))))
-                    (then (local.set $i (i32.add (local.get $i) (i32.const 1))))
+                    (then (br $strip_lp))
                   )
                 )
               )
@@ -732,7 +1042,10 @@
           )
 
           ;; ── Word-wrap check ──
-          (if (i32.ge_s (local.get $llen) (local.get $wrap_at))
+          (if (i32.ge_s (local.get $llen)
+                        (select (i32.const 68)
+                                (select (i32.const 92) (local.get $wrap_at) (local.get $is_quote))
+                                (local.get $is_heading)))
             (then
               (if (i32.gt_s (local.get $word_start) (i32.const 0))
                 (then
@@ -741,15 +1054,18 @@
                     (local.get $p)
                     (i32.const 62000) (local.get $word_start)
                     (local.get $is_heading)
+                    (local.get $is_quote)
                     (local.get $cur_y)))
-                  (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_body)))
+                  (if (local.get $is_heading)
+                    (then (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_head))))
+                    (else (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_body))))
+                  )
                   ;; shift remaining chars to front of buffer
                   (memory.copy (i32.const 62000)
                                (i32.add (local.get $lb) (local.get $word_start))
                                (i32.sub (local.get $llen) (local.get $word_start)))
                   (local.set $llen (i32.sub (local.get $llen) (local.get $word_start)))
                   (local.set $word_start (i32.const 0))
-                  (local.set $is_heading (i32.const 0))
                 )
                 (else
                   ;; hard wrap at limit
@@ -757,21 +1073,24 @@
                     (local.get $p)
                     (i32.const 62000) (local.get $llen)
                     (local.get $is_heading)
+                    (local.get $is_quote)
                     (local.get $cur_y)))
-                  (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_body)))
+                  (if (local.get $is_heading)
+                    (then (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_head))))
+                    (else (local.set $cur_y (i32.sub (local.get $cur_y) (local.get $line_h_body))))
+                  )
                   (local.set $llen (i32.const 0))
-                  (local.set $is_heading (i32.const 0))
                 )
               )
 
-              ;; page break check after wrap
+              ;; page break check after wrap (max 55 pages)
               (if (i32.le_s (local.get $cur_y) (i32.const 60))
                 (then
                   (local.set $p (call $zwrite (local.get $p) (i32.const 3000384))) ;; "ET\n"
                   (local.set $sl (i32.sub (local.get $p) (local.get $ss)))
                   (i32.store (i32.add (i32.const 800000) (i32.mul (local.get $page) (i32.const 8))) (local.get $sl))
                   (local.set $page (i32.add (local.get $page) (i32.const 1)))
-                  (if (i32.ge_s (local.get $page) (i32.const 64)) (then (return (i32.const 0))))
+                  (if (i32.ge_s (local.get $page) (i32.const 55)) (then (return (i32.const 0))))
                   (local.set $sp (i32.add (i32.const 120000) (i32.mul (local.get $page) (i32.const 15000))))
                   (local.set $ss (local.get $sp))
                   (local.set $p (local.get $sp))
@@ -794,11 +1113,25 @@
     ;; flush last line if any
     (if (i32.gt_s (local.get $llen) (i32.const 0))
       (then
-        (local.set $p (call $emit_abs_line
-          (local.get $p)
-          (i32.const 62000) (local.get $llen)
-          (local.get $is_heading)
-          (local.get $cur_y)))
+        (if (call $is_rule_line (i32.const 62000) (local.get $llen))
+          (then
+            (local.set $p (call $zwrite (local.get $p) (i32.const 3000384)))
+            (local.set $p (call $zwrite (local.get $p) (i32.const 3005650)))
+            (local.set $p (call $write_int (local.get $p) (i32.add (local.get $cur_y) (i32.const 4))))
+            (local.set $p (call $zwrite (local.get $p) (i32.const 3005550)))
+            (local.set $p (call $write_int (local.get $p) (i32.add (local.get $cur_y) (i32.const 4))))
+            (local.set $p (call $zwrite (local.get $p) (i32.const 3005600)))
+            (local.set $p (call $zwrite (local.get $p) (i32.const 3000256)))
+          )
+          (else
+            (local.set $p (call $emit_abs_line
+              (local.get $p)
+              (i32.const 62000) (local.get $llen)
+              (local.get $is_heading)
+              (local.get $is_quote)
+              (local.get $cur_y)))
+          )
+        )
       )
     )
 
@@ -808,7 +1141,7 @@
     (i32.store (i32.add (i32.const 800000) (i32.mul (local.get $page) (i32.const 8))) (local.get $sl))
     (global.set $page_count (i32.add (local.get $page) (i32.const 1)))
 
-    ;; ── Page footers: custom footer text + page number ───────────────────
+    ;; ── Page footers: custom footer text + localized page number ──────────
     (local.set $i (i32.const 0))
     (loop $footers
       (if (i32.lt_s (local.get $i) (global.get $page_count))
@@ -826,10 +1159,10 @@
             )
           )
 
-          ;; Page number: BT /F2 9 Tf 0.5 0.5 0.5 rg 260 24 Td (Pagina X de Y) Tj ET
-          (local.set $p (call $zwrite (local.get $p) (i32.const 3003584)))
+          ;; Page number: "Page X of Y"
+          (local.set $p (call $zwrite (local.get $p) (i32.const 3003520)))
           (local.set $p (call $write_int (local.get $p) (i32.add (local.get $i) (i32.const 1))))
-          (local.set $p (call $zwrite (local.get $p) (i32.const 3003712)))
+          (local.set $p (call $zwrite (local.get $p) (i32.const 3003648)))
           (local.set $p (call $write_int (local.get $p) (global.get $page_count)))
           (local.set $p (call $zwrite (local.get $p) (i32.const 3003840)))
 
@@ -929,15 +1262,18 @@
         (param $src i32)
         (param $len i32)
         (param $is_heading i32)
+        (param $is_quote i32)
         (param $cur_y i32)
         (result i32)
     (local $j i32) (local $ch i32)
 
     (if (i32.eqz (local.get $len)) (then (return (local.get $p))))
 
-    ;; Reset the text matrix to absolute X=50, Y=cur_y. Td is relative and
-    ;; would accumulate an X offset on every line, pushing body text off-page.
-    (local.set $p (call $zwrite (local.get $p) (i32.const 3004256)))
+    ;; Reset the text matrix to absolute X=50 (or X=62 for blockquotes), Y=cur_y.
+    (if (local.get $is_quote)
+      (then (local.set $p (call $zwrite (local.get $p) (i32.const 3004384))))
+      (else (local.set $p (call $zwrite (local.get $p) (i32.const 3004256))))
+    )
     (local.set $p (call $write_int (local.get $p) (local.get $cur_y)))
     (local.set $p (call $zwrite (local.get $p) (i32.const 3004320)))
 
@@ -971,7 +1307,10 @@
     ;; ") Tj\n"
     (local.set $p (call $zwrite (local.get $p) (i32.const 3004128)))
 
-    ;; For headings: switch back to body font "/F2 11 Tf\n"
+    ;; Reset color after quote, or font after heading
+    (if (local.get $is_quote)
+      (then (local.set $p (call $zwrite (local.get $p) (i32.const 3004448))))
+    )
     (if (local.get $is_heading)
       (then
         (local.set $p (call $zwrite (local.get $p) (i32.const 3004192)))
@@ -995,7 +1334,7 @@
     (local $fname_len i32) (local $ch i32)
     (local $ta_len i32) (local $sta_len i32) (local $la i32) (local $fta_len i32)
 
-    ;; 1. Empty input → usage hint
+    ;; 1. Empty input or "help" / "?" → usage hint
     (if (i32.eqz (local.get $in_len))
       (then
         (local.set $req_len (call $zlen (i32.const 50600)))
@@ -1003,105 +1342,139 @@
         (return (local.get $req_len))
       )
     )
+    (if (i32.and (i32.eq (local.get $in_len) (i32.const 1)) (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 63)))
+      (then
+        (local.set $req_len (call $zlen (i32.const 50600)))
+        (memory.copy (i32.const 1024) (i32.const 50600) (local.get $req_len))
+        (return (local.get $req_len))
+      )
+    )
+    (if (i32.eq (local.get $in_len) (i32.const 4))
+      (then
+        (if (i32.and
+              (i32.and
+                (i32.eq (i32.or (i32.load8_u (local.get $in_ptr)) (i32.const 32)) (i32.const 104))
+                (i32.eq (i32.or (i32.load8_u (i32.add (local.get $in_ptr) (i32.const 1))) (i32.const 32)) (i32.const 101)))
+              (i32.and
+                (i32.eq (i32.or (i32.load8_u (i32.add (local.get $in_ptr) (i32.const 2))) (i32.const 32)) (i32.const 108))
+                (i32.eq (i32.or (i32.load8_u (i32.add (local.get $in_ptr) (i32.const 3))) (i32.const 32)) (i32.const 112))))
+          (then
+            (local.set $req_len (call $zlen (i32.const 50600)))
+            (memory.copy (i32.const 1024) (i32.const 50600) (local.get $req_len))
+            (return (local.get $req_len))
+          )
+        )
+      )
+    )
 
     ;; 2. Defaults — title and content have fallback strings; subtitle/footer empty
+    (global.set $is_en (i32.const 1))
     (local.set $t_start  (i32.const 52500))
-    (local.set $t_len    (i32.const 13))
+    (local.set $t_len    (i32.const 12))
     (local.set $st_start (i32.const 0))
     (local.set $st_len   (i32.const 0))
     (local.set $c_start  (i32.const 52520))
-    (local.set $c_len    (i32.const 84))
+    (local.set $c_len    (i32.const 59))
     (local.set $ft_start (i32.const 0))
     (local.set $ft_len   (i32.const 0))
 
-    ;; 3. Parse JSON {"title":"...","subtitle":"...","content":"...","footer":"..."}
+    ;; 3. Parse JSON {"title":"...","subtitle":"...","content":"...","footer":"...","lang":"..."}
     (if (i32.eq (i32.load8_u (local.get $in_ptr)) (i32.const 123)) ;; '{'
       (then
+        ;; ── lang ──
+        (local.set $idx (call $find_json_key (local.get $in_ptr) (local.get $in_len) (i32.const 52760) (i32.const 6)))
+        (if (i32.and (i32.ge_s (local.get $idx) (i32.const 0))
+                     (i32.le_s (i32.add (local.get $idx) (i32.const 2)) (local.get $in_len)))
+          (then
+            (if (i32.and
+                  (i32.eq (i32.load8_u (i32.add (local.get $in_ptr) (local.get $idx))) (i32.const 101)) ;; 'e'
+                  (i32.eq (i32.load8_u (i32.add (local.get $in_ptr) (i32.add (local.get $idx) (i32.const 1)))) (i32.const 110))) ;; 'n'
+              (then (global.set $is_en (i32.const 1)))
+            )
+          )
+        )
+
         ;; ── title ──
-        (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52700) (i32.const 9)))
+        (local.set $idx (call $find_json_key (local.get $in_ptr) (local.get $in_len) (i32.const 52700) (i32.const 7)))
         (if (i32.ge_s (local.get $idx) (i32.const 0))
           (then
-            ;; pointer to first byte AFTER the opening quote
-            (local.set $t_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 9)))
             (local.set $t_len
               (call $parse_json_string
-                (local.get $t_start)
-                (i32.sub (local.get $in_len) (i32.add (local.get $idx) (i32.const 9)))
-                (i32.const 33000)   ;; temp decode buffer (unused later, overwritten by sanitize)
+                (i32.add (local.get $in_ptr) (local.get $idx))
+                (i32.sub (local.get $in_len) (local.get $idx))
+                (i32.const 33000)
                 (i32.const 255)))
-            ;; For title we use the raw escaped bytes (sanitize_ascii handles \n etc.)
-            ;; but we need the raw pointer in the input buffer; $t_start already set correctly.
-            ;; Recompute t_len using old simple scan (title rarely has quotes inside)
-            (local.set $t_len (i32.const 0))
-            (loop $stl2
-              (if (i32.lt_s (i32.add (local.get $t_start) (local.get $t_len)) (i32.add (local.get $in_ptr) (local.get $in_len)))
-                (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $t_start) (local.get $t_len))))
-                  (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
-                               (i32.ne (local.get $ch) (i32.const 0)))
-                    (then (local.set $t_len (i32.add (local.get $t_len) (i32.const 1))) (br $stl2))
-                  )
-                )
-              )
-            )
+            (local.set $t_start (i32.const 33000))
           )
         )
 
         ;; ── subtitle ──
-        (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52740) (i32.const 12)))
+        (local.set $idx (call $find_json_key (local.get $in_ptr) (local.get $in_len) (i32.const 52722) (i32.const 10)))
         (if (i32.ge_s (local.get $idx) (i32.const 0))
           (then
-            (local.set $st_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 12)))
-            (local.set $st_len (i32.const 0))
-            (loop $sstl
-              (if (i32.lt_s (i32.add (local.get $st_start) (local.get $st_len)) (i32.add (local.get $in_ptr) (local.get $in_len)))
-                (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $st_start) (local.get $st_len))))
-                  (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
-                               (i32.ne (local.get $ch) (i32.const 0)))
-                    (then (local.set $st_len (i32.add (local.get $st_len) (i32.const 1))) (br $sstl))
+            (local.set $st_len
+              (call $parse_json_string
+                (i32.add (local.get $in_ptr) (local.get $idx))
+                (i32.sub (local.get $in_len) (local.get $idx))
+                (i32.const 33256)
+                (i32.const 255)))
+            (local.set $st_start (i32.const 33256))
+          )
+        )
+
+        ;; ── content (with fallbacks for "body" and "text") ──
+        (local.set $idx (call $find_json_key (local.get $in_ptr) (local.get $in_len) (i32.const 52710) (i32.const 9)))
+        (if (i32.ge_s (local.get $idx) (i32.const 0))
+          (then
+            (local.set $c_len
+              (call $parse_json_string
+                (i32.add (local.get $in_ptr) (local.get $idx))
+                (i32.sub (local.get $in_len) (local.get $idx))
+                (i32.const 70000)
+                (i32.const 80000)))
+            (local.set $c_start (i32.const 70000))
+          )
+          (else
+            (local.set $idx (call $find_json_key (local.get $in_ptr) (local.get $in_len) (i32.const 52744) (i32.const 6)))
+            (if (i32.ge_s (local.get $idx) (i32.const 0))
+              (then
+                (local.set $c_len
+                  (call $parse_json_string
+                    (i32.add (local.get $in_ptr) (local.get $idx))
+                    (i32.sub (local.get $in_len) (local.get $idx))
+                    (i32.const 70000)
+                    (i32.const 80000)))
+                (local.set $c_start (i32.const 70000))
+              )
+              (else
+                (local.set $idx (call $find_json_key (local.get $in_ptr) (local.get $in_len) (i32.const 52752) (i32.const 6)))
+                (if (i32.ge_s (local.get $idx) (i32.const 0))
+                  (then
+                    (local.set $c_len
+                      (call $parse_json_string
+                        (i32.add (local.get $in_ptr) (local.get $idx))
+                        (i32.sub (local.get $in_len) (local.get $idx))
+                        (i32.const 70000)
+                        (i32.const 80000)))
+                    (local.set $c_start (i32.const 70000))
                   )
                 )
               )
             )
-          )
-        )
-
-        ;; ── content (uses improved parser that handles \" inside) ──
-        (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52720) (i32.const 11)))
-        (if (i32.ge_s (local.get $idx) (i32.const 0))
-          (then
-            (local.set $c_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 11)))
-            ;; Use parse_json_string to correctly handle \" inside content
-            ;; We write the decoded content directly to 70000 and set c_len
-            (local.set $c_len
-              (call $parse_json_string
-                (local.get $c_start)
-                (i32.sub (local.get $in_len) (i32.add (local.get $idx) (i32.const 11)))
-                (i32.const 70000)
-                (i32.const 80000)))
-            ;; c_start now points to 70000 (already decoded), skip sanitize for body
-            (local.set $c_start (i32.const 70000))
           )
         )
 
         ;; ── footer ──
-        (local.set $idx (call $find_sub (local.get $in_ptr) (local.get $in_len) (i32.const 52760) (i32.const 10)))
+        (local.set $idx (call $find_json_key (local.get $in_ptr) (local.get $in_len) (i32.const 52734) (i32.const 8)))
         (if (i32.ge_s (local.get $idx) (i32.const 0))
           (then
-            (local.set $ft_start (i32.add (i32.add (local.get $in_ptr) (local.get $idx)) (i32.const 10)))
-            (local.set $ft_len (i32.const 0))
-            (loop $sftl
-              (if (i32.lt_s (i32.add (local.get $ft_start) (local.get $ft_len)) (i32.add (local.get $in_ptr) (local.get $in_len)))
-                (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $ft_start) (local.get $ft_len))))
-                  (if (i32.and (i32.ne (local.get $ch) (i32.const 34))
-                               (i32.ne (local.get $ch) (i32.const 0)))
-                    (then (local.set $ft_len (i32.add (local.get $ft_len) (i32.const 1))) (br $sftl))
-                  )
-                )
-              )
-            )
+            (local.set $ft_len
+              (call $parse_json_string
+                (i32.add (local.get $in_ptr) (local.get $idx))
+                (i32.sub (local.get $in_len) (local.get $idx))
+                (i32.const 33512)
+                (i32.const 255)))
+            (local.set $ft_start (i32.const 33512))
           )
         )
       )
@@ -1175,8 +1548,8 @@
     )
     (if (i32.eqz (local.get $fname_len))
       (then
-        (memory.copy (i32.const 49408) (i32.const 52800) (i32.const 9))
-        (local.set $fname_len (i32.const 9))
+        (memory.copy (i32.const 49408) (i32.const 52800) (i32.const 8))
+        (local.set $fname_len (i32.const 8))
       )
     )
     (memory.copy (i32.add (i32.const 49408) (local.get $fname_len)) (i32.const 52810) (i32.const 4))
@@ -1190,21 +1563,27 @@
       (i32.const 70000) (local.get $la)
       (i32.const 32512) (local.get $fta_len)
     ))
-    (if (i32.eqz (local.get $pdf_len)) (then (return (i32.const 0))))
+    (if (i32.eqz (local.get $pdf_len))
+      (then
+        (local.set $req_len (call $zlen (i32.const 53350)))
+        (memory.copy (i32.const 1024) (i32.const 53350) (local.get $req_len))
+        (return (local.get $req_len))
+      )
+    )
     (local.set $b64_len (call $b64_encode (i32.const 1000000) (local.get $pdf_len) (i32.const 1700000)))
 
-    ;; 7. Build files.write request at 2048
-    (local.set $req_p (i32.const 2048))
+    ;; 7. Build files.write request at 2200000 (safe from 32000/49408/62000)
+    (local.set $req_p (i32.const 2200000))
     (local.set $req_p (call $write_str (local.get $req_p) (i32.const 50100) (i32.const 54)))
     (local.set $req_p (call $write_str (local.get $req_p) (i32.const 49408) (local.get $fname_len)))
     (local.set $req_p (call $write_str (local.get $req_p) (i32.const 50200) (i32.const 13)))
     (local.set $req_p (call $write_str (local.get $req_p) (i32.const 1700000) (local.get $b64_len)))
     (local.set $req_p (call $write_str (local.get $req_p) (i32.const 50250) (i32.const 23)))
-    (local.set $req_len (i32.sub (local.get $req_p) (i32.const 2048)))
+    (local.set $req_len (i32.sub (local.get $req_p) (i32.const 2200000)))
 
     ;; 8. Dispatch async host_call
     (drop (call $host_call
-      (i32.const 2048) (local.get $req_len)
+      (i32.const 2200000) (local.get $req_len)
       (i32.const 4096) (i32.const 4096)
     ))
     (i32.const 0)
@@ -1217,11 +1596,11 @@
     (local $idx i32) (local $h_start i32) (local $ch i32)
     (local $out_p i32) (local $len i32)
 
+    (global.set $handle_len (i32.const 0))
     (local.set $idx (call $find_sub (local.get $res_ptr) (local.get $res_len) (i32.const 52830) (i32.const 10)))
     (if (i32.ge_s (local.get $idx) (i32.const 0))
       (then
         (local.set $h_start (i32.add (i32.add (local.get $res_ptr) (local.get $idx)) (i32.const 10)))
-        (global.set $handle_len (i32.const 0))
         (loop $sh
           (if (i32.lt_s (global.get $handle_len) (i32.const 40))
             (then
@@ -1242,7 +1621,7 @@
     (local.set $out_p (i32.const 1024))
     (if (i32.eqz (global.get $handle_len))
       (then
-        (local.set $out_p (call $write_str (local.get $out_p) (i32.const 53200) (i32.const 117)))
+        (local.set $out_p (call $write_str (local.get $out_p) (i32.const 53200) (i32.const 108)))
         (local.set $len (i32.sub (local.get $out_p) (i32.const 1024)))
         (return
           (i64.or
@@ -1256,7 +1635,7 @@
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52850) (i32.const 32)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52882) (i32.const 7)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 49408) (global.get $fname_len)))
-    (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52900) (i32.const 76)))
+    (local.set $out_p (call $write_str (local.get $out_p) (i32.const 53010) (i32.const 73)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 49664) (global.get $handle_len)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52990) (i32.const 14)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 49408) (global.get $fname_len)))
@@ -1298,15 +1677,18 @@
   ;; ── Static data sections ──────────────────────────────────────────────────
 
   ;; Fallback defaults
-  (data (i32.const 52500) "Documento PDF")
-  (data (i32.const 52520) "1. Introduccion: Este documento fue elaborado automaticamente por Chattree AI.")
+  (data (i32.const 52500) "PDF Document")
+  (data (i32.const 52520) "1. Introduction: This document was generated automatically.")
 
   ;; JSON keys
-  (data (i32.const 52700) "\"title\":\"")
-  (data (i32.const 52720) "\"content\":\"")
-  (data (i32.const 52740) "\"subtitle\":\"")
-  (data (i32.const 52760) "\"footer\":\"")
-  (data (i32.const 52800) "documento")
+  (data (i32.const 52700) "\"title\"")
+  (data (i32.const 52710) "\"content\"")
+  (data (i32.const 52722) "\"subtitle\"")
+  (data (i32.const 52734) "\"footer\"")
+  (data (i32.const 52744) "\"body\"")
+  (data (i32.const 52752) "\"text\"")
+  (data (i32.const 52760) "\"lang\"")
+  (data (i32.const 52800) "document")
   (data (i32.const 52810) ".pdf")
   (data (i32.const 52830) "\"handle\":\"")
 
@@ -1316,20 +1698,23 @@
   (data (i32.const 50250) "\",\"encoding\":\"base64\"}}")
 
   ;; Usage hint
-  (data (i32.const 50600) "Usa /pdf <tema> para crear un documento PDF. La IA redacta el contenido y el plugin ajusta las paginas al texto.\00")
+  (data (i32.const 50600) "Use /pdf <topic> to create a PDF document. The AI writes the content and the plugin formats the pages automatically.\00")
 
   ;; Output JSON parts
   (data (i32.const 52850) "{\"type\":\"direct\",\"displayText\":\"")
   (data (i32.const 52882) "\f0\9f\93\84 **")
   (data (i32.const 52900) "** generado con exito\\n\\nListo para descargar desde el chat.\",\"fileHandle\":\"")
   (data (i32.const 52990) "\",\"fileName\":\"")
+  (data (i32.const 53010) "** generated successfully\\n\\nReady to download from chat.\",\"fileHandle\":\"")
   (data (i32.const 53100) "\"}")
-  (data (i32.const 53200) "{\"type\":\"error\",\"errorMessage\":\"No se pudo guardar el PDF. Verifica que el plugin tiene permiso files.write.\"}")
+  (data (i32.const 53200) "{\"type\":\"error\",\"errorMessage\":\"Could not save the PDF. Verify that the plugin has files.write permission.\"}")
+  (data (i32.const 53350) "{\"type\":\"error\",\"errorMessage\":\"The document exceeds the 55-page limit.\"}\00")
 
   ;; ── PDF page stream fragments (NUL-terminated) ────────────────────────────
 
-  ;; Page 1: title block — BT, F1 Bold 16pt, position at top
-  (data (i32.const 3000000) "BT\n/F1 16 Tf\n50 800 Td\n(\00")
+  ;; Page 1: title block — BT, F1 Bold 16pt, position at X=50
+  (data (i32.const 3000000) "BT\n/F1 16 Tf\n50 \00")
+  (data (i32.const 3000064) " Td\n(\00")
   ;; Close title/subtitle Tj block
   (data (i32.const 3000128) ") Tj\nET\n\00")
   ;; Close title block (legacy pad)
@@ -1364,23 +1749,31 @@
   (data (i32.const 3003072) "\n%%EOF\n\00")
   (data (i32.const 3003200) " >>\nendobj\n\00")
 
-  ;; Page number footer (appended at end of each page stream)
+  ;; Page number footer (EN & ES)
+  (data (i32.const 3003520) "BT\n/F2 9 Tf\n0.5 0.5 0.5 rg\n265 24 Td\n(Page \00")
   (data (i32.const 3003584) "BT\n/F2 9 Tf\n0.5 0.5 0.5 rg\n260 24 Td\n(Pagina \00")
+  (data (i32.const 3003648) " of \00")
   (data (i32.const 3003712) " de \00")
   (data (i32.const 3003840) ") Tj\nET\n\00")
 
   ;; emit_abs_line helpers
   (data (i32.const 3004256) "1 0 0 1 50 \00")
   (data (i32.const 3004320) " Tm\n\00")
+  (data (i32.const 3004384) "0.35 0.35 0.35 rg\n1 0 0 1 62 \00")
+  (data (i32.const 3004448) "0 g\n\00")
   (data (i32.const 3004064) "/F1 14 Tf\n\00")
   (data (i32.const 3004128) ") Tj\n\00")
   (data (i32.const 3004192) "/F2 11 Tf\n\00")
 
-  ;; ── Subtitle block: BT /F2 12 Tf 50 776 Td (
-  (data (i32.const 3005000) "BT\n/F2 12 Tf\n50 776 Td\n(\00")
-  ;; Separator after subtitle: BT /F2 10 Tf 50 762 Td (----...) Tj ET\n
-  (data (i32.const 3005128) "BT\n/F2 10 Tf\n0.6 0.6 0.6 rg\n50 762 Td\n(------------------------------------------------------------------------) Tj\nET\n0 g\n\00")
-
+  ;; ── Subtitle block: BT /F2 12 Tf 0.35 0.35 0.35 rg 50 Y Td (
+  (data (i32.const 3005000) "BT\n/F2 12 Tf\n0.35 0.35 0.35 rg\n50 \00")
   ;; Custom footer text block: BT /F2 9 Tf 0.4 0.4 0.4 rg 50 42 Td (
   (data (i32.const 3005256) "BT\n/F2 9 Tf\n0.4 0.4 0.4 rg\n50 42 Td\n(\00")
+  ;; Minimalist Chattree charcoal/black top accent bar (50, 822, 495x2.5)
+  (data (i32.const 3005400) "0.12 0.12 0.12 rg\n50 822 495 2.5 re\nf\n0 g\n\00")
+  ;; Vector separator line parts
+  (data (i32.const 3005500) "0.82 0.82 0.82 RG\n0.7 w\n50 \00")
+  (data (i32.const 3005550) " m\n545 \00")
+  (data (i32.const 3005600) " l\nS\n0 G\n0 g\n\00")
+  (data (i32.const 3005650) "0.85 0.85 0.85 RG\n0.5 w\n50 \00")
 )

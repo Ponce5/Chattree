@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.elevenlabs",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "name": "ElevenLabs Voice",
-  "description": "Official ElevenLabs AI voice & speech synthesis plugin. Generates realistic MP3 audio ready to download and share in chat.",
+  "description": "Official ElevenLabs AI voice and speech synthesis plugin. Generates realistic MP3 audio ready to play, download, and share in chat.",
   "author": "Chattree Core Team",
   "primaryCommand": "elevenlabs",
   "aliases": [
@@ -27,28 +27,86 @@
     "speech",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/icon.png?v=1.0.4",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/banner.png?v=1.0.4",
-  "changelog": "1.0.4: Updated official ElevenLabs branding with new logo and banner assets.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/icon.png?v=1.1.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/elevenlabs/banner.png?v=1.1.0",
+  "changelog": "1.1.0: Added structured intentContract (speak, config, status, disconnect, help), expanded voice catalog with custom voice_id support, whitespace-tolerant JSON parsing with \\uXXXX decoding, proper JSON body escaping, dynamic MP3 filenames, real API error extraction, and English minimalist Chattree UI.",
   "runtime": "wasm",
   "entrypoint": "elevenlabs_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "b171aca96a7c2df497e7465aaa0eb8876667e268a7537a7aa88e3b3e11c477ac",
+  "wasmSha256": "7cc883c6f1fd9d310b2d81761a8f839293fc7c48510d88701e86bb82b3c10bca",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 256,
   "timeoutMs": 35000,
   "fuelLimit": 100000000,
+  "inputOffset": 0,
+  "outputOffset": 65536,
+  "maxPayloadSizeBytes": 65536,
   "tools": [
     {
       "id": "com.chattree.official.elevenlabs.tts",
       "command": "elevenlabs",
       "displayName": "ElevenLabs Voice Generator",
-      "description": "Genera un audio realista en MP3 a partir de texto usando la API de ElevenLabs. Invoca con /elevenlabs <texto> o /tts <texto>.",
+      "description": "Official ElevenLabs text-to-speech integration. Output ONLY a single valid JSON object with no extra text. For action='speak', provide 'text' (exact speech content in the user's requested language, max 4500 chars), optional 'voice' ('george', 'sarah', 'rachel', 'adam', 'antoni', 'josh', 'elli', 'sam', or a 20-char ElevenLabs voice_id), optional 'model', and optional 'filename'.",
       "capabilities": [
         "network.http",
         "storage.private",
         "files.write"
-      ]
+      ],
+      "intentContract": {
+        "intent": "elevenlabs_action",
+        "validIntents": [
+          "speak",
+          "config",
+          "status",
+          "disconnect",
+          "help"
+        ],
+        "description": "Interpret the user's natural-language ElevenLabs request and return ONE valid JSON tool call only.",
+        "fields": [
+          {
+            "name": "action",
+            "key": "action",
+            "type": "string",
+            "description": "Action to perform: 'speak' (synthesize text to MP3), 'config' (save ElevenLabs API key), 'status' (check saved API key), 'disconnect' (remove saved API key), or 'help' (show usage and voices).",
+            "required": true
+          },
+          {
+            "name": "text",
+            "key": "text",
+            "type": "string",
+            "description": "Exact speech text to synthesize for action='speak' (max 4500 chars, without meta-commentary).",
+            "required": false
+          },
+          {
+            "name": "voice",
+            "key": "voice",
+            "type": "string",
+            "description": "Optional voice name ('george', 'sarah', 'rachel', 'adam', 'antoni', 'josh', 'elli', 'sam', 'male', 'female') or a 20-char ElevenLabs voice_id.",
+            "required": false
+          },
+          {
+            "name": "model",
+            "key": "model",
+            "type": "string",
+            "description": "Optional ElevenLabs model_id (default: 'eleven_multilingual_v2'; also supports 'eleven_flash_v2_5', 'eleven_turbo_v2_5').",
+            "required": false
+          },
+          {
+            "name": "filename",
+            "key": "filename",
+            "type": "string",
+            "description": "Optional output MP3 filename (e.g. 'greeting.mp3').",
+            "required": false
+          },
+          {
+            "name": "api_key",
+            "key": "api_key",
+            "type": "string",
+            "description": "ElevenLabs API key (sk_...) for action='config'.",
+            "required": false
+          }
+        ]
+      }
     }
   ]
 }

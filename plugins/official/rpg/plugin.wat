@@ -1,157 +1,1480 @@
 (module
+  ;; Chattree Host API import: (req_ptr, req_len, res_ptr, res_cap) -> res_len
+  (import "chattree" "host_call" (func $host_call (param i32 i32 i32 i32) (result i32)))
+
   (memory (export "memory") 64)
 
-  ;; Memory Copy Helper
-  (func $copy_mem (param $src i32) (param $dest i32) (param $len i32) (result i32)
-    (local $i i32)
-    (loop $copy_loop
-      (if (i32.lt_u (local.get $i) (local.get $len))
-        (then
-          (i32.store8
-            (i32.add (local.get $dest) (local.get $i))
-            (i32.load8_u (i32.add (local.get $src) (local.get $i)))
-          )
-          (local.set $i (i32.add (local.get $i) (i32.const 1)))
-          (br $copy_loop)
-        )
+  ;; ============================================================================
+  ;; CONSTANTS & MEMORY MAP
+  ;; ============================================================================
+  ;; Input: 0..65535
+  ;; Output: 65536..131071
+  ;; Static Data: 131072..196607
+  ;; Host Req: 200000..204095
+  ;; Host Res: 205000..213191
+  ;; Slot Serialize Buf: 215000..223191
+  ;; Temp Buf: 225000..229095
+  ;; Field Buffers: 230000..236000
+
+  (global $OUT_BASE i32 (i32.const 65536))
+  (global $HOST_REQ i32 (i32.const 200000))
+  (global $HOST_RES i32 (i32.const 205000))
+  (global $SLOT_BUF i32 (i32.const 215000))
+  (global $TEMP_BUF i32 (i32.const 225000))
+
+  ;; Field buffer addresses
+  (global $S1_T i32 (i32.const 230000))
+  (global $S1_P i32 (i32.const 230200))
+  (global $S2_T i32 (i32.const 230500))
+  (global $S2_P i32 (i32.const 230700))
+  (global $S3_T i32 (i32.const 231000))
+  (global $S3_P i32 (i32.const 231200))
+  (global $CH_T i32 (i32.const 231500))
+  (global $CH_P i32 (i32.const 231700))
+  (global $SUMMARY i32 (i32.const 232000))
+  (global $INTENT i32 (i32.const 233000))
+  (global $NOTE i32 (i32.const 233500))
+  (global $CMD_RAW i32 (i32.const 234000))
+  (global $ACT_BUF i32 (i32.const 234500))
+  (global $QRY_BUF i32 (i32.const 234700))
+  (global $STAGE_BUF i32 (i32.const 235000))
+  (global $CLASS_BUF i32 (i32.const 235100))
+  (global $PHASE_BUF i32 (i32.const 235200))
+  (global $OUTCOME_BUF i32 (i32.const 235300))
+  (global $ROLL_TXT i32 (i32.const 235400))
+
+  ;; Mutable state globals
+  (global $out_pos (mut i32) (i32.const 65536))
+  (global $in_len (mut i32) (i32.const 0))
+  (global $active_slot (mut i32) (i32.const 1))
+
+  ;; Campaign state globals
+  (global $stage_len (mut i32) (i32.const 0))
+  (global $class_len (mut i32) (i32.const 0))
+  (global $phase_len (mut i32) (i32.const 0))
+  (global $ch_t_len (mut i32) (i32.const 0))
+  (global $ch_p_len (mut i32) (i32.const 0))
+  (global $sum_len (mut i32) (i32.const 0))
+  (global $s1t_len (mut i32) (i32.const 0))
+  (global $s1p_len (mut i32) (i32.const 0))
+  (global $s2t_len (mut i32) (i32.const 0))
+  (global $s2p_len (mut i32) (i32.const 0))
+  (global $s3t_len (mut i32) (i32.const 0))
+  (global $s3p_len (mut i32) (i32.const 0))
+
+  (global $hp (mut i32) (i32.const 0))
+  (global $max_hp (mut i32) (i32.const 0))
+  (global $atk (mut i32) (i32.const 0))
+  (global $def (mut i32) (i32.const 0))
+  (global $turn (mut i32) (i32.const 0))
+  (global $tension (mut i32) (i32.const 0))
+
+  ;; Input parsed globals
+  (global $act_len (mut i32) (i32.const 0))
+  (global $qry_len (mut i32) (i32.const 0))
+  (global $int_len (mut i32) (i32.const 0))
+  (global $note_len (mut i32) (i32.const 0))
+  (global $cmd_len (mut i32) (i32.const 0))
+  (global $outc_len (mut i32) (i32.const 0))
+  (global $in_tdelta (mut i32) (i32.const 10))
+  (global $in_dc (mut i32) (i32.const 12))
+  (global $in_roll (mut i32) (i32.const 0))
+  (global $in_rest (mut i32) (i32.const 0))
+
+  ;; ============================================================================
+  ;; STATIC STRINGS (131072..)
+  ;; ============================================================================
+  ;; Storage keys (131072..)
+  (data (i32.const 131072) "rpg_active_slot")   ;; len 15 @ 131072
+  (data (i32.const 131090) "rpg_slot_1")        ;; len 10 @ 131090
+  (data (i32.const 131102) "rpg_slot_2")        ;; len 10 @ 131102
+  (data (i32.const 131114) "rpg_slot_3")        ;; len 10 @ 131114
+
+  ;; Host API JSON fragments (131130..)
+  (data (i32.const 131130) "{\22api\22:\22storage\22,\22operation\22:\22get\22,\22payload\22:{\22key\22:\22") ;; len 53 @ 131130
+  (data (i32.const 131190) "\22}}") ;; len 3 @ 131190
+  (data (i32.const 131200) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22") ;; len 53 @ 131200
+  (data (i32.const 131260) "\22,\22value\22:\22") ;; len 11 @ 131260
+
+  ;; JSON input keys (131280..)
+  (data (i32.const 131280) "action")         ;; len 6
+  (data (i32.const 131290) "command")        ;; len 7
+  (data (i32.const 131300) "query")          ;; len 5
+  (data (i32.const 131310) "intent")         ;; len 6
+  (data (i32.const 131320) "summary_note")   ;; len 12
+  (data (i32.const 131335) "s1_title")       ;; len 8
+  (data (i32.const 131345) "s1_premise")     ;; len 10
+  (data (i32.const 131358) "s2_title")       ;; len 8
+  (data (i32.const 131368) "s2_premise")     ;; len 10
+  (data (i32.const 131380) "s3_title")       ;; len 8
+  (data (i32.const 131390) "s3_premise")     ;; len 10
+  (data (i32.const 131405) "tension_delta")  ;; len 13
+  (data (i32.const 131420) "dc")             ;; len 2
+  (data (i32.const 131425) "roll_needed")    ;; len 11
+  (data (i32.const 131440) "rest")           ;; len 4
+  (data (i32.const 131448) "combat_outcome") ;; len 14
+  (data (i32.const 131465) "value")          ;; len 5
+
+  ;; Action / command literals (131480..)
+  (data (i32.const 131480) "start")          ;; len 5
+  (data (i32.const 131488) "new")            ;; len 3
+  (data (i32.const 131495) "pick_story")     ;; len 10
+  (data (i32.const 131508) "select_class")   ;; len 12
+  (data (i32.const 131524) "status")         ;; len 6
+  (data (i32.const 131532) "games")          ;; len 5
+  (data (i32.const 131540) "switch")         ;; len 6
+  (data (i32.const 131548) "delete")         ;; len 6
+  (data (i32.const 131556) "confirm_delete") ;; len 14
+  (data (i32.const 131572) "help")           ;; len 4
+  (data (i32.const 131580) "knight")         ;; len 6
+  (data (i32.const 131588) "archer")         ;; len 6
+  (data (i32.const 131596) "Knight")         ;; len 6
+  (data (i32.const 131604) "Archer")         ;; len 6
+  (data (i32.const 131612) "victory")        ;; len 7
+
+  ;; Stages & Phases (131625..)
+  (data (i32.const 131625) "empty")          ;; len 5
+  (data (i32.const 131632) "pick_story")     ;; len 10
+  (data (i32.const 131644) "pick_class")     ;; len 10
+  (data (i32.const 131656) "playing")        ;; len 7
+  (data (i32.const 131665) "OPENING")        ;; len 7
+  (data (i32.const 131674) "EXPLORATION")    ;; len 11
+  (data (i32.const 131687) "SKILL_CHECK")    ;; len 11
+  (data (i32.const 131700) "COMBAT_AMBUSH")  ;; len 13
+  (data (i32.const 131715) "COMBAT_ROUND")   ;; len 12
+  (data (i32.const 131729) "COMBAT_VICTORY") ;; len 14
+  (data (i32.const 131745) "CAMP_REST")      ;; len 9
+  (data (i32.const 131756) "GAME_OVER")      ;; len 9
+
+  ;; Slot serialization keys (131770..)
+  (data (i32.const 131770) "stage=")   ;; 6
+  (data (i32.const 131778) "title=")   ;; 6
+  (data (i32.const 131786) "premise=") ;; 8
+  (data (i32.const 131796) "class=")   ;; 6
+  (data (i32.const 131804) "hp=")      ;; 3
+  (data (i32.const 131810) "max_hp=")  ;; 7
+  (data (i32.const 131820) "atk=")     ;; 4
+  (data (i32.const 131826) "def=")     ;; 4
+  (data (i32.const 131832) "turn=")    ;; 5
+  (data (i32.const 131840) "tension=") ;; 8
+  (data (i32.const 131850) "phase=")   ;; 6
+  (data (i32.const 131858) "summary=") ;; 8
+  (data (i32.const 131868) "s1t=")     ;; 4
+  (data (i32.const 131874) "s1p=")     ;; 4
+  (data (i32.const 131880) "s2t=")     ;; 4
+  (data (i32.const 131886) "s2p=")     ;; 4
+  (data (i32.const 131892) "s3t=")     ;; 4
+  (data (i32.const 131898) "s3p=")     ;; 4
+
+  ;; Help UI Card (132000..)
+  (data (i32.const 132000) "{\22type\22:\22ui\22,\22displayText\22:\22RPG Help\22,\22ui\22:{\22title\22:\22Text RPG Simulator\22,\22subtitle\22:\22v2.0.0 \e2\80\a2 D&D Narrative Engine\22,\22badge\22:\22HELP\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22/rpg\22,\22value\22:\22Start or continue active campaign\22},{\22label\22:\22/rpg new\22,\22value\22:\22Generate 3 fresh stories for active slot\22},{\22label\22:\22/rpg games\22,\22value\22:\22View and switch between 3 save slots\22},{\22label\22:\22/rpg status\22,\22value\22:\22Inspect character sheet and summary\22},{\22label\22:\22/rpg delete\22,\22value\22:\22Clear the active campaign slot\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Start / Continue\22,\22action\22:\22command\22,\22payload\22:\22/rpg\22,\22style\22:\22primary\22},{\22label\22:\22Campaign Slots\22,\22action\22:\22command\22,\22payload\22:\22/rpg games\22,\22style\22:\22secondary\22}]}]}}\00")
+
+  ;; RPG_SYSTEM prompt for generating 3 fresh stories (133000..)
+  (data (i32.const 133000) "{\22type\22:\22text\22,\22displayText\22:\22[RPG_SYSTEM]\\nNo active campaign exists in this slot. Generate 3 distinct, original, atmospheric short story premises (each 1-2 sentences, varied genres/settings such as dark fantasy, cursed wilderness, or intrigue). Then immediately call the `rpg` tool with `action=new` and parameters `s1_title`, `s1_premise`, `s2_title`, `s2_premise`, `s3_title`, `s3_premise` so the player can choose one in the UI.\\n[/RPG_SYSTEM]\22}\00")
+
+  ;; Predefined Knight & Archer Character Selection UI fragments (133600..)
+  (data (i32.const 133600) "{\22type\22:\22ui\22,\22displayText\22:\22Select Your Character\22,\22ui\22:{\22title\22:\22Select Your Character\22,\22subtitle\22:\22Story: ")
+  ;; len = 104 @ 133600
+
+  (data (i32.const 133720) "\22,\22badge\22:\22CLASS\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22text\22,\22text\22:\22KNIGHT\\n  [=+=]\\n  /|#|\\\\  HP 120 | ATK 12 | DEF 14\\n   / \\\\   Vanguard Tank & Shield\22},{\22type\22:\22divider\22},{\22type\22:\22text\22,\22text\22:\22ARCHER\\n   /|\\\\\\n  >>-+-> HP 95  | ATK 15 | DEF 11\\n   / \\\\   Precision Scout & Crit\22},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Choose Knight\22,\22action\22:\22command\22,\22payload\22:\22/rpg select_class knight\22,\22style\22:\22primary\22},{\22label\22:\22Choose Archer\22,\22action\22:\22command\22,\22payload\22:\22/rpg select_class archer\22,\22style\22:\22secondary\22}]}]}}")
+  ;; Wait: let's count exact bytes for 133720 in a helper or use clean exact lengths!
+  ;; Actually let's use exact null-terminated helper `$write_cstr` so we NEVER miscount static string lengths!!
+  ;; THAT IS SO MUCH SAFER AND CLEANER!
+
+  ;; ============================================================================
+  ;; LOW-LEVEL MEMORY & STRING HELPERS
+  ;; ============================================================================
+
+  ;; Write null-terminated string at $ptr to output buffer
+  (func $out_cstr (param $ptr i32)
+    (local $b i32)
+    (block $done
+      (loop $loop
+        (local.set $b (i32.load8_u (local.get $ptr)))
+        (br_if $done (i32.eqz (local.get $b)))
+        (i32.store8 (global.get $out_pos) (local.get $b))
+        (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+        (local.set $ptr (i32.add (local.get $ptr) (i32.const 1)))
+        (br $loop)
       )
     )
-    (local.get $len)
   )
 
-  ;; Substring Finder Helper
-  (func $find_substring (param $haystack i32) (param $haystack_len i32) (param $needle i32) (param $needle_len i32) (result i32)
+  ;; Write $len bytes from $ptr to output buffer
+  (func $out_bytes (param $ptr i32) (param $len i32)
     (local $i i32)
-    (local $j i32)
-    (local $max i32)
-    (if (i32.lt_u (local.get $haystack_len) (local.get $needle_len))
-      (then (return (i32.const -1)))
-    )
-    (local.set $max (i32.add (i32.sub (local.get $haystack_len) (local.get $needle_len)) (i32.const 1)))
     (local.set $i (i32.const 0))
-    (loop $outer
-      (if (i32.lt_u (local.get $i) (local.get $max))
-        (then
-          (local.set $j (i32.const 0))
-          (loop $inner
-            (if (i32.lt_u (local.get $j) (local.get $needle_len))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $i) (local.get $len)))
+        (i32.store8
+          (global.get $out_pos)
+          (i32.load8_u (i32.add (local.get $ptr) (local.get $i)))
+        )
+        (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
+      )
+    )
+  )
+
+  ;; Write JSON-safe bytes from $ptr ($len) to output buffer (escapes " \ \n \r)
+  (func $out_json_str (param $ptr i32) (param $len i32)
+    (local $i i32)
+    (local $b i32)
+    (local.set $i (i32.const 0))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $i) (local.get $len)))
+        (local.set $b (i32.load8_u (i32.add (local.get $ptr) (local.get $i))))
+        (if (i32.eq (local.get $b) (i32.const 34)) ;; '"'
+          (then
+            (i32.store8 (global.get $out_pos) (i32.const 92))
+            (i32.store8 (i32.add (global.get $out_pos) (i32.const 1)) (i32.const 34))
+            (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 2)))
+          )
+          (else
+            (if (i32.eq (local.get $b) (i32.const 92)) ;; '\'
               (then
-                (if (i32.eq
-                      (i32.load8_u (i32.add (local.get $haystack) (i32.add (local.get $i) (local.get $j))))
-                      (i32.load8_u (i32.add (local.get $needle) (local.get $j)))
-                    )
+                (i32.store8 (global.get $out_pos) (i32.const 92))
+                (i32.store8 (i32.add (global.get $out_pos) (i32.const 1)) (i32.const 92))
+                (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 2)))
+              )
+              (else
+                (if (i32.eq (local.get $b) (i32.const 10)) ;; '\n'
                   (then
-                    (local.set $j (i32.add (local.get $j) (i32.const 1)))
-                    (br $inner)
+                    (i32.store8 (global.get $out_pos) (i32.const 92))
+                    (i32.store8 (i32.add (global.get $out_pos) (i32.const 1)) (i32.const 110))
+                    (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 2)))
+                  )
+                  (else
+                    (if (i32.ge_u (local.get $b) (i32.const 32))
+                      (then
+                        (i32.store8 (global.get $out_pos) (local.get $b))
+                        (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+                      )
+                    )
                   )
                 )
               )
-              (else
-                (return (local.get $i))
+            )
+          )
+        )
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
+      )
+    )
+  )
+
+  ;; Write signed integer to output buffer
+  (func $out_int (param $n i32)
+    (local $buf i32)
+    (local $idx i32)
+    (local $neg i32)
+    (local $d i32)
+    (local.set $buf (global.get $TEMP_BUF))
+    (local.set $idx (i32.const 30))
+    (if (i32.eqz (local.get $n))
+      (then
+        (i32.store8 (global.get $out_pos) (i32.const 48))
+        (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+        (return)
+      )
+    )
+    (if (i32.lt_s (local.get $n) (i32.const 0))
+      (then
+        (local.set $neg (i32.const 1))
+        (local.set $n (i32.sub (i32.const 0) (local.get $n)))
+      )
+    )
+    (block $done
+      (loop $loop
+        (br_if $done (i32.eqz (local.get $n)))
+        (local.set $d (i32.rem_u (local.get $n) (i32.const 10)))
+        (i32.store8 (i32.add (local.get $buf) (local.get $idx)) (i32.add (i32.const 48) (local.get $d)))
+        (local.set $idx (i32.sub (local.get $idx) (i32.const 1)))
+        (local.set $n (i32.div_u (local.get $n) (i32.const 10)))
+        (br $loop)
+      )
+    )
+    (if (local.get $neg)
+      (then
+        (i32.store8 (global.get $out_pos) (i32.const 45))
+        (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+      )
+    )
+    (call $out_bytes
+      (i32.add (local.get $buf) (i32.add (local.get $idx) (i32.const 1)))
+      (i32.sub (i32.const 30) (local.get $idx))
+    )
+  )
+
+  ;; Copy $len bytes from $src to $dst
+  (func $memcpy (param $dst i32) (param $src i32) (param $len i32)
+    (local $i i32)
+    (local.set $i (i32.const 0))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $i) (local.get $len)))
+        (i32.store8
+          (i32.add (local.get $dst) (local.get $i))
+          (i32.load8_u (i32.add (local.get $src) (local.get $i)))
+        )
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
+      )
+    )
+  )
+
+  ;; Compare two byte slices for equality (1 = equal, 0 = not)
+  (func $streq (param $a i32) (param $alen i32) (param $b i32) (param $blen i32) (result i32)
+    (local $i i32)
+    (if (i32.ne (local.get $alen) (local.get $blen))
+      (then (return (i32.const 0)))
+    )
+    (local.set $i (i32.const 0))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $i) (local.get $alen)))
+        (if (i32.ne
+              (i32.load8_u (i32.add (local.get $a) (local.get $i)))
+              (i32.load8_u (i32.add (local.get $b) (local.get $i)))
+            )
+          (then (return (i32.const 0)))
+        )
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
+      )
+    )
+    (i32.const 1)
+  )
+
+  ;; Check if $a ($alen) starts with $prefix ($plen)
+  (func $starts_with (param $a i32) (param $alen i32) (param $prefix i32) (param $plen i32) (result i32)
+    (if (i32.lt_u (local.get $alen) (local.get $plen))
+      (then (return (i32.const 0)))
+    )
+    (call $streq (local.get $a) (local.get $plen) (local.get $prefix) (local.get $plen))
+  )
+
+  ;; Parse unsigned/signed int from ASCII slice
+  (func $parse_int (param $ptr i32) (param $len i32) (result i32)
+    (local $i i32)
+    (local $neg i32)
+    (local $acc i32)
+    (local $b i32)
+    (if (i32.eqz (local.get $len)) (then (return (i32.const 0))))
+    (local.set $i (i32.const 0))
+    (if (i32.eq (i32.load8_u (local.get $ptr)) (i32.const 45))
+      (then
+        (local.set $neg (i32.const 1))
+        (local.set $i (i32.const 1))
+      )
+    )
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $i) (local.get $len)))
+        (local.set $b (i32.load8_u (i32.add (local.get $ptr) (local.get $i))))
+        (br_if $done (i32.lt_u (local.get $b) (i32.const 48)))
+        (br_if $done (i32.gt_u (local.get $b) (i32.const 57)))
+        (local.set $acc (i32.add (i32.mul (local.get $acc) (i32.const 10)) (i32.sub (local.get $b) (i32.const 48))))
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
+      )
+    )
+    (if (local.get $neg)
+      (then (return (i32.sub (i32.const 0) (local.get $acc))))
+    )
+    (local.get $acc)
+  )
+
+  ;; ============================================================================
+  ;; JSON EXTRACTORS (search key in buffer $hay/$hlen)
+  ;; ============================================================================
+  ;; Find '"key":' in [$hay, $hay + $hlen), return index right after ':' (or -1)
+  (func $json_find_val (param $hay i32) (param $hlen i32) (param $key i32) (param $klen i32) (result i32)
+    (local $i i32)
+    (local $end i32)
+    (local $p i32)
+    (if (i32.lt_u (local.get $hlen) (i32.add (local.get $klen) (i32.const 3)))
+      (then (return (i32.const -1)))
+    )
+    (local.set $i (i32.const 0))
+    (local.set $end (i32.sub (local.get $hlen) (i32.add (local.get $klen) (i32.const 3))))
+    (block $not_found
+      (loop $loop
+        (br_if $not_found (i32.gt_u (local.get $i) (local.get $end)))
+        (local.set $p (i32.add (local.get $hay) (local.get $i)))
+        (if (i32.and
+              (i32.eq (i32.load8_u (local.get $p)) (i32.const 34))
+              (i32.eq (i32.load8_u (i32.add (local.get $p) (i32.add (local.get $klen) (i32.const 1)))) (i32.const 34))
+            )
+          (then
+            (if (call $streq (i32.add (local.get $p) (i32.const 1)) (local.get $klen) (local.get $key) (local.get $klen))
+              (then
+                ;; Scan for ':' skipping whitespace
+                (local.set $p (i32.add (local.get $i) (i32.add (local.get $klen) (i32.const 2))))
+                (block $ws_done
+                  (loop $ws
+                    (br_if $ws_done (i32.ge_u (local.get $p) (local.get $hlen)))
+                    (if (i32.eq (i32.load8_u (i32.add (local.get $hay) (local.get $p))) (i32.const 58))
+                      (then
+                        ;; Skip whitespace after ':'
+                        (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                        (block $ws2_done
+                          (loop $ws2
+                            (br_if $ws2_done (i32.ge_u (local.get $p) (local.get $hlen)))
+                            (br_if $ws2_done (i32.gt_u (i32.load8_u (i32.add (local.get $hay) (local.get $p))) (i32.const 32)))
+                            (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                            (br $ws2)
+                          )
+                        )
+                        (return (local.get $p))
+                      )
+                    )
+                    (br_if $ws_done (i32.gt_u (i32.load8_u (i32.add (local.get $hay) (local.get $p))) (i32.const 32)))
+                    (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                    (br $ws)
+                  )
+                )
               )
             )
           )
-          (local.set $i (i32.add (local.get $i) (i32.const 1)))
-          (br $outer)
         )
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
       )
     )
     (i32.const -1)
   )
 
-  ;; Exported Entrypoint
-  (func (export "rpg_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
-    ;; 1. Check for confirmed reset: 'confirmar_reinicio', 'confirm_reset', or 'confirmar'
-    (if (i32.or
-          (i32.or
-            (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 158838) (i32.const 18)) (i32.const 0))
-            (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 158872) (i32.const 13)) (i32.const 0))
+  ;; Extract JSON string value for $key into $dst (max $cap). Returns length (0 if missing or null).
+  (func $json_get_str (param $hay i32) (param $hlen i32) (param $key i32) (param $klen i32) (param $dst i32) (param $cap i32) (result i32)
+    (local $idx i32)
+    (local $out i32)
+    (local $b i32)
+    (local.set $idx (call $json_find_val (local.get $hay) (local.get $hlen) (local.get $key) (local.get $klen)))
+    (if (i32.lt_s (local.get $idx) (i32.const 0)) (then (return (i32.const 0))))
+    (if (i32.ge_u (local.get $idx) (local.get $hlen)) (then (return (i32.const 0))))
+    ;; Must start with '"'
+    (if (i32.ne (i32.load8_u (i32.add (local.get $hay) (local.get $idx))) (i32.const 34))
+      (then (return (i32.const 0)))
+    )
+    (local.set $idx (i32.add (local.get $idx) (i32.const 1)))
+    (local.set $out (i32.const 0))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $idx) (local.get $hlen)))
+        (local.set $b (i32.load8_u (i32.add (local.get $hay) (local.get $idx))))
+        (br_if $done (i32.eq (local.get $b) (i32.const 34)))
+        (if (i32.eq (local.get $b) (i32.const 92)) ;; '\' escape
+          (then
+            (local.set $idx (i32.add (local.get $idx) (i32.const 1)))
+            (br_if $done (i32.ge_u (local.get $idx) (local.get $hlen)))
+            (local.set $b (i32.load8_u (i32.add (local.get $hay) (local.get $idx))))
+            (if (i32.or (i32.eq (local.get $b) (i32.const 110)) (i32.or (i32.eq (local.get $b) (i32.const 114)) (i32.eq (local.get $b) (i32.const 116))))
+              (then (local.set $b (i32.const 32))) ;; \n, \r, \t -> space
+            )
           )
-          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 158901) (i32.const 9)) (i32.const 0))
         )
-      (then
-        (drop (call $copy_mem (i32.const 156195) (i32.const 65536) (i32.const 2627)))
-        (return (i32.const 2627))
-      )
-    )
-
-    ;; 2. Check for reset prompt: 'reiniciar' or 'reset'
-    (if (i32.or
-          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 158926) (i32.const 9)) (i32.const 0))
-          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 158951) (i32.const 5)) (i32.const 0))
+        (if (i32.lt_u (local.get $out) (local.get $cap))
+          (then
+            (i32.store8 (i32.add (local.get $dst) (local.get $out)) (local.get $b))
+            (local.set $out (i32.add (local.get $out) (i32.const 1)))
+          )
         )
-      (then
-        (drop (call $copy_mem (i32.const 154080) (i32.const 65536) (i32.const 2099)))
-        (return (i32.const 2099))
+        (local.set $idx (i32.add (local.get $idx) (i32.const 1)))
+        (br $loop)
       )
     )
-
-    ;; 3. Check for 'status' or 'ficha'
-    (if (i32.or
-          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 158993) (i32.const 6)) (i32.const 0))
-          (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 159015) (i32.const 5)) (i32.const 0))
-        )
-      (then
-        (drop (call $copy_mem (i32.const 143942) (i32.const 65536) (i32.const 2434)))
-        (return (i32.const 2434))
-      )
-    )
-
-    ;; 4. Check for 'atacar' or combat action
-    (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 159036) (i32.const 6)) (i32.const 0))
-      (then
-        (drop (call $copy_mem (i32.const 146392) (i32.const 65536) (i32.const 2678)))
-        (return (i32.const 2678))
-      )
-    )
-
-    ;; 5. Check for 'pocion'
-    (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 159058) (i32.const 6)) (i32.const 0))
-      (then
-        (drop (call $copy_mem (i32.const 149086) (i32.const 65536) (i32.const 2161)))
-        (return (i32.const 2161))
-      )
-    )
-
-    ;; 6. Check for 'save'
-    (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 159080) (i32.const 4)) (i32.const 0))
-      (then
-        (drop (call $copy_mem (i32.const 151263) (i32.const 65536) (i32.const 1502)))
-        (return (i32.const 1502))
-      )
-    )
-
-    ;; 7. Check for 'load'
-    (if (i32.ge_s (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 159100) (i32.const 4)) (i32.const 0))
-      (then
-        (drop (call $copy_mem (i32.const 152781) (i32.const 65536) (i32.const 1283)))
-        (return (i32.const 1283))
-      )
-    )
-
-    ;; 8. Default: 'start' or initial campaign prologue
-    (drop (call $copy_mem (i32.const 140000) (i32.const 65536) (i32.const 3926)))
-    (return (i32.const 3926))
+    (local.get $out)
   )
 
-  (data (i32.const 140000) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22system\5c\22: \5c\22Chattree Narrative RPG Engine v1.2.0\5c\22,\5cn  \5c\22campaign\5c\22: \5c\22Cr\c3\b3nicas de Eldoria: El Despertar de la Cripta Olvidada\5c\22,\5cn  \5c\22turn\5c\22: 1,\5cn  \5c\22chapter\5c\22: 1,\5cn  \5c\22player\5c\22: \5c\22Aventurero Solitario\5c\22,\5cn  \5c\22class\5c\22: \5c\22Guerrero de la Guardia de Plata\5c\22,\5cn  \5c\22hp\5c\22: \5c\22120/120\5c\22,\5cn  \5c\22mp\5c\22: \5c\2230/30\5c\22,\5cn  \5c\22level\5c\22: 1,\5cn  \5c\22xp\5c\22: \5c\220/100\5c\22,\5cn  \5c\22gold\5c\22: 50,\5cn  \5c\22location\5c\22: \5c\22Vest\c3\adbulo de las Ruinas de Eldoria \e2\80\94 Cripta Profunda\5c\22,\5cn  \5c\22active_quest\5c\22: \5c\22Descubrir el origen de la marca r\c3\banica y escapar de las catacumbas\5c\22,\5cn  \5c\22active_enemy\5c\22: \5c\22Centinela Espectral de Eldoria (HP 35/35, AC 12)\5c\22,\5cn  \5c\22threat_level\5c\22: \5c\22Moderado\5c\22\5cn}\5cn```\5cn### INVENTARIO VERIFICADO EN MEMORIA LINEAL (CERO ALUCINACIONES):\5cn- Espada de Acero Templado x1 (+6 ATK)\5cn- Escudo de Roble con Refuerzos de Hierro x1 (+3 DEF)\5cn- Poci\c3\b3n Curativa de Alquimista x3 (+40 HP restaurados)\5cn- Antorcha de Brea x1 (duraci\c3\b3n: 20 turnos)\5cn- Monedero de Cuero: 50 Monedas de Oro\5cn\5cn> \f0\9f\93\9c **DIRECTIVA MAESTRA PARA EL NARRADOR IA DE CHATTREE (GAME MASTER):**\5cn> 1. **HISTORIA LINEAL Y CONTINUA:** Esta es una campa\c3\b1a narrativa viva y coherente. Jam\c3\a1s trates las acciones como combates sueltos de relleno. Cada turno debe avanzar la trama de la Cripta de Eldoria hacia adelante con causa y efecto.\5cn> 2. **PROTAGONISTA Y ATM\c3\93SFERA:** Comienza con una introducci\c3\b3n inmersiva, cinematogr\c3\a1fica y literaria. Describe el polvo flotando en los rayos de luz de la luna, el fr\c3\ado de la piedra centenaria, el peso de la armadura y el susurro espectral del Centinela que vigila la puerta sellada.\5cn> 3. **PROHIBIDO ALTERAR O INVENTAR N\c3\9aMEROS:** Los valores de vida (120 HP), man\c3\a1, oro y pociones son matem\c3\a1ticos del motor WASM.\5cn> 4. **OPCIONES T\c3\81CTICAS:** Al final de tu narraci\c3\b3n, formula siempre 3 opciones narrativas tentadoras (Ataque frontal, Uso del entorno/sigilo, o Magia/objeto).\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\f0\9f\95\af\ef\b8\8f **Pr\c3\b3logo \e2\80\94 El Despertar en las Sombras de Eldoria**\5cn\5cnDespiertas sobre un lecho de losas heladas, cubierto por el polvo de siglos. Una extra\c3\b1a marca en tu mu\c3\b1eca brilla con un sutil resplandor cer\c3\baleo, pulsando al comp\c3\a1s de los latidos de tu coraz\c3\b3n. \5cn\5cnAl incorporarte empu\c3\b1ando tu espada, la niebla de la cripta se arremolina. Ante la \c3\banica arcada de piedra que conduce al exterior, una figura incorp\c3\b3rea se materializa: el **Centinela Espectral**, cuyos ojos vac\c3\ados se encienden con fuego et\c3\a9reo mientras desenvaina una hoja espectral susurrando un juramento en una lengua muerta.\5cn\5cn*El destino de tu viaje acaba de comenzar. \c2\bfQu\c3\a9 har\c3\a1s?*\22,\22ui\22:{\22title\22:\22Cr\c3\b3nicas de Eldoria \e2\80\94 Cap\c3\adtulo I\22,\22subtitle\22:\22El Despertar de la Cripta \e2\80\a2 Turno 1\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22\e2\9a\94\ef\b8\8f ENCUENTRO HOSTIL ACTIVO\22,\22variant\22:\22warning\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Salud (HP): 120/120 (100%)\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Man\c3\a1 (MP): 30/30 (100%)\22},{\22type\22:\22progress\22,\22value\22:0,\22label\22:\22Progreso al Nivel 2: 0/100 XP (0%)\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Personaje\22,\22value\22:\22Aventurero (Guerrero)\22},{\22label\22:\22Misi\c3\b3n actual\22,\22value\22:\22Escapar de las catacumbas\22},{\22label\22:\22Ubicaci\c3\b3n\22,\22value\22:\22Cripta de Eldoria \e2\80\94 Puerta Sellada\22},{\22label\22:\22Adversario\22,\22value\22:\22Centinela Espectral (HP 35/35)\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9a\94\ef\b8\8f Atacar con Espada\22,\22action\22:\22command\22,\22payload\22:\22/rpg action atacar al centinela\22,\22variant\22:\22danger\22},{\22label\22:\22\f0\9f\9b\a1\ef\b8\8f Posici\c3\b3n Defensiva\22,\22action\22:\22command\22,\22payload\22:\22/rpg action cubrirse con escudo\22,\22variant\22:\22primary\22},{\22label\22:\22\f0\9f\a7\aa Beber Poci\c3\b3n\22,\22action\22:\22command\22,\22payload\22:\22/rpg action beber pocion\22,\22variant\22:\22neutral\22},{\22label\22:\22\f0\9f\93\8a Ficha y Mochila\22,\22action\22:\22command\22,\22payload\22:\22/rpg status\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22hp\22:120,\22maxHp\22:120,\22level\22:1,\22gold\22:50,\22turn\22:1,\22chapter\22:1}}") ;; payload_start (3926 bytes)
-  (data (i32.const 143942) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22query\5c\22: \5c\22character_status\5c\22,\5cn  \5c\22turn\5c\22: 3,\5cn  \5c\22player\5c\22: \5c\22Aventurero de Eldoria\5c\22,\5cn  \5c\22class\5c\22: \5c\22Guerrero\5c\22,\5cn  \5c\22level\5c\22: 1,\5cn  \5c\22xp\5c\22: \5c\220/100\5c\22,\5cn  \5c\22hp\5c\22: \5c\22120/120\5c\22,\5cn  \5c\22mp\5c\22: \5c\2230/30\5c\22,\5cn  \5c\22gold\5c\22: 50,\5cn  \5c\22strength\5c\22: 16,\5cn  \5c\22dexterity\5c\22: 11,\5cn  \5c\22intelligence\5c\22: 9,\5cn  \5c\22active_campaign\5c\22: \5c\22Cr\c3\b3nicas de Eldoria: El Despertar\5c\22,\5cn  \5c\22inventory\5c\22: [\5cn    { \5c\22name\5c\22: \5c\22Espada de Acero Templado\5c\22, \5c\22type\5c\22: \5c\22Arma Principal\5c\22, \5c\22power\5c\22: \5c\22+6 ATK\5c\22 },\5cn    { \5c\22name\5c\22: \5c\22Escudo de Roble y Hierro\5c\22, \5c\22type\5c\22: \5c\22Defensa\5c\22, \5c\22power\5c\22: \5c\22+3 DEF\5c\22 },\5cn    { \5c\22name\5c\22: \5c\22Poci\c3\b3n de Salud\5c\22, \5c\22quantity\5c\22: 2, \5c\22effect\5c\22: \5c\22+40 HP\5c\22 },\5cn    { \5c\22name\5c\22: \5c\22Antorcha de Brea\5c\22, \5c\22quantity\5c\22: 1, \5c\22effect\5c\22: \5c\22Visi\c3\b3n en oscuridad\5c\22 }\5cn  ]\5cn}\5cn```\5cn> \f0\9f\93\9c **DIRECTIVA PARA EL NARRADOR IA:**\5cn> Resume con elegancia la condici\c3\b3n del h\c3\a9roe, sus cicatrices, el brillo del acero y la determinaci\c3\b3n que arde en su mirada para superar la cripta.\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\f0\9f\93\8a **Hoja de Personaje y Pertinencias**\5cn\5cnTe detienes un instante al amparo de las columnas ca\c3\addas para revisar tus fuerzas y equipo antes del siguiente paso crucial de tu expedici\c3\b3n.\22,\22ui\22:{\22title\22:\22Ficha del Aventurero\22,\22subtitle\22:\22Guerrero de Eldoria \e2\80\a2 Nivel 1\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22ESTADO: LISTO PARA LA BATALLA\22,\22variant\22:\22info\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Salud (HP): 120/120 (100%)\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Man\c3\a1 (MP): 30/30 (100%)\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Atributos F\c3\adsicos\22,\22value\22:\22Fuerza 16 \e2\80\a2 Destreza 11 \e2\80\a2 Inteligencia 9\22},{\22label\22:\22Bolsa de Monedas\22,\22value\22:\22\f0\9f\92\b0 50 monedas de oro antiguo\22},{\22label\22:\22Armamento\22,\22value\22:\22Espada de Acero (+6) \e2\80\a2 Escudo (+3)\22},{\22label\22:\22Consumibles\22,\22value\22:\222 Pociones de Salud \e2\80\a2 1 Antorcha\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9a\94\ef\b8\8f Continuar Combate\22,\22action\22:\22command\22,\22payload\22:\22/rpg action atacar\22,\22variant\22:\22danger\22},{\22label\22:\22\f0\9f\94\8d Inspeccionar Alrededor\22,\22action\22:\22command\22,\22payload\22:\22/rpg action explorar cripta\22,\22variant\22:\22primary\22},{\22label\22:\22\f0\9f\92\be Guardar Partida\22,\22action\22:\22command\22,\22payload\22:\22/rpg save\22,\22variant\22:\22neutral\22},{\22label\22:\22\f0\9f\94\84 Reiniciar Partida\22,\22action\22:\22command\22,\22payload\22:\22/rpg reset\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22hp\22:120,\22maxHp\22:120,\22level\22:1,\22gold\22:50,\22turn\22:3}}") ;; payload_status (2434 bytes)
-  (data (i32.const 146392) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22action\5c\22: \5c\22combat_strike\5c\22,\5cn  \5c\22d20_roll\5c\22: 18,\5cn  \5c\22stat_bonus\5c\22: 3,\5cn  \5c\22total_hit\5c\22: 21,\5cn  \5c\22armor_class_target\5c\22: 12,\5cn  \5c\22is_critical\5c\22: false,\5cn  \5c\22damage_dealt\5c\22: 24,\5cn  \5c\22enemy_hp_remaining\5c\22: 11,\5cn  \5c\22enemy_max_hp\5c\22: 35,\5cn  \5c\22counterattack_damage\5c\22: 8,\5cn  \5c\22player_hp\5c\22: 112,\5cn  \5c\22player_max_hp\5c\22: 120,\5cn  \5c\22turn\5c\22: 2,\5cn  \5c\22summary\5c\22: \5c\22Impacto contundente. El Centinela retrocede herido pero contraataca con un corte de escarcha.\5c\22\5cn}\5cn```\5cn> \f0\9f\93\9c **DIRECTIVA PARA EL NARRADOR IA:**\5cn> Narra la colisi\c3\b3n de metales: tu espada envuelta en fuerza rompe la guardia del Centinela cortando su esencia et\c3\a9rea (24 de da\c3\b1o, le quedan 11 HP). A cambio, su hoja fantasmal roza tu hombro hel\c3\a1ndote la sangre (-8 HP, tienes 112 HP). Mant\c3\a9n el suspenso y describe la criatura tambale\c3\a1ndose antes del golpe final.\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\e2\9a\94\ef\b8\8f **Intercambio de Acero y Sombras**\5cn\5cnTe impulsas hacia adelante con un grito de guerra. Tu espada de acero describe un arco fulgurante que rasga la armadura espectral del centinela con un chirrido ensordecedor. Part\c3\adculas de luz azulada brotan de la herida (**-24 de da\c3\b1o**). \5cn\5cnSin embargo, el ente responde con rapidez sobrenatural: su filo helado hiere tu costado izquierdo dej\c3\a1ndote una quemadura de escarcha (**-8 HP**). Tu aliento forma vaho en el aire g\c3\a9lido de la cripta, pero la criatura est\c3\a1 al borde del colapso.\22,\22ui\22:{\22title\22:\22Combate en la Cripta \e2\80\94 Turno 2\22,\22subtitle\22:\22Centinela Espectral tambale\c3\a1ndose (HP 11/35)\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22ENEMIGO CR\c3\8dTICO (HP 11/35)\22,\22variant\22:\22warning\22},{\22type\22:\22progress\22,\22value\22:93,\22label\22:\22Salud (HP): 112/120 (93%)\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Man\c3\a1 (MP): 30/30 (100%)\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Tirada de Ataque\22,\22value\22:\22d20: 18 (+3 STR) = 21 vs AC 12 [\c3\89XITO]\22},{\22label\22:\22Da\c3\b1o Asestado\22,\22value\22:\22\e2\9a\94\ef\b8\8f 24 puntos de corte\22},{\22label\22:\22Da\c3\b1o Recibido\22,\22value\22:\22\e2\9d\84\ef\b8\8f 8 puntos de fr\c3\ado espectral\22},{\22label\22:\22Estado del Centinela\22,\22value\22:\22Esencia quebrada (11/35 HP)\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9a\94\ef\b8\8f Asestar Golpe Final\22,\22action\22:\22command\22,\22payload\22:\22/rpg action golpe de gracia\22,\22variant\22:\22danger\22},{\22label\22:\22\f0\9f\a7\aa Beber Poci\c3\b3n\22,\22action\22:\22command\22,\22payload\22:\22/rpg action beber pocion\22,\22variant\22:\22primary\22},{\22label\22:\22\f0\9f\8f\83 Esquivar y Flanquear\22,\22action\22:\22command\22,\22payload\22:\22/rpg action esquivar\22,\22variant\22:\22neutral\22},{\22label\22:\22\f0\9f\92\be Guardar Partida\22,\22action\22:\22command\22,\22payload\22:\22/rpg save\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22hp\22:112,\22maxHp\22:120,\22level\22:1,\22gold\22:50,\22turn\22:2}}") ;; payload_attack (2678 bytes)
-  (data (i32.const 149086) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22action\5c\22: \5c\22use_item\5c\22,\5cn  \5c\22item_used\5c\22: \5c\22potion_health\5c\22,\5cn  \5c\22quantity_before\5c\22: 3,\5cn  \5c\22quantity_after\5c\22: 2,\5cn  \5c\22healing_calculated\5c\22: 8,\5cn  \5c\22player_hp\5c\22: 120,\5cn  \5c\22player_max_hp\5c\22: 120,\5cn  \5c\22turn\5c\22: 3,\5cn  \5c\22status\5c\22: \5c\22Vitalidad completa restaurada al 100%\5c\22\5cn}\5cn```\5cn> \f0\9f\93\9c **DIRECTIVA PARA EL NARRADOR IA:**\5cn> Narra c\c3\b3mo destapas el frasco con un movimiento diestro mientras te cubres con el escudo. El brebaje c\c3\a1lido disuelve el fr\c3\ado espectral de tu herida, cicatrizando tu hombro por completo. Describe el sonido del frasco al guardarlo y la preparaci\c3\b3n para la siguiente maniobra.\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\f0\9f\a7\aa **Restauraci\c3\b3n Alqu\c3\admica de Vitalidad**\5cn\5cnDando un paso atr\c3\a1s para ganar distancia, descorchas con los dientes uno de tus frascos de vidrio. El l\c3\adquido carmes\c3\ad resplandece en la penumbra. Al beberlo, una oleada de calor vigorizante recorre tus venas, cerrando la herida helada y despejando tu visi\c3\b3n. Tu salud regresa al m\c3\a1ximo absoluto (**120/120 HP**). Te quedan **2 pociones** en el cinto.\22,\22ui\22:{\22title\22:\22Alquimia y Recuperaci\c3\b3n \e2\80\94 Turno 3\22,\22subtitle\22:\22Poci\c3\b3n Curativa Consumida (Quedan 2)\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22VITALIDAD PLENA (100%)\22,\22variant\22:\22success\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Salud (HP): 120/120 (100%)\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Man\c3\a1 (MP): 30/30 (100%)\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Pociones en zurr\c3\b3n\22,\22value\22:\22\f0\9f\a7\aa 2 frascos curativos restantes\22},{\22label\22:\22Estado corporal\22,\22value\22:\22Heridas cerradas, vigor renovado\22},{\22label\22:\22Enemigo frente a ti\22,\22value\22:\22Centinela Espectral (HP 11/35)\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9a\94\ef\b8\8f Rematar al Centinela\22,\22action\22:\22command\22,\22payload\22:\22/rpg action atacar al centinela\22,\22variant\22:\22danger\22},{\22label\22:\22\f0\9f\9b\a1\ef\b8\8f Bloqueo con Escudo\22,\22action\22:\22command\22,\22payload\22:\22/rpg action cubrirse con escudo\22,\22variant\22:\22primary\22},{\22label\22:\22\f0\9f\93\8a Ver Ficha\22,\22action\22:\22command\22,\22payload\22:\22/rpg status\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22hp\22:120,\22maxHp\22:120,\22level\22:1,\22gold\22:50,\22turn\22:3}}") ;; payload_potion (2161 bytes)
-  (data (i32.const 151263) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22event\5c\22: \5c\22save_state\5c\22,\5cn  \5c\22storage_backend\5c\22: \5c\22database.sql (SQLite Relacional)\5c\22,\5cn  \5c\22table\5c\22: \5c\22plugin_rpg_campaigns\5c\22,\5cn  \5c\22campaign_id\5c\22: \5c\22eldoria_chronicles_slot_1\5c\22,\5cn  \5c\22turn\5c\22: 3,\5cn  \5c\22status\5c\22: \5c\22synchronized\5c\22\5cn}\5cn```\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\f0\9f\92\be **Punto de Control Fijado en la Memoria de Eldoria**\5cn\5cnTu progreso, estad\c3\adsticas, objetos reunidos y el estado de tu enemigo han sido salvaguardados en la base de datos relacional SQLite protegida de Chattree. Puedes cerrar la conversaci\c3\b3n o apagar tu terminal con la total seguridad de que la historia continuar\c3\a1 exactamente donde la dejaste.\22,\22ui\22:{\22title\22:\22Punto de Guardado Establecido\22,\22subtitle\22:\22Persistencia Privada SQLite\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22ESTADO SINCRONIZADO EN DISCO\22,\22variant\22:\22success\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Base de Datos\22,\22value\22:\22SQLite Aislado (database.sql)\22},{\22label\22:\22Campa\c3\b1a activa\22,\22value\22:\22Cr\c3\b3nicas de Eldoria (Cap\c3\adtulo 1)\22},{\22label\22:\22Ranura de guardado\22,\22value\22:\22Slot Principal (Turno 3)\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9a\94\ef\b8\8f Reanudar Aventura\22,\22action\22:\22command\22,\22payload\22:\22/rpg action atacar\22,\22variant\22:\22primary\22},{\22label\22:\22\f0\9f\93\8a Ficha del H\c3\a9roe\22,\22action\22:\22command\22,\22payload\22:\22/rpg status\22,\22variant\22:\22neutral\22},{\22label\22:\22\f0\9f\94\84 Reiniciar\22,\22action\22:\22command\22,\22payload\22:\22/rpg reset\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22saved\22:true}}") ;; payload_save (1502 bytes)
-  (data (i32.const 152781) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22event\5c\22: \5c\22load_state\5c\22,\5cn  \5c\22storage_backend\5c\22: \5c\22database.sql\5c\22,\5cn  \5c\22campaign_id\5c\22: \5c\22eldoria_chronicles_slot_1\5c\22,\5cn  \5c\22turn\5c\22: 3,\5cn  \5c\22status\5c\22: \5c\22loaded_successfully\5c\22\5cn}\5cn```\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\f0\9f\93\82 **Aventura Restaurada desde las Cr\c3\b3nicas**\5cn\5cnEl velo del tiempo retrocede. Vuelves a encontrarte en el h\c3\bamedo suelo de la cripta, frente al Centinela Espectral con tu acero alzado y tu salud \c3\adntegra.\22,\22ui\22:{\22title\22:\22Campa\c3\b1a Reanudada\22,\22subtitle\22:\22Cr\c3\b3nicas de Eldoria \e2\80\a2 Cap\c3\adtulo I\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22PARTIDA CARGADA DESDE SQLITE\22,\22variant\22:\22info\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Salud (HP): 120/120 (100%)\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Ubicaci\c3\b3n\22,\22value\22:\22Cripta de Eldoria \e2\80\94 Arco Sellado\22},{\22label\22:\22Objetivo\22,\22value\22:\22Vencer al Centinela y abrir la puerta\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9a\94\ef\b8\8f Atacar\22,\22action\22:\22command\22,\22payload\22:\22/rpg action atacar\22,\22variant\22:\22danger\22},{\22label\22:\22\f0\9f\93\8a Ver Ficha\22,\22action\22:\22command\22,\22payload\22:\22/rpg status\22,\22variant\22:\22neutral\22},{\22label\22:\22\f0\9f\94\84 Reiniciar\22,\22action\22:\22command\22,\22payload\22:\22/rpg reset\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22loaded\22:true}}") ;; payload_load (1283 bytes)
-  (data (i32.const 154080) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22action\5c\22: \5c\22reset_confirmation_requested\5c\22,\5cn  \5c\22warning\5c\22: \5c\22El jugador ha solicitado reiniciar la partida. Se requiere confirmaci\c3\b3n expl\c3\adcita para evitar p\c3\a9rdida accidental de datos.\5c\22,\5cn  \5c\22campaign\5c\22: \5c\22Cr\c3\b3nicas de Eldoria\5c\22,\5cn  \5c\22turn\5c\22: 3,\5cn  \5c\22status\5c\22: \5c\22awaiting_confirmation\5c\22\5cn}\5cn```\5cn> \f0\9f\93\9c **DIRECTIVA PARA EL NARRADOR IA:**\5cn> Explica al aventurero con gravedad y solemnidad que reiniciar la partida restablecer\c3\a1 la rueda del destino: se borrar\c3\a1 todo el progreso actual, los datos almacenados en la base de datos relacional SQLite y el inventario acumulado para comenzar una historia completamente fresca desde el Turno 1. Preg\c3\bantale con dramatismo si realmente desea confirmar el reinicio o si prefiere continuar con su gesta actual.\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\e2\9a\a0\ef\b8\8f **\c2\bfDeseas reiniciar toda la aventura de rol?**\5cn\5cnEsta acci\c3\b3n borrar\c3\a1 de forma permanente tu progreso actual, tus puntos de guardado en la base de datos relacional SQLite y tus objetos acumulados, devolviendo tu campa\c3\b1a al **Cap\c3\adtulo I (Turno 1)** con un nuevo inicio narrativo.\5cn\5cn*Para continuar, pulsa el bot\c3\b3n rojo **\5c\22S\c3\ad, Reiniciar Todo\5c\22** abajo o escribe **\5c\22confirmar reinicio\5c\22**.*\22,\22ui\22:{\22title\22:\22\e2\9a\a0\ef\b8\8f Confirmar Reinicio de Partida\22,\22subtitle\22:\22\c2\bfRestablecer la campa\c3\b1a desde el inicio?\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22ADVERTENCIA: ACCI\c3\93N DESTRUCTIVA\22,\22variant\22:\22warning\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Consecuencia\22,\22value\22:\22Restablece salud, man\c3\a1, inventario y misiones a cero\22},{\22label\22:\22Base de Datos\22,\22value\22:\22Borra los registros guardados en SQLite (database.sql)\22},{\22label\22:\22Nueva Campa\c3\b1a\22,\22value\22:\22Comenzar\c3\a1s con un nuevo pr\c3\b3logo procedural\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9c\85 S\c3\ad, Reiniciar Todo\22,\22action\22:\22command\22,\22payload\22:\22/rpg action confirmar_reinicio\22,\22variant\22:\22danger\22},{\22label\22:\22\e2\9d\8c Cancelar y Continuar\22,\22action\22:\22command\22,\22payload\22:\22/rpg status\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22awaiting_confirmation\22:true}}") ;; payload_reset_prompt (2099 bytes)
-  (data (i32.const 156195) "{\22type\22:\22card\22,\22displayText\22:\22<!-- [CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn```json\5cn{\5cn  \5c\22action\5c\22: \5c\22reset_confirmed_and_executed\5c\22,\5cn  \5c\22system\5c\22: \5c\22Chattree Narrative RPG Engine v1.2.0\5c\22,\5cn  \5c\22campaign\5c\22: \5c\22Cr\c3\b3nicas de Eldoria: Un Nuevo Destino\5c\22,\5cn  \5c\22turn\5c\22: 1,\5cn  \5c\22chapter\5c\22: 1,\5cn  \5c\22player\5c\22: \5c\22Aventurero Reencarnado\5c\22,\5cn  \5c\22class\5c\22: \5c\22Guerrero\5c\22,\5cn  \5c\22hp\5c\22: \5c\22120/120\5c\22,\5cn  \5c\22mp\5c\22: \5c\2230/30\5c\22,\5cn  \5c\22level\5c\22: 1,\5cn  \5c\22gold\5c\22: 50,\5cn  \5c\22database_sql\5c\22: \5c\22PURGED: DELETE FROM plugin_rpg_campaigns; VACUUM;\5c\22,\5cn  \5c\22status\5c\22: \5c\22fresh_start\5c\22\5cn}\5cn```\5cn### INVENTARIO RESTABLECIDO DE F\c3\81BRICA (CERO ALUCINACIONES):\5cn- Espada de Acero Templado x1 (+6 ATK)\5cn- Escudo de Roble con Refuerzos de Hierro x1 (+3 DEF)\5cn- Poci\c3\b3n Curativa de Alquimista x3 (+40 HP restaurados)\5cn- Antorcha de Brea x1 (duraci\c3\b3n: 20 turnos)\5cn- Monedero de Cuero: 50 Monedas de Oro\5cn\5cn> \f0\9f\93\9c **DIRECTIVA PARA EL NARRADOR IA:**\5cn> Narra el reinicio con una atm\c3\b3sfera po\c3\a9tica y m\c3\adstica de renacimiento: las sombras se disuelven, el tiempo retrocede en un torbellino et\c3\a9reo y el aventurero abre los ojos de nuevo en una cripta diferente con misterios renovados. \c2\a1Crea un inicio fresco, emocionante y lineal desde el Turno 1!\5cn<!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->\5cn\5cn\f0\9f\94\84 **Partida Reiniciada con \c3\89xito**\5cn\5cnTodos los registros de la base de datos SQLite y la memoria lineal del motor han sido purgados y restaurados a los valores iniciales. Las piedras de la cripta tiemblan y la historia vuelve a comenzar desde el principio.\5cn\5cn*Un nuevo destino te aguarda. \c2\bfCu\c3\a1l ser\c3\a1 tu primer movimiento?*\22,\22ui\22:{\22title\22:\22Aventura Reiniciada \e2\80\94 Cap\c3\adtulo I\22,\22subtitle\22:\22Cr\c3\b3nicas de Eldoria \e2\80\a2 Turno 1 (Nuevo Inicio)\22,\22elements\22:[{\22type\22:\22badge\22,\22text\22:\22PARTIDA Y BASE DE DATOS RESTABLECIDAS\22,\22variant\22:\22success\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Salud (HP): 120/120 (100%)\22},{\22type\22:\22progress\22,\22value\22:100,\22label\22:\22Man\c3\a1 (MP): 30/30 (100%)\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Estado\22,\22value\22:\22Turno 1 \e2\80\a2 Salud y Man\c3\a1 al 100%\22},{\22label\22:\22Base de Datos\22,\22value\22:\22Registros SQLite limpiados y reseteados\22},{\22label\22:\22Inventario\22,\22value\22:\22Equipo inicial y 3 Pociones restauradas\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22\e2\9a\94\ef\b8\8f Iniciar Combate\22,\22action\22:\22command\22,\22payload\22:\22/rpg action atacar al centinela\22,\22variant\22:\22danger\22},{\22label\22:\22\f0\9f\9b\a1\ef\b8\8f Postura Defensiva\22,\22action\22:\22command\22,\22payload\22:\22/rpg action cubrirse con escudo\22,\22variant\22:\22primary\22},{\22label\22:\22\f0\9f\93\8a Ficha del H\c3\a9roe\22,\22action\22:\22command\22,\22payload\22:\22/rpg status\22,\22variant\22:\22neutral\22}]}]},\22metadata\22:{\22hp\22:120,\22maxHp\22:120,\22level\22:1,\22gold\22:50,\22turn\22:1,\22reset\22:true}}") ;; payload_reset_confirmed (2627 bytes)
-  (data (i32.const 158838) "confirmar_reinicio") ;; needle_confirm_reset1 (18 bytes)
-  (data (i32.const 158872) "confirm_reset") ;; needle_confirm_reset2 (13 bytes)
-  (data (i32.const 158901) "confirmar") ;; needle_confirmar (9 bytes)
-  (data (i32.const 158926) "reiniciar") ;; needle_reset1 (9 bytes)
-  (data (i32.const 158951) "reset") ;; needle_reset2 (5 bytes)
-  (data (i32.const 158972) "start") ;; needle_start (5 bytes)
-  (data (i32.const 158993) "status") ;; needle_status (6 bytes)
-  (data (i32.const 159015) "ficha") ;; needle_ficha (5 bytes)
-  (data (i32.const 159036) "atacar") ;; needle_attack (6 bytes)
-  (data (i32.const 159058) "pocion") ;; needle_potion (6 bytes)
-  (data (i32.const 159080) "save") ;; needle_save (4 bytes)
-  (data (i32.const 159100) "load") ;; needle_load (4 bytes)
+  ;; Extract JSON integer value (or $default if missing)
+  (func $json_get_int (param $hay i32) (param $hlen i32) (param $key i32) (param $klen i32) (param $defval i32) (result i32)
+    (local $idx i32)
+    (local $start i32)
+    (local $b i32)
+    (local.set $idx (call $json_find_val (local.get $hay) (local.get $hlen) (local.get $key) (local.get $klen)))
+    (if (i32.lt_s (local.get $idx) (i32.const 0)) (then (return (local.get $defval))))
+    (if (i32.ge_u (local.get $idx) (local.get $hlen)) (then (return (local.get $defval))))
+    (local.set $start (local.get $idx))
+    (local.set $b (i32.load8_u (i32.add (local.get $hay) (local.get $idx))))
+    (if (i32.eq (local.get $b) (i32.const 45))
+      (then (local.set $idx (i32.add (local.get $idx) (i32.const 1))))
+    )
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $idx) (local.get $hlen)))
+        (local.set $b (i32.load8_u (i32.add (local.get $hay) (local.get $idx))))
+        (br_if $done (i32.lt_u (local.get $b) (i32.const 48)))
+        (br_if $done (i32.gt_u (local.get $b) (i32.const 57)))
+        (local.set $idx (i32.add (local.get $idx) (i32.const 1)))
+        (br $loop)
+      )
+    )
+    (if (i32.eq (local.get $idx) (local.get $start)) (then (return (local.get $defval))))
+    (call $parse_int (i32.add (local.get $hay) (local.get $start)) (i32.sub (local.get $idx) (local.get $start)))
+  )
+
+  ;; Extract JSON boolean value (1 if 'true', 0 otherwise)
+  (func $json_get_bool (param $hay i32) (param $hlen i32) (param $key i32) (param $klen i32) (result i32)
+    (local $idx i32)
+    (local.set $idx (call $json_find_val (local.get $hay) (local.get $hlen) (local.get $key) (local.get $klen)))
+    (if (i32.lt_s (local.get $idx) (i32.const 0)) (then (return (i32.const 0))))
+    (if (i32.ge_u (i32.add (local.get $idx) (i32.const 4)) (local.get $hlen)) (then (return (i32.const 0))))
+    (i32.eq (i32.load8_u (i32.add (local.get $hay) (local.get $idx))) (i32.const 116)) ;; 't'
+  )
+
+  ;; ============================================================================
+  ;; STORAGE.PRIVATE HOST API HELPERS
+  ;; ============================================================================
+  (func $get_slot_key_ptr (param $slot i32) (result i32)
+    (if (i32.eq (local.get $slot) (i32.const 2)) (then (return (i32.const 131102))))
+    (if (i32.eq (local.get $slot) (i32.const 3)) (then (return (i32.const 131114))))
+    (i32.const 131090)
+  )
+
+  ;; storage.get(key, klen) -> reads value into $TEMP_BUF, returns value length (0 if null/missing)
+  (func $storage_get (param $kptr i32) (param $klen i32) (result i32)
+    (local $saved_out i32)
+    (local $req_len i32)
+    (local $res_len i32)
+    (local.set $saved_out (global.get $out_pos))
+    (global.set $out_pos (global.get $HOST_REQ))
+    (call $out_bytes (i32.const 131130) (i32.const 53))
+    (call $out_bytes (local.get $kptr) (local.get $klen))
+    (call $out_bytes (i32.const 131190) (i32.const 3))
+    (local.set $req_len (i32.sub (global.get $out_pos) (global.get $HOST_REQ)))
+    (global.set $out_pos (local.get $saved_out))
+    (local.set $res_len (call $host_call (global.get $HOST_REQ) (local.get $req_len) (global.get $HOST_RES) (i32.const 8192)))
+    (if (i32.le_s (local.get $res_len) (i32.const 0)) (then (return (i32.const 0))))
+    (call $json_get_str (global.get $HOST_RES) (local.get $res_len) (i32.const 131465) (i32.const 5) (global.get $TEMP_BUF) (i32.const 4096))
+  )
+
+  ;; storage.set(key, klen, val, vlen)
+  (func $storage_set (param $kptr i32) (param $klen i32) (param $vptr i32) (param $vlen i32)
+    (local $saved_out i32)
+    (local $req_len i32)
+    (local.set $saved_out (global.get $out_pos))
+    (global.set $out_pos (global.get $HOST_REQ))
+    (call $out_bytes (i32.const 131200) (i32.const 53))
+    (call $out_bytes (local.get $kptr) (local.get $klen))
+    (call $out_bytes (i32.const 131260) (i32.const 11))
+    (call $out_json_str (local.get $vptr) (local.get $vlen))
+    (call $out_bytes (i32.const 131190) (i32.const 3))
+    (local.set $req_len (i32.sub (global.get $out_pos) (global.get $HOST_REQ)))
+    (global.set $out_pos (local.get $saved_out))
+    (drop (call $host_call (global.get $HOST_REQ) (local.get $req_len) (global.get $HOST_RES) (i32.const 1024)))
+  )
+
+  ;; ============================================================================
+  ;; SLOT SERIALIZATION & DESERIALIZATION
+  ;; ============================================================================
+  (func $reset_slot_state
+    (call $memcpy (global.get $STAGE_BUF) (i32.const 131625) (i32.const 5))
+    (global.set $stage_len (i32.const 5))
+    (global.set $class_len (i32.const 0))
+    (global.set $phase_len (i32.const 0))
+    (global.set $ch_t_len (i32.const 0))
+    (global.set $ch_p_len (i32.const 0))
+    (global.set $sum_len (i32.const 0))
+    (global.set $s1t_len (i32.const 0))
+    (global.set $s1p_len (i32.const 0))
+    (global.set $s2t_len (i32.const 0))
+    (global.set $s2p_len (i32.const 0))
+    (global.set $s3t_len (i32.const 0))
+    (global.set $s3p_len (i32.const 0))
+    (global.set $hp (i32.const 0))
+    (global.set $max_hp (i32.const 0))
+    (global.set $atk (i32.const 0))
+    (global.set $def (i32.const 0))
+    (global.set $turn (i32.const 0))
+    (global.set $tension (i32.const 0))
+  )
+
+  ;; Find key=val in $TEMP_BUF ($tlen), copy val into $dst (max $cap), return val len
+  (func $kv_get_str (param $tlen i32) (param $kptr i32) (param $klen i32) (param $dst i32) (param $cap i32) (result i32)
+    (local $i i32)
+    (local $line_start i32)
+    (local $line_end i32)
+    (local $vstart i32)
+    (local $vlen i32)
+    (local.set $i (i32.const 0))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $i) (local.get $tlen)))
+        (local.set $line_start (local.get $i))
+        (block $eol
+          (loop $scan
+            (br_if $eol (i32.ge_u (local.get $i) (local.get $tlen)))
+            (br_if $eol (i32.eq (i32.load8_u (i32.add (global.get $TEMP_BUF) (local.get $i))) (i32.const 124))) ;; '|'
+            (local.set $i (i32.add (local.get $i) (i32.const 1)))
+            (br $scan)
+          )
+        )
+        (local.set $line_end (local.get $i))
+        (if (call $starts_with
+              (i32.add (global.get $TEMP_BUF) (local.get $line_start))
+              (i32.sub (local.get $line_end) (local.get $line_start))
+              (local.get $kptr)
+              (local.get $klen)
+            )
+          (then
+            (local.set $vstart (i32.add (local.get $line_start) (local.get $klen)))
+            (local.set $vlen (i32.sub (local.get $line_end) (local.get $vstart)))
+            (if (i32.gt_u (local.get $vlen) (local.get $cap)) (then (local.set $vlen (local.get $cap))))
+            (call $memcpy (local.get $dst) (i32.add (global.get $TEMP_BUF) (local.get $vstart)) (local.get $vlen))
+            (return (local.get $vlen))
+          )
+        )
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
+      )
+    )
+    (i32.const 0)
+  )
+
+  (func $kv_get_int (param $tlen i32) (param $kptr i32) (param $klen i32) (result i32)
+    (local $len i32)
+    (local.set $len (call $kv_get_str (local.get $tlen) (local.get $kptr) (local.get $klen) (global.get $ROLL_TXT) (i32.const 24)))
+    (call $parse_int (global.get $ROLL_TXT) (local.get $len))
+  )
+
+  (func $load_slot (param $slot i32)
+    (local $tlen i32)
+    (call $reset_slot_state)
+    (local.set $tlen (call $storage_get (call $get_slot_key_ptr (local.get $slot)) (i32.const 10)))
+    (if (i32.eqz (local.get $tlen)) (then (return)))
+    (global.set $stage_len (call $kv_get_str (local.get $tlen) (i32.const 131770) (i32.const 6) (global.get $STAGE_BUF) (i32.const 32)))
+    (if (i32.eqz (global.get $stage_len))
+      (then
+        (call $memcpy (global.get $STAGE_BUF) (i32.const 131625) (i32.const 5))
+        (global.set $stage_len (i32.const 5))
+      )
+    )
+    (global.set $ch_t_len (call $kv_get_str (local.get $tlen) (i32.const 131778) (i32.const 6) (global.get $CH_T) (i32.const 120)))
+    (global.set $ch_p_len (call $kv_get_str (local.get $tlen) (i32.const 131786) (i32.const 8) (global.get $CH_P) (i32.const 240)))
+    (global.set $class_len (call $kv_get_str (local.get $tlen) (i32.const 131796) (i32.const 6) (global.get $CLASS_BUF) (i32.const 32)))
+    (global.set $hp (call $kv_get_int (local.get $tlen) (i32.const 131804) (i32.const 3)))
+    (global.set $max_hp (call $kv_get_int (local.get $tlen) (i32.const 131810) (i32.const 7)))
+    (global.set $atk (call $kv_get_int (local.get $tlen) (i32.const 131820) (i32.const 4)))
+    (global.set $def (call $kv_get_int (local.get $tlen) (i32.const 131826) (i32.const 4)))
+    (global.set $turn (call $kv_get_int (local.get $tlen) (i32.const 131832) (i32.const 5)))
+    (global.set $tension (call $kv_get_int (local.get $tlen) (i32.const 131840) (i32.const 8)))
+    (global.set $phase_len (call $kv_get_str (local.get $tlen) (i32.const 131850) (i32.const 6) (global.get $PHASE_BUF) (i32.const 32)))
+    (global.set $sum_len (call $kv_get_str (local.get $tlen) (i32.const 131858) (i32.const 8) (global.get $SUMMARY) (i32.const 450)))
+    (global.set $s1t_len (call $kv_get_str (local.get $tlen) (i32.const 131868) (i32.const 4) (global.get $S1_T) (i32.const 120)))
+    (global.set $s1p_len (call $kv_get_str (local.get $tlen) (i32.const 131874) (i32.const 4) (global.get $S1_P) (i32.const 240)))
+    (global.set $s2t_len (call $kv_get_str (local.get $tlen) (i32.const 131880) (i32.const 4) (global.get $S2_T) (i32.const 120)))
+    (global.set $s2p_len (call $kv_get_str (local.get $tlen) (i32.const 131886) (i32.const 4) (global.get $S2_P) (i32.const 240)))
+    (global.set $s3t_len (call $kv_get_str (local.get $tlen) (i32.const 131892) (i32.const 4) (global.get $S3_T) (i32.const 120)))
+    (global.set $s3p_len (call $kv_get_str (local.get $tlen) (i32.const 131898) (i32.const 4) (global.get $S3_P) (i32.const 240)))
+  )
+
+  ;; Write sanitized bytes (replace '|' with '/') to output buffer
+  (func $out_pipe_safe (param $ptr i32) (param $len i32)
+    (local $i i32)
+    (local $b i32)
+    (local.set $i (i32.const 0))
+    (block $done
+      (loop $loop
+        (br_if $done (i32.ge_u (local.get $i) (local.get $len)))
+        (local.set $b (i32.load8_u (i32.add (local.get $ptr) (local.get $i))))
+        (if (i32.eq (local.get $b) (i32.const 124)) (then (local.set $b (i32.const 47))))
+        (i32.store8 (global.get $out_pos) (local.get $b))
+        (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $loop)
+      )
+    )
+  )
+
+  (func $out_kv_str (param $kptr i32) (param $klen i32) (param $vptr i32) (param $vlen i32)
+    (call $out_bytes (local.get $kptr) (local.get $klen))
+    (call $out_pipe_safe (local.get $vptr) (local.get $vlen))
+    (i32.store8 (global.get $out_pos) (i32.const 124))
+    (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+  )
+
+  (func $out_kv_int (param $kptr i32) (param $klen i32) (param $val i32)
+    (call $out_bytes (local.get $kptr) (local.get $klen))
+    (call $out_int (local.get $val))
+    (i32.store8 (global.get $out_pos) (i32.const 124))
+    (global.set $out_pos (i32.add (global.get $out_pos) (i32.const 1)))
+  )
+
+  (func $save_slot (param $slot i32)
+    (local $saved_out i32)
+    (local $slen i32)
+    (local.set $saved_out (global.get $out_pos))
+    (global.set $out_pos (global.get $SLOT_BUF))
+    (call $out_kv_str (i32.const 131770) (i32.const 6) (global.get $STAGE_BUF) (global.get $stage_len))
+    (call $out_kv_str (i32.const 131778) (i32.const 6) (global.get $CH_T) (global.get $ch_t_len))
+    (call $out_kv_str (i32.const 131786) (i32.const 8) (global.get $CH_P) (global.get $ch_p_len))
+    (call $out_kv_str (i32.const 131796) (i32.const 6) (global.get $CLASS_BUF) (global.get $class_len))
+    (call $out_kv_int (i32.const 131804) (i32.const 3) (global.get $hp))
+    (call $out_kv_int (i32.const 131810) (i32.const 7) (global.get $max_hp))
+    (call $out_kv_int (i32.const 131820) (i32.const 4) (global.get $atk))
+    (call $out_kv_int (i32.const 131826) (i32.const 4) (global.get $def))
+    (call $out_kv_int (i32.const 131832) (i32.const 5) (global.get $turn))
+    (call $out_kv_int (i32.const 131840) (i32.const 8) (global.get $tension))
+    (call $out_kv_str (i32.const 131850) (i32.const 6) (global.get $PHASE_BUF) (global.get $phase_len))
+    (call $out_kv_str (i32.const 131858) (i32.const 8) (global.get $SUMMARY) (global.get $sum_len))
+    (call $out_kv_str (i32.const 131868) (i32.const 4) (global.get $S1_T) (global.get $s1t_len))
+    (call $out_kv_str (i32.const 131874) (i32.const 4) (global.get $S1_P) (global.get $s1p_len))
+    (call $out_kv_str (i32.const 131880) (i32.const 4) (global.get $S2_T) (global.get $s2t_len))
+    (call $out_kv_str (i32.const 131886) (i32.const 4) (global.get $S2_P) (global.get $s2p_len))
+    (call $out_kv_str (i32.const 131892) (i32.const 4) (global.get $S3_T) (global.get $s3t_len))
+    (call $out_kv_str (i32.const 131898) (i32.const 4) (global.get $S3_P) (global.get $s3p_len))
+    (local.set $slen (i32.sub (global.get $out_pos) (global.get $SLOT_BUF)))
+    (global.set $out_pos (local.get $saved_out))
+    (call $storage_set (call $get_slot_key_ptr (local.get $slot)) (i32.const 10) (global.get $SLOT_BUF) (local.get $slen))
+  )
+
+  (func $load_active_slot
+    (local $len i32)
+    (local $s i32)
+    (local.set $len (call $storage_get (i32.const 131072) (i32.const 15)))
+    (if (i32.eqz (local.get $len))
+      (then (global.set $active_slot (i32.const 1)))
+      (else
+        (local.set $s (call $parse_int (global.get $TEMP_BUF) (local.get $len)))
+        (if (i32.or (i32.lt_s (local.get $s) (i32.const 1)) (i32.gt_s (local.get $s) (i32.const 3)))
+          (then (local.set $s (i32.const 1)))
+        )
+        (global.set $active_slot (local.get $s))
+      )
+    )
+  )
+
+  (func $save_active_slot (param $slot i32)
+    (local $saved_out i32)
+    (global.set $active_slot (local.get $slot))
+    (local.set $saved_out (global.get $out_pos))
+    (global.set $out_pos (global.get $TEMP_BUF))
+    (call $out_int (local.get $slot))
+    (global.set $out_pos (local.get $saved_out))
+    (call $storage_set (i32.const 131072) (i32.const 15) (global.get $TEMP_BUF) (i32.const 1))
+  )
+
+  ;; ============================================================================
+  ;; COMMAND & INPUT PARSING
+  ;; ============================================================================
+  (func $parse_input (param $in_ptr i32) (param $len i32)
+    (local $i i32)
+    (local $sub_start i32)
+    (local $sub_len i32)
+    (local $arg_start i32)
+    (local $arg_len i32)
+
+    (global.set $in_len (local.get $len))
+    (global.set $act_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131280) (i32.const 6) (global.get $ACT_BUF) (i32.const 60)))
+    (global.set $cmd_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131290) (i32.const 7) (global.get $CMD_RAW) (i32.const 250)))
+    (global.set $qry_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131300) (i32.const 5) (global.get $QRY_BUF) (i32.const 250)))
+    (global.set $int_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131310) (i32.const 6) (global.get $INTENT) (i32.const 250)))
+    (global.set $note_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131320) (i32.const 12) (global.get $NOTE) (i32.const 250)))
+    (global.set $outc_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131448) (i32.const 14) (global.get $OUTCOME_BUF) (i32.const 32)))
+    (global.set $in_tdelta (call $json_get_int (local.get $in_ptr) (local.get $len) (i32.const 131405) (i32.const 13) (i32.const 10)))
+    (global.set $in_dc (call $json_get_int (local.get $in_ptr) (local.get $len) (i32.const 131420) (i32.const 2) (i32.const 12)))
+    (global.set $in_roll (call $json_get_bool (local.get $in_ptr) (local.get $len) (i32.const 131425) (i32.const 11)))
+    (global.set $in_rest (call $json_get_bool (local.get $in_ptr) (local.get $len) (i32.const 131440) (i32.const 4)))
+
+    ;; If action was empty and command is present, parse command string (e.g. "/rpg help")
+    (if (i32.and (i32.eqz (global.get $act_len)) (i32.gt_u (global.get $cmd_len) (i32.const 0)))
+      (then
+        (local.set $i (i32.const 0))
+        ;; If starts with '/', skip first token (/rpg)
+        (if (i32.eq (i32.load8_u (global.get $CMD_RAW)) (i32.const 47))
+          (then
+            (block $tok_done
+              (loop $tok
+                (br_if $tok_done (i32.ge_u (local.get $i) (global.get $cmd_len)))
+                (br_if $tok_done (i32.eq (i32.load8_u (i32.add (global.get $CMD_RAW) (local.get $i))) (i32.const 32)))
+                (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                (br $tok)
+              )
+            )
+          )
+        )
+        ;; Skip spaces
+        (block $sp1_done
+          (loop $sp1
+            (br_if $sp1_done (i32.ge_u (local.get $i) (global.get $cmd_len)))
+            (br_if $sp1_done (i32.ne (i32.load8_u (i32.add (global.get $CMD_RAW) (local.get $i))) (i32.const 32)))
+            (local.set $i (i32.add (local.get $i) (i32.const 1)))
+            (br $sp1)
+          )
+        )
+        (if (i32.ge_u (local.get $i) (global.get $cmd_len))
+          (then
+            ;; Bare /rpg: if query or intent is non-empty, treat as action; else "start"
+            (if (i32.or (i32.gt_u (global.get $qry_len) (i32.const 0)) (i32.gt_u (global.get $int_len) (i32.const 0)))
+              (then
+                (call $memcpy (global.get $ACT_BUF) (i32.const 131280) (i32.const 6)) ;; "action"
+                (global.set $act_len (i32.const 6))
+                (if (i32.eqz (global.get $int_len))
+                  (then
+                    (call $memcpy (global.get $INTENT) (global.get $QRY_BUF) (global.get $qry_len))
+                    (global.set $int_len (global.get $qry_len))
+                  )
+                )
+              )
+              (else
+                (call $memcpy (global.get $ACT_BUF) (i32.const 131480) (i32.const 5)) ;; "start"
+                (global.set $act_len (i32.const 5))
+              )
+            )
+          )
+          (else
+            (local.set $sub_start (local.get $i))
+            (block $sub_done
+              (loop $sub
+                (br_if $sub_done (i32.ge_u (local.get $i) (global.get $cmd_len)))
+                (br_if $sub_done (i32.eq (i32.load8_u (i32.add (global.get $CMD_RAW) (local.get $i))) (i32.const 32)))
+                (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                (br $sub)
+              )
+            )
+            (local.set $sub_len (i32.sub (local.get $i) (local.get $sub_start)))
+            (if (i32.gt_u (local.get $sub_len) (i32.const 60)) (then (local.set $sub_len (i32.const 60))))
+            (call $memcpy (global.get $ACT_BUF) (i32.add (global.get $CMD_RAW) (local.get $sub_start)) (local.get $sub_len))
+            (global.set $act_len (local.get $sub_len))
+
+            ;; Skip spaces before argument
+            (block $sp2_done
+              (loop $sp2
+                (br_if $sp2_done (i32.ge_u (local.get $i) (global.get $cmd_len)))
+                (br_if $sp2_done (i32.ne (i32.load8_u (i32.add (global.get $CMD_RAW) (local.get $i))) (i32.const 32)))
+                (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                (br $sp2)
+              )
+            )
+            (if (i32.lt_u (local.get $i) (global.get $cmd_len))
+              (then
+                (local.set $arg_start (local.get $i))
+                (local.set $arg_len (i32.sub (global.get $cmd_len) (local.get $arg_start)))
+                (if (i32.eqz (global.get $qry_len))
+                  (then
+                    (call $memcpy (global.get $QRY_BUF) (i32.add (global.get $CMD_RAW) (local.get $arg_start)) (local.get $arg_len))
+                    (global.set $qry_len (local.get $arg_len))
+                  )
+                )
+                (if (i32.eqz (global.get $int_len))
+                  (then
+                    (call $memcpy (global.get $INTENT) (i32.add (global.get $CMD_RAW) (local.get $arg_start)) (local.get $arg_len))
+                    (global.set $int_len (local.get $arg_len))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+    ;; Default if still empty -> "start"
+    (if (i32.eqz (global.get $act_len))
+      (then
+        (call $memcpy (global.get $ACT_BUF) (i32.const 131480) (i32.const 5))
+        (global.set $act_len (i32.const 5))
+      )
+    )
+  )
+
+  ;; ============================================================================
+  ;; UI RENDERERS
+  ;; ============================================================================
+  (func $emit_help
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 132000))
+  )
+
+  (func $emit_rpg_system_new
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 133000))
+  )
+
+  (func $emit_choose_story_ui
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 134000)) ;; header
+    (call $out_json_str (global.get $S1_T) (global.get $s1t_len))
+    (call $out_cstr (i32.const 134400)) ;; s1 mid
+    (call $out_json_str (global.get $S1_P) (global.get $s1p_len))
+    (call $out_cstr (i32.const 134450)) ;; s2 head
+    (call $out_json_str (global.get $S2_T) (global.get $s2t_len))
+    (call $out_cstr (i32.const 134400)) ;; s2 mid
+    (call $out_json_str (global.get $S2_P) (global.get $s2p_len))
+    (call $out_cstr (i32.const 134500)) ;; s3 head
+    (call $out_json_str (global.get $S3_T) (global.get $s3t_len))
+    (call $out_cstr (i32.const 134400)) ;; s3 mid
+    (call $out_json_str (global.get $S3_P) (global.get $s3p_len))
+    (call $out_cstr (i32.const 134550)) ;; buttons footer
+  )
+
+  (data (i32.const 134000) "{\22type\22:\22ui\22,\22displayText\22:\22Choose Your Story\22,\22ui\22:{\22title\22:\22Choose Your Story\22,\22subtitle\22:\22Select an opening premise\22,\22badge\22:\22STORY\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\221. \00")
+  (data (i32.const 134400) "\22,\22value\22:\22\00")
+  (data (i32.const 134450) "\22},{\22label\22:\222. \00")
+  (data (i32.const 134500) "\22},{\22label\22:\223. \00")
+  (data (i32.const 134550) "\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Story 1\22,\22action\22:\22command\22,\22payload\22:\22/rpg pick_story 1\22,\22style\22:\22primary\22},{\22label\22:\22Story 2\22,\22action\22:\22command\22,\22payload\22:\22/rpg pick_story 2\22,\22style\22:\22secondary\22},{\22label\22:\22Story 3\22,\22action\22:\22command\22,\22payload\22:\22/rpg pick_story 3\22,\22style\22:\22secondary\22}]}]}}\00")
+
+  (func $emit_select_class_ui
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 135000))
+    (call $out_json_str (global.get $CH_T) (global.get $ch_t_len))
+    (call $out_cstr (i32.const 135200))
+  )
+
+  (data (i32.const 135000) "{\22type\22:\22ui\22,\22displayText\22:\22Select Your Character\22,\22ui\22:{\22title\22:\22Select Your Character\22,\22subtitle\22:\22\00")
+  (data (i32.const 135200) "\22,\22badge\22:\22CLASS\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22text\22,\22text\22:\22KNIGHT\\n  [=+=]\\n  /|#|\\\\  HP 120 | ATK 12 | DEF 14\\n   / \\\\   Vanguard Tank & Shield\22},{\22type\22:\22divider\22},{\22type\22:\22text\22,\22text\22:\22ARCHER\\n   /|\\\\\\n  >>-+-> HP 95  | ATK 15 | DEF 11\\n   / \\\\   Precision Scout & Crit\22},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Choose Knight\22,\22action\22:\22command\22,\22payload\22:\22/rpg select_class knight\22,\22style\22:\22primary\22},{\22label\22:\22Choose Archer\22,\22action\22:\22command\22,\22payload\22:\22/rpg select_class archer\22,\22style\22:\22secondary\22}]}]}}\00")
+
+  (func $emit_rpg_state (param $roll i32) (param $roll_ok i32)
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 141000)) ;; {"type":"text","displayText":"[RPG_STATE]\nSlot:
+    (call $out_int (global.get $active_slot))
+    (call $out_cstr (i32.const 141060)) ;; \nStory:
+    (call $out_json_str (global.get $CH_T) (global.get $ch_t_len))
+    (call $out_cstr (i32.const 141080)) ;; \nPremise:
+    (call $out_json_str (global.get $CH_P) (global.get $ch_p_len))
+    (call $out_cstr (i32.const 141100)) ;; \nClass:
+    (call $out_json_str (global.get $CLASS_BUF) (global.get $class_len))
+    (call $out_cstr (i32.const 141120)) ;; \nHP:
+    (call $out_int (global.get $hp))
+    (call $out_cstr (i32.const 141135)) ;; /
+    (call $out_int (global.get $max_hp))
+    (call $out_cstr (i32.const 141145)) ;;  | ATK:
+    (call $out_int (global.get $atk))
+    (call $out_cstr (i32.const 141160)) ;;  | DEF:
+    (call $out_int (global.get $def))
+    (call $out_cstr (i32.const 141175)) ;; \nTurn:
+    (call $out_int (global.get $turn))
+    (call $out_cstr (i32.const 141190)) ;;  | Tension:
+    (call $out_int (global.get $tension))
+    (call $out_cstr (i32.const 141210)) ;; /100 | Phase:
+    (call $out_json_str (global.get $PHASE_BUF) (global.get $phase_len))
+    (if (i32.gt_s (local.get $roll) (i32.const 0))
+      (then
+        (call $out_cstr (i32.const 141230)) ;; \nRoll_d20:
+        (call $out_int (local.get $roll))
+        (call $out_cstr (i32.const 141250)) ;;  vs DC
+        (call $out_int (global.get $in_dc))
+        (if (local.get $roll_ok)
+          (then (call $out_cstr (i32.const 141265))) ;;  (SUCCESS)
+          (else (call $out_cstr (i32.const 141285))) ;;  (FAIL)
+        )
+      )
+    )
+    (if (i32.gt_u (global.get $int_len) (i32.const 0))
+      (then
+        (call $out_cstr (i32.const 141300)) ;; \nPlayer_Intent:
+        (call $out_json_str (global.get $INTENT) (global.get $int_len))
+      )
+    )
+    (call $out_cstr (i32.const 141330)) ;; \nSummary:
+    (call $out_json_str (global.get $SUMMARY) (global.get $sum_len))
+    (call $out_cstr (i32.const 141350)) ;; directive footer + "}
+  )
+
+  (data (i32.const 141000) "{\22type\22:\22text\22,\22displayText\22:\22[RPG_STATE]\\nSlot: \00")
+  (data (i32.const 141060) "\\nStory: \00")
+  (data (i32.const 141080) "\\nPremise: \00")
+  (data (i32.const 141100) "\\nClass: \00")
+  (data (i32.const 141120) "\\nHP: \00")
+  (data (i32.const 141135) "/\00")
+  (data (i32.const 141145) " | ATK: \00")
+  (data (i32.const 141160) " | DEF: \00")
+  (data (i32.const 141175) "\\nTurn: \00")
+  (data (i32.const 141190) " | Tension: \00")
+  (data (i32.const 141210) "/100 | Phase: \00")
+  (data (i32.const 141230) "\\nRoll_d20: \00")
+  (data (i32.const 141250) " vs DC \00")
+  (data (i32.const 141265) " (SUCCESS)\00")
+  (data (i32.const 141285) " (FAIL)\00")
+  (data (i32.const 141300) "\\nPlayer_Intent: \00")
+  (data (i32.const 141330) "\\nSummary: \00")
+  (data (i32.const 141350) "\\n\\n[DM_DIRECTIVES]\\n- Narrate like a skilled D&D Dungeon Master with atmospheric sensory details and clear momentum.\\n- Do NOT end with a generic 'What do you do?'; instead weave natural hooks, NPC reactions, or immediate stakes.\\n- Respect Phase, Roll_d20, Tension, and HP strictly.\\n- When calling action='action' next turn, always pass a concise 1-sentence summary_note and tension_delta.\\n[/RPG_STATE]\22}\00")
+
+  (func $emit_status_ui
+    (local $hp_pct i32)
+    (local.set $hp_pct (i32.const 0))
+    (if (i32.gt_s (global.get $max_hp) (i32.const 0))
+      (then (local.set $hp_pct (i32.div_s (i32.mul (global.get $hp) (i32.const 100)) (global.get $max_hp))))
+    )
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 136100))
+    (call $out_json_str (global.get $CH_T) (global.get $ch_t_len))
+    (call $out_cstr (i32.const 136220)) ;; subtitle mid
+    (call $out_int (global.get $active_slot))
+    (call $out_cstr (i32.const 136240)) ;; Turn
+    (call $out_int (global.get $turn))
+    (call $out_cstr (i32.const 136260)) ;; badge
+    (call $out_json_str (global.get $PHASE_BUF) (global.get $phase_len))
+    (call $out_cstr (i32.const 136300)) ;; hp progress
+    (call $out_int (local.get $hp_pct))
+    (call $out_cstr (i32.const 136420)) ;; hp label
+    (call $out_int (global.get $hp))
+    (call $out_cstr (i32.const 141135)) ;; /
+    (call $out_int (global.get $max_hp))
+    (call $out_cstr (i32.const 136460)) ;; tension progress
+    (call $out_int (global.get $tension))
+    (call $out_cstr (i32.const 136520)) ;; tension label
+    (call $out_int (global.get $tension))
+    (call $out_cstr (i32.const 136560)) ;; kv class
+    (call $out_json_str (global.get $CLASS_BUF) (global.get $class_len))
+    (call $out_cstr (i32.const 136650)) ;; atk/def
+    (call $out_int (global.get $atk))
+    (call $out_cstr (i32.const 136700))
+    (call $out_int (global.get $def))
+    (call $out_cstr (i32.const 136740)) ;; summary
+    (call $out_json_str (global.get $SUMMARY) (global.get $sum_len))
+    (call $out_cstr (i32.const 136800)) ;; buttons footer
+  )
+
+  (data (i32.const 136100) "{\22type\22:\22ui\22,\22displayText\22:\22Campaign Status\22,\22ui\22:{\22title\22:\22\00")
+  (data (i32.const 136220) "\22,\22subtitle\22:\22Slot \00")
+  (data (i32.const 136240) " \e2\80\a2 Turn \00")
+  (data (i32.const 136260) "\22,\22badge\22:\22\00")
+  (data (i32.const 136300) "\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22progress\22,\22value\22:\00")
+  (data (i32.const 136420) ",\22label\22:\22HP: \00")
+  (data (i32.const 136460) "\22},{\22type\22:\22progress\22,\22value\22:\00")
+  (data (i32.const 136520) ",\22label\22:\22Tension: \00")
+  (data (i32.const 136560) "/100\22},{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Class\22,\22value\22:\22\00")
+  (data (i32.const 136650) "\22},{\22label\22:\22Stats\22,\22value\22:\22ATK \00")
+  (data (i32.const 136700) " | DEF \00")
+  (data (i32.const 136740) "\22},{\22label\22:\22Summary\22,\22value\22:\22\00")
+  (data (i32.const 136800) "\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Campaign Slots\22,\22action\22:\22command\22,\22payload\22:\22/rpg games\22,\22style\22:\22secondary\22},{\22label\22:\22New Story\22,\22action\22:\22command\22,\22payload\22:\22/rpg new\22,\22style\22:\22secondary\22},{\22label\22:\22Delete Slot\22,\22action\22:\22command\22,\22payload\22:\22/rpg delete\22,\22style\22:\22danger\22}]}]}}\00")
+
+  ;; Emit a single slot summary value inside /rpg games
+  (func $out_slot_preview (param $slot i32)
+    (call $load_slot (local.get $slot))
+    (if (i32.eq (local.get $slot) (global.get $active_slot))
+      (then (call $out_cstr (i32.const 137850))) ;; [ACTIVE] 
+    )
+    (if (i32.eqz (global.get $ch_t_len))
+      (then (call $out_cstr (i32.const 137870))) ;; Empty slot
+      (else
+        (call $out_json_str (global.get $CH_T) (global.get $ch_t_len))
+        (if (i32.gt_u (global.get $class_len) (i32.const 0))
+          (then
+            (call $out_cstr (i32.const 137890)) ;;  (
+            (call $out_json_str (global.get $CLASS_BUF) (global.get $class_len))
+            (call $out_cstr (i32.const 137900)) ;; , Turn 
+            (call $out_int (global.get $turn))
+            (call $out_cstr (i32.const 137920)) ;; )
+          )
+        )
+      )
+    )
+  )
+
+  (func $emit_games_ui
+    (local $saved_active i32)
+    (local.set $saved_active (global.get $active_slot))
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 137500)) ;; header + Slot 1
+    (call $out_slot_preview (i32.const 1))
+    (call $out_cstr (i32.const 137780)) ;; Slot 2
+    (call $out_slot_preview (i32.const 2))
+    (call $out_cstr (i32.const 137815)) ;; Slot 3
+    (call $out_slot_preview (i32.const 3))
+    (call $out_cstr (i32.const 137940)) ;; buttons footer
+    (call $load_slot (local.get $saved_active))
+  )
+
+  (data (i32.const 137500) "{\22type\22:\22ui\22,\22displayText\22:\22Saved Campaigns\22,\22ui\22:{\22title\22:\22Saved Campaigns\22,\22subtitle\22:\223 Persistent Slots\22,\22badge\22:\22SAVES\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22key_value\22,\22items\22:[{\22label\22:\22Slot 1\22,\22value\22:\22\00")
+  (data (i32.const 137780) "\22},{\22label\22:\22Slot 2\22,\22value\22:\22\00")
+  (data (i32.const 137815) "\22},{\22label\22:\22Slot 3\22,\22value\22:\22\00")
+  (data (i32.const 137850) "[ACTIVE] \00")
+  (data (i32.const 137870) "Empty slot\00")
+  (data (i32.const 137890) " (\00")
+  (data (i32.const 137900) ", Turn \00")
+  (data (i32.const 137920) ")\00")
+  (data (i32.const 137940) "\22}]},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Slot 1\22,\22action\22:\22command\22,\22payload\22:\22/rpg switch 1\22,\22style\22:\22secondary\22},{\22label\22:\22Slot 2\22,\22action\22:\22command\22,\22payload\22:\22/rpg switch 2\22,\22style\22:\22secondary\22},{\22label\22:\22Slot 3\22,\22action\22:\22command\22,\22payload\22:\22/rpg switch 3\22,\22style\22:\22secondary\22}]},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22New Story\22,\22action\22:\22command\22,\22payload\22:\22/rpg new\22,\22style\22:\22primary\22},{\22label\22:\22Delete Active\22,\22action\22:\22command\22,\22payload\22:\22/rpg delete\22,\22style\22:\22danger\22}]}]}}\00")
+
+  (func $emit_switch_ui
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 138600))
+    (call $out_int (global.get $active_slot))
+    (call $out_cstr (i32.const 138720))
+  )
+
+  (data (i32.const 138600) "{\22type\22:\22ui\22,\22displayText\22:\22Slot Switched\22,\22ui\22:{\22title\22:\22Active Slot Switched\22,\22subtitle\22:\22Now using Slot \00")
+  (data (i32.const 138720) "\22,\22badge\22:\22SAVES\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Continue / Start\22,\22action\22:\22command\22,\22payload\22:\22/rpg\22,\22style\22:\22primary\22},{\22label\22:\22All Slots\22,\22action\22:\22command\22,\22payload\22:\22/rpg games\22,\22style\22:\22secondary\22}]}]}}\00")
+
+  (func $emit_delete_confirm_ui
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 139100))
+    (call $out_int (global.get $active_slot))
+    (call $out_cstr (i32.const 139220))
+  )
+
+  (data (i32.const 139100) "{\22type\22:\22ui\22,\22displayText\22:\22Confirm Delete\22,\22ui\22:{\22title\22:\22Delete Campaign Slot?\22,\22subtitle\22:\22Active Slot \00")
+  (data (i32.const 139220) " will be permanently cleared\22,\22badge\22:\22WARNING\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22text\22,\22text\22:\22This action removes your character, story, and summary from the active slot.\22},{\22type\22:\22divider\22},{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22Confirm Delete\22,\22action\22:\22command\22,\22payload\22:\22/rpg confirm_delete\22,\22style\22:\22danger\22},{\22label\22:\22Cancel\22,\22action\22:\22command\22,\22payload\22:\22/rpg status\22,\22style\22:\22secondary\22}]}]}}\00")
+
+  (func $emit_deleted_ui
+    (global.set $out_pos (global.get $OUT_BASE))
+    (call $out_cstr (i32.const 139900))
+    (call $out_int (global.get $active_slot))
+    (call $out_cstr (i32.const 140020))
+  )
+
+  (data (i32.const 139900) "{\22type\22:\22ui\22,\22displayText\22:\22Slot Cleared\22,\22ui\22:{\22title\22:\22Campaign Slot Cleared\22,\22subtitle\22:\22Slot \00")
+  (data (i32.const 140020) " is now empty\22,\22badge\22:\22RESET\22,\22badgeColor\22:\22grey\22,\22hideText\22:true,\22elements\22:[{\22type\22:\22button_row\22,\22buttons\22:[{\22label\22:\22New Adventure\22,\22action\22:\22command\22,\22payload\22:\22/rpg new\22,\22style\22:\22primary\22},{\22label\22:\22All Slots\22,\22action\22:\22command\22,\22payload\22:\22/rpg games\22,\22style\22:\22secondary\22}]}]}}\00")
+
+  ;; ============================================================================
+  ;; SUMMARY APPEND HELPER (keeps <= 450 chars)
+  ;; ============================================================================
+  (func $append_summary (param $nptr i32) (param $nlen i32)
+    (local $new_len i32)
+    (local $drop i32)
+    (if (i32.eqz (local.get $nlen)) (then (return)))
+    (if (i32.gt_u (local.get $nlen) (i32.const 220)) (then (local.set $nlen (i32.const 220))))
+    (if (i32.gt_u (global.get $sum_len) (i32.const 0))
+      (then
+        ;; Append ' ' before new note
+        (local.set $new_len (i32.add (global.get $sum_len) (i32.add (local.get $nlen) (i32.const 1))))
+        (if (i32.gt_u (local.get $new_len) (i32.const 450))
+          (then
+            (local.set $drop (i32.sub (local.get $new_len) (i32.const 450)))
+            (if (i32.ge_u (local.get $drop) (global.get $sum_len))
+              (then (global.set $sum_len (i32.const 0)))
+              (else
+                (call $memcpy
+                  (global.get $SUMMARY)
+                  (i32.add (global.get $SUMMARY) (local.get $drop))
+                  (i32.sub (global.get $sum_len) (local.get $drop))
+                )
+                (global.set $sum_len (i32.sub (global.get $sum_len) (local.get $drop)))
+              )
+            )
+          )
+        )
+        (if (i32.gt_u (global.get $sum_len) (i32.const 0))
+          (then
+            (i32.store8 (i32.add (global.get $SUMMARY) (global.get $sum_len)) (i32.const 32))
+            (global.set $sum_len (i32.add (global.get $sum_len) (i32.const 1)))
+          )
+        )
+      )
+    )
+    (call $memcpy (i32.add (global.get $SUMMARY) (global.get $sum_len)) (local.get $nptr) (local.get $nlen))
+    (global.set $sum_len (i32.add (global.get $sum_len) (local.get $nlen)))
+  )
+
+  ;; ============================================================================
+  ;; ACTION HANDLERS
+  ;; ============================================================================
+  (func $handle_new (param $in_ptr i32) (param $len i32)
+    (local $t1 i32)
+    (local.set $t1 (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131335) (i32.const 8) (global.get $S1_T) (i32.const 120)))
+    (if (i32.eqz (local.get $t1))
+      (then
+        (call $emit_rpg_system_new)
+        (return)
+      )
+    )
+    (call $reset_slot_state)
+    (global.set $s1t_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131335) (i32.const 8) (global.get $S1_T) (i32.const 120)))
+    (global.set $s1p_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131345) (i32.const 10) (global.get $S1_P) (i32.const 240)))
+    (global.set $s2t_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131358) (i32.const 8) (global.get $S2_T) (i32.const 120)))
+    (global.set $s2p_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131368) (i32.const 10) (global.get $S2_P) (i32.const 240)))
+    (global.set $s3t_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131380) (i32.const 8) (global.get $S3_T) (i32.const 120)))
+    (global.set $s3p_len (call $json_get_str (local.get $in_ptr) (local.get $len) (i32.const 131390) (i32.const 10) (global.get $S3_P) (i32.const 240)))
+    (call $memcpy (global.get $STAGE_BUF) (i32.const 131632) (i32.const 10)) ;; pick_story
+    (global.set $stage_len (i32.const 10))
+    (call $save_slot (global.get $active_slot))
+    (call $emit_choose_story_ui)
+  )
+
+  (func $handle_pick_story
+    (local $choice i32)
+    (local.set $choice (call $parse_int (global.get $QRY_BUF) (global.get $qry_len)))
+    (if (i32.eq (local.get $choice) (i32.const 2))
+      (then
+        (call $memcpy (global.get $CH_T) (global.get $S2_T) (global.get $s2t_len))
+        (global.set $ch_t_len (global.get $s2t_len))
+        (call $memcpy (global.get $CH_P) (global.get $S2_P) (global.get $s2p_len))
+        (global.set $ch_p_len (global.get $s2p_len))
+      )
+      (else
+        (if (i32.eq (local.get $choice) (i32.const 3))
+          (then
+            (call $memcpy (global.get $CH_T) (global.get $S3_T) (global.get $s3t_len))
+            (global.set $ch_t_len (global.get $s3t_len))
+            (call $memcpy (global.get $CH_P) (global.get $S3_P) (global.get $s3p_len))
+            (global.set $ch_p_len (global.get $s3p_len))
+          )
+          (else
+            (call $memcpy (global.get $CH_T) (global.get $S1_T) (global.get $s1t_len))
+            (global.set $ch_t_len (global.get $s1t_len))
+            (call $memcpy (global.get $CH_P) (global.get $S1_P) (global.get $s1p_len))
+            (global.set $ch_p_len (global.get $s1p_len))
+          )
+        )
+      )
+    )
+    (call $memcpy (global.get $STAGE_BUF) (i32.const 131644) (i32.const 10)) ;; pick_class
+    (global.set $stage_len (i32.const 10))
+    (call $save_slot (global.get $active_slot))
+    (call $emit_select_class_ui)
+  )
+
+  (data (i32.const 139000) "Started campaign as\00") ;; len 19
+
+  (func $handle_select_class
+    (if (call $streq (global.get $QRY_BUF) (global.get $qry_len) (i32.const 131588) (i32.const 6)) ;; archer
+      (then
+        (call $memcpy (global.get $CLASS_BUF) (i32.const 131604) (i32.const 6)) ;; Archer
+        (global.set $class_len (i32.const 6))
+        (global.set $hp (i32.const 95))
+        (global.set $max_hp (i32.const 95))
+        (global.set $atk (i32.const 15))
+        (global.set $def (i32.const 11))
+      )
+      (else
+        (call $memcpy (global.get $CLASS_BUF) (i32.const 131596) (i32.const 6)) ;; Knight
+        (global.set $class_len (i32.const 6))
+        (global.set $hp (i32.const 120))
+        (global.set $max_hp (i32.const 120))
+        (global.set $atk (i32.const 12))
+        (global.set $def (i32.const 14))
+      )
+    )
+    (call $memcpy (global.get $STAGE_BUF) (i32.const 131656) (i32.const 7)) ;; playing
+    (global.set $stage_len (i32.const 7))
+    (call $memcpy (global.get $PHASE_BUF) (i32.const 131665) (i32.const 7)) ;; OPENING
+    (global.set $phase_len (i32.const 7))
+    (global.set $turn (i32.const 1))
+    (global.set $tension (i32.const 15))
+    (global.set $sum_len (i32.const 0))
+    (call $append_summary (i32.const 139000) (i32.const 19))
+    (call $append_summary (global.get $CLASS_BUF) (global.get $class_len))
+    (call $save_slot (global.get $active_slot))
+    (call $emit_rpg_state (i32.const 0) (i32.const 0))
+  )
+
+  (func $handle_action
+    (local $seed i32)
+    (local $roll i32)
+    (local $roll_ok i32)
+    (local $was_combat i32)
+
+    ;; If not playing yet, route to appropriate step
+    (if (i32.eqz (call $streq (global.get $STAGE_BUF) (global.get $stage_len) (i32.const 131656) (i32.const 7)))
+      (then
+        (if (call $streq (global.get $STAGE_BUF) (global.get $stage_len) (i32.const 131632) (i32.const 10))
+          (then (call $emit_choose_story_ui) (return))
+        )
+        (if (call $streq (global.get $STAGE_BUF) (global.get $stage_len) (i32.const 131644) (i32.const 10))
+          (then (call $emit_select_class_ui) (return))
+        )
+        (call $emit_rpg_system_new)
+        (return)
+      )
+    )
+
+    ;; If already GAME_OVER (hp <= 0), keep GAME_OVER without advancing turns
+    (if (i32.le_s (global.get $hp) (i32.const 0))
+      (then
+        (call $memcpy (global.get $PHASE_BUF) (i32.const 131756) (i32.const 9)) ;; GAME_OVER
+        (global.set $phase_len (i32.const 9))
+        (call $emit_rpg_state (i32.const 0) (i32.const 0))
+        (return)
+      )
+    )
+
+    (local.set $was_combat
+      (i32.or
+        (call $streq (global.get $PHASE_BUF) (global.get $phase_len) (i32.const 131700) (i32.const 13)) ;; COMBAT_AMBUSH
+        (call $streq (global.get $PHASE_BUF) (global.get $phase_len) (i32.const 131715) (i32.const 12)) ;; COMBAT_ROUND
+      )
+    )
+
+    (global.set $turn (i32.add (global.get $turn) (i32.const 1)))
+
+    ;; Update tension clamped 0..100
+    (global.set $tension (i32.add (global.get $tension) (global.get $in_tdelta)))
+    (if (global.get $in_rest) (then (global.set $tension (i32.sub (global.get $tension) (i32.const 20)))))
+    (if (i32.lt_s (global.get $tension) (i32.const 0)) (then (global.set $tension (i32.const 0))))
+    (if (i32.gt_s (global.get $tension) (i32.const 100)) (then (global.set $tension (i32.const 100))))
+
+    ;; Deterministic d20 roll
+    (local.set $roll (i32.const 0))
+    (local.set $roll_ok (i32.const 0))
+    (if (i32.or (global.get $in_roll) (local.get $was_combat))
+      (then
+        (local.set $seed
+          (i32.add
+            (i32.mul (global.get $turn) (i32.const 1103515245))
+            (i32.add (i32.mul (global.get $tension) (i32.const 12345)) (global.get $int_len))
+          )
+        )
+        (local.set $roll (i32.add (i32.rem_u (i32.shr_u (local.get $seed) (i32.const 16)) (i32.const 20)) (i32.const 1)))
+        (if (i32.ge_s (i32.add (local.get $roll) (i32.const 2)) (global.get $in_dc))
+          (then (local.set $roll_ok (i32.const 1)))
+          (else
+            (if (local.get $was_combat)
+              (then
+                (global.set $hp (i32.sub (global.get $hp) (i32.const 12)))
+                (if (i32.lt_s (global.get $hp) (i32.const 0)) (then (global.set $hp (i32.const 0))))
+              )
+            )
+          )
+        )
+      )
+    )
+
+    ;; D&D Pacing State Machine
+    (if (i32.le_s (global.get $hp) (i32.const 0))
+      (then
+        (call $memcpy (global.get $PHASE_BUF) (i32.const 131756) (i32.const 9)) ;; GAME_OVER
+        (global.set $phase_len (i32.const 9))
+      )
+      (else
+        (if (global.get $in_rest)
+          (then
+            (global.set $hp (i32.add (global.get $hp) (i32.const 25)))
+            (if (i32.gt_s (global.get $hp) (global.get $max_hp)) (then (global.set $hp (global.get $max_hp))))
+            (call $memcpy (global.get $PHASE_BUF) (i32.const 131745) (i32.const 9)) ;; CAMP_REST
+            (global.set $phase_len (i32.const 9))
+          )
+          (else
+            (if (call $streq (global.get $OUTCOME_BUF) (global.get $outc_len) (i32.const 131612) (i32.const 7)) ;; victory
+              (then
+                (call $memcpy (global.get $PHASE_BUF) (i32.const 131729) (i32.const 14)) ;; COMBAT_VICTORY
+                (global.set $phase_len (i32.const 14))
+                (global.set $tension (i32.sub (global.get $tension) (i32.const 35)))
+                (if (i32.lt_s (global.get $tension) (i32.const 0)) (then (global.set $tension (i32.const 0))))
+              )
+              (else
+                (if (local.get $was_combat)
+                  (then
+                    (call $memcpy (global.get $PHASE_BUF) (i32.const 131715) (i32.const 12)) ;; COMBAT_ROUND
+                    (global.set $phase_len (i32.const 12))
+                  )
+                  (else
+                    (if (i32.ge_s (global.get $tension) (i32.const 75))
+                      (then
+                        (call $memcpy (global.get $PHASE_BUF) (i32.const 131700) (i32.const 13)) ;; COMBAT_AMBUSH
+                        (global.set $phase_len (i32.const 13))
+                      )
+                      (else
+                        (if (global.get $in_roll)
+                          (then
+                            (call $memcpy (global.get $PHASE_BUF) (i32.const 131687) (i32.const 11)) ;; SKILL_CHECK
+                            (global.set $phase_len (i32.const 11))
+                          )
+                          (else
+                            (call $memcpy (global.get $PHASE_BUF) (i32.const 131674) (i32.const 11)) ;; EXPLORATION
+                            (global.set $phase_len (i32.const 11))
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
+    ;; Append summary_note if provided
+    (if (i32.gt_u (global.get $note_len) (i32.const 0))
+      (then (call $append_summary (global.get $NOTE) (global.get $note_len)))
+    )
+
+    (call $save_slot (global.get $active_slot))
+    (call $emit_rpg_state (local.get $roll) (local.get $roll_ok))
+  )
+
+  ;; ============================================================================
+  ;; ENTRYPOINT
+  ;; ============================================================================
+  (func (export "rpg_entry") (param $in_ptr i32) (param $len i32) (result i32)
+    (local $target_slot i32)
+    (call $parse_input (local.get $in_ptr) (local.get $len))
+    (call $load_active_slot)
+    (call $load_slot (global.get $active_slot))
+
+    ;; 1. help
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131572) (i32.const 4))
+      (then (call $emit_help) (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE))))
+    )
+    ;; 2. games
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131532) (i32.const 5))
+      (then (call $emit_games_ui) (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE))))
+    )
+    ;; 3. switch
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131540) (i32.const 6))
+      (then
+        (local.set $target_slot (call $parse_int (global.get $QRY_BUF) (global.get $qry_len)))
+        (if (i32.or (i32.lt_s (local.get $target_slot) (i32.const 1)) (i32.gt_s (local.get $target_slot) (i32.const 3)))
+          (then (local.set $target_slot (i32.const 1)))
+        )
+        (call $save_active_slot (local.get $target_slot))
+        (call $load_slot (local.get $target_slot))
+        (call $emit_switch_ui)
+        (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE)))
+      )
+    )
+    ;; 4. delete
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131548) (i32.const 6))
+      (then (call $emit_delete_confirm_ui) (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE))))
+    )
+    ;; 5. confirm_delete
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131556) (i32.const 14))
+      (then
+        (call $reset_slot_state)
+        (call $save_slot (global.get $active_slot))
+        (call $emit_deleted_ui)
+        (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE)))
+      )
+    )
+    ;; 6. status
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131524) (i32.const 6))
+      (then
+        (if (i32.eqz (call $streq (global.get $STAGE_BUF) (global.get $stage_len) (i32.const 131656) (i32.const 7)))
+          (then (call $emit_games_ui))
+          (else (call $emit_status_ui))
+        )
+        (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE)))
+      )
+    )
+    ;; 7. new
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131488) (i32.const 3))
+      (then (call $handle_new (local.get $in_ptr) (local.get $len)) (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE))))
+    )
+    ;; 8. pick_story
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131495) (i32.const 10))
+      (then (call $handle_pick_story) (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE))))
+    )
+    ;; 9. select_class
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131508) (i32.const 12))
+      (then (call $handle_select_class) (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE))))
+    )
+    ;; 10. start
+    (if (call $streq (global.get $ACT_BUF) (global.get $act_len) (i32.const 131480) (i32.const 5))
+      (then
+        (if (call $streq (global.get $STAGE_BUF) (global.get $stage_len) (i32.const 131632) (i32.const 10))
+          (then (call $emit_choose_story_ui))
+          (else
+            (if (call $streq (global.get $STAGE_BUF) (global.get $stage_len) (i32.const 131644) (i32.const 10))
+              (then (call $emit_select_class_ui))
+              (else
+                (if (call $streq (global.get $STAGE_BUF) (global.get $stage_len) (i32.const 131656) (i32.const 7))
+                  (then (call $emit_rpg_state (i32.const 0) (i32.const 0)))
+                  (else (call $emit_rpg_system_new))
+                )
+              )
+            )
+          )
+        )
+        (return (i32.sub (global.get $out_pos) (global.get $OUT_BASE)))
+      )
+    )
+    ;; 11. default -> action
+    (call $handle_action)
+    (i32.sub (global.get $out_pos) (global.get $OUT_BASE))
+  )
 )

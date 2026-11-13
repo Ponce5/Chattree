@@ -2,12 +2,15 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.6.5",
+  "version": "1.7.0",
   "name": "Calendar Plugin",
   "description": "Official on-device calendar integration for scheduling and inspecting calendar events.",
   "author": "Chattree Core Team",
   "primaryCommand": "calendar",
-  "aliases": ["cal", "agenda"],
+  "aliases": [
+    "cal",
+    "agenda"
+  ],
   "type": "imported",
   "category": "productivity",
   "capabilities": [
@@ -21,95 +24,104 @@
     "scheduler",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.6.5",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.6.5",
-  "changelog": "1.6.5: Updated Calendar logo to clean square white canvas with official Google design.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.7.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.7.0",
+  "changelog": "1.7.0: Replaced byte-offset JSON and length-only command checks with full whitespace-tolerant JSON parsing and \\uXXXX decoding, added JSON escaping for pipe-delimited commands, added /calendar help, fixed false-positive 'created' card detection, expanded memory to 16 pages with inputOffset/outputOffset, and unified English minimalist Chattree UI.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "46d1f60356afe46d389ab4ed819bc50d8f5e669acb3545283436c5f92a575e2d",
+  "wasmSha256": "fd80028029d60b8a463fe85ef57fe4945cd780b7e5ba75733b06f90c91b039db",
   "runtimeApiVersion": "1.0.0",
-  "maxMemoryPages": 4,
-  "timeoutMs": 5000,
+  "maxMemoryPages": 16,
+  "timeoutMs": 10000,
   "fuelLimit": 50000000,
+  "inputOffset": 0,
+  "outputOffset": 65536,
+  "maxPayloadSizeBytes": 131072,
   "tools": [
     {
       "id": "com.chattree.official.calendar.manager",
       "command": "calendar",
       "displayName": "Device Calendar",
-      "description": "Gestiona eventos del calendario local del dispositivo. Para crear un evento, emite JSON con {\"action\":\"create\",\"title\":\"<título limpio>\",\"start\":\"YYYY-MM-DDTHH:mm:ss\",\"startDate\":\"YYYY-MM-DDTHH:mm:ss\",\"end\":\"YYYY-MM-DDTHH:mm:ss\",\"endDate\":\"YYYY-MM-DDTHH:mm:ss\",\"duration\":<minutos>}. REGLAS ESTRICTAS DE FECHA Y HORA: 1) Si dice 'mañana', suma exactamente 1 día a la fecha actual. 2) Si dice un día específico (ej. 'el 25' o 'el viernes'), calcula la fecha exacta YYYY-MM-DD correspondiente; NUNCA uses la fecha de hoy si se indicó otro día. 3) HORA SIEMPRE EN FORMATO MILITAR 24H: 1pm->13:00, 2pm->14:00, 3pm->15:00, 4pm->16:00, 5pm->17:00, 6pm->18:00, 7pm->19:00, 8pm->20:00, 9pm->21:00, 10pm->22:00, 11pm->23:00, 12pm->12:00, 12am->00:00, horas de la mañana 00:00 a 11:59. 4) DURACIÓN Y END: 'end' y 'endDate' DEBEN ser exactamente start + la duración solicitada (ej. si dura 30 minutos y start es 15:00:00, end es 15:30:00; si dura 2 horas, end es 17:00:00; si no se dice duración, por defecto 60 minutos). Para consultar eventos: {\"action\":\"events\"} o /calendar list.",
+      "description": "Manage local device calendar events. Output ONLY a single valid JSON object with no extra text. For action='create', include 'title', 'start', 'startDate', 'end', 'endDate' (ISO-8601 24h format YYYY-MM-DDTHH:mm:ss; default duration 60 minutes if unspecified) and 'duration'/'durationMinutes'. For listing upcoming events, output {\"action\":\"events\"}.",
       "capabilities": [
         "calendar.create",
         "calendar.read"
       ],
       "intentContract": {
         "intent": "create",
-        "validIntents": ["create", "events", "list", "unknown"],
-        "description": "Agenda eventos, reuniones o citas en el calendario del dispositivo para hoy o fechas futuras, respetando con precisión absoluta el día, la hora y la duración especificados por el usuario.",
+        "validIntents": [
+          "create",
+          "events",
+          "list",
+          "help",
+          "unknown"
+        ],
+        "description": "Schedule or inspect device calendar events using exact ISO-8601 24-hour timestamps and duration.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'create' para agendar evento, o 'events' para consultar eventos",
+            "description": "Action to perform: 'create' (schedule an event), 'events' (list upcoming events), or 'help' (show usage).",
             "required": true
           },
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Título limpio y conciso del evento sin incluir fechas ni horas (ej: 'Reunión con cliente', 'Cita médica', 'Almuerzo con el equipo')",
-            "required": true
+            "description": "Concise event title without dates or times (required for action='create').",
+            "required": false
           },
           {
             "name": "start",
             "key": "start",
             "type": "string",
-            "description": "Fecha y hora exacta de inicio en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss). REGLAS: 1) Si dice 'mañana', suma 1 día a la fecha actual. 2) Si dice un día específico (ej. 'el 25'), usa ese día exacto YYYY-MM-DD. 3) HORA EN FORMATO 24H: ej. 3pm es 15:00:00, 4pm es 16:00:00, 10am es 10:00:00. NUNCA uses formato de 12 horas",
-            "required": true
+            "description": "Start timestamp in 24-hour ISO-8601 format (YYYY-MM-DDTHH:mm:ss) for action='create'.",
+            "required": false
           },
           {
             "name": "startDate",
             "key": "startDate",
             "type": "string",
-            "description": "Idéntico a 'start' (YYYY-MM-DDTHH:mm:ss)",
-            "required": true
+            "description": "Identical to 'start' (YYYY-MM-DDTHH:mm:ss).",
+            "required": false
           },
           {
             "name": "end",
             "key": "end",
             "type": "string",
-            "description": "Fecha y hora exacta de finalización en formato ISO-8601 (YYYY-MM-DDTHH:mm:ss). OBLIGATORIO: Debe ser exactamente start + la duración pedida por el usuario. Si dura 30 minutos (media hora) y start es 15:00:00, end es 15:30:00; si dura 15 min, end es 15:15:00; si dura 45 min, end es 15:45:00; si dura 2 horas, end es 17:00:00; si no se especifica duración, suma 60 minutos por defecto",
-            "required": true
+            "description": "End timestamp in 24-hour ISO-8601 format (YYYY-MM-DDTHH:mm:ss), equal to start + duration (default 60 min).",
+            "required": false
           },
           {
             "name": "endDate",
             "key": "endDate",
             "type": "string",
-            "description": "Idéntico a 'end' (YYYY-MM-DDTHH:mm:ss)",
-            "required": true
+            "description": "Identical to 'end' (YYYY-MM-DDTHH:mm:ss).",
+            "required": false
           },
           {
             "name": "duration",
             "key": "duration",
             "type": "integer",
-            "description": "Duración estimada en minutos como entero (ej. 15, 30, 45, 60, 90, 120)",
+            "description": "Duration in minutes as an integer (e.g. 15, 30, 45, 60, 120).",
             "required": false
           },
           {
             "name": "durationMinutes",
             "key": "durationMinutes",
             "type": "integer",
-            "description": "Idéntico a 'duration' (entero de minutos)",
+            "description": "Identical to 'duration'.",
             "required": false
           }
         ],
         "examples": [
           {
-            "input": "reunión con Juan hoy a las 3:30 de la tarde durante media hora",
+            "input": "meeting with John today at 3:30pm for 30 minutes",
             "output": {
               "action": "create",
-              "title": "Reunión con Juan",
+              "title": "Meeting with John",
               "start": "2026-10-28T15:30:00",
               "startDate": "2026-10-28T15:30:00",
               "end": "2026-10-28T16:00:00",
@@ -119,46 +131,7 @@
             }
           },
           {
-            "input": "reunion en teams mañana a las 10am por 45 minutos",
-            "output": {
-              "action": "create",
-              "title": "Reunión en Teams",
-              "start": "2026-10-29T10:00:00",
-              "startDate": "2026-10-29T10:00:00",
-              "end": "2026-10-29T10:45:00",
-              "endDate": "2026-10-29T10:45:00",
-              "duration": 45,
-              "durationMinutes": 45
-            }
-          },
-          {
-            "input": "taller de diseño el día 25 de 4pm a 6pm",
-            "output": {
-              "action": "create",
-              "title": "Taller de diseño",
-              "start": "2026-10-25T16:00:00",
-              "startDate": "2026-10-25T16:00:00",
-              "end": "2026-10-25T18:00:00",
-              "endDate": "2026-10-25T18:00:00",
-              "duration": 120,
-              "durationMinutes": 120
-            }
-          },
-          {
-            "input": "cita con el médico el viernes a las 9 de la mañana",
-            "output": {
-              "action": "create",
-              "title": "Cita con el médico",
-              "start": "2026-10-30T09:00:00",
-              "startDate": "2026-10-30T09:00:00",
-              "end": "2026-10-30T10:00:00",
-              "endDate": "2026-10-30T10:00:00",
-              "duration": 60,
-              "durationMinutes": 60
-            }
-          },
-          {
-            "input": "qué tengo en el calendario?",
+            "input": "what is on my calendar?",
             "output": {
               "action": "events"
             }

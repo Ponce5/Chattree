@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.gmail",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "name": "Gmail",
-  "description": "Official on-device Gmail integration powered by Chattree's native Email Host API with real Google IMAP and SMTP support.",
+  "description": "Official on-device Gmail and IMAP/SMTP integration powered by Chattree's native Email Host API. Read your inbox, inspect full messages, and send emails directly from chat.",
   "author": "Chattree Core Team",
   "primaryCommand": "gmail",
   "aliases": [
@@ -24,25 +24,29 @@
     "mail",
     "email",
     "imap",
+    "smtp",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png?v=2.1.1",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png?v=2.1.1",
-  "changelog": "2.1.1: Updated official Gmail branding with official Google Workspace icons and banner.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png?v=2.2.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png?v=2.2.0",
+  "changelog": "2.2.0: Fixed intentContract JSON routing, implemented send and help operations, fixed config prefix/offset bug, removed 1-2 char command collisions, expanded memory to 32 pages (2 MB) with inputOffset/outputOffset, and unified English minimalist Chattree documentation.",
   "runtime": "wasm",
   "entrypoint": "mail_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "2dc595bfcd5eb98fd34f16200558c46041be8c72694e28841769514335720604",
+  "wasmSha256": "eb9fde7280ab48fcff610ed5377f955ba03f1df922d639dfa80c37643183b5b0",
   "runtimeApiVersion": "1.0.0",
-  "maxMemoryPages": 4,
-  "timeoutMs": 15000,
+  "maxMemoryPages": 32,
+  "timeoutMs": 25000,
   "fuelLimit": 50000000,
+  "inputOffset": 0,
+  "outputOffset": 65536,
+  "maxPayloadSizeBytes": 262144,
   "tools": [
     {
       "id": "com.chattree.official.gmail.manager",
       "command": "gmail",
       "displayName": "Gmail & Inbox",
-      "description": "Herramienta oficial de Gmail conectada al Host API nativo de Chattree. Lee la bandeja de entrada real del usuario mediante IMAP, lee correos completos por ID, despacha correos por SMTP y administra cuentas de forma segura. Subcomandos: /gmail, /gmail inbox, /gmail read <id>, /gmail send <destinatario> | <asunto> | <mensaje>, /gmail config <correo> <contrasena_aplicacion>, /gmail disconnect.",
+      "description": "Official Gmail & IMAP/SMTP email integration. Output ONLY a single valid JSON object with no extra text. Supports 'inbox', 'read' (requires 'id'), 'send' (requires 'to', 'subject', 'body'), 'config' (requires 'email', 'password'), 'disconnect', and 'help'.",
       "capabilities": [
         "storage.private",
         "email.read",
@@ -51,86 +55,89 @@
       "intentContract": {
         "intent": "mail_inbox",
         "validIntents": [
-          "config",
           "inbox",
           "read",
           "send",
-          "disconnect"
+          "config",
+          "disconnect",
+          "help"
         ],
-        "description": "Lee correos reales de la bandeja de entrada de Gmail, consulta mensajes detallados o envia correos.",
+        "description": "Interpret the user's natural-language email request and return ONE valid JSON tool call only.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Accion a realizar: 'config' para configurar cuenta, 'inbox' para leer la bandeja, 'read' para abrir un correo, 'send' para enviar, 'disconnect' para desconectar",
+            "description": "Action to perform: 'inbox' (list recent emails), 'read' (open a message by id), 'send' (send an email), 'config' (save email and app password), 'disconnect' (remove saved credentials), or 'help' (show usage).",
             "required": true
           },
           {
             "name": "id",
             "key": "id",
             "type": "string",
-            "description": "ID del mensaje para leer (solo para action=read)",
+            "description": "Message ID to open (required for action='read').",
             "required": false
           },
           {
             "name": "email",
             "key": "email",
             "type": "string",
-            "description": "Correo electronico del usuario (solo para action=config)",
+            "description": "User email address (required for action='config').",
             "required": false
           },
           {
             "name": "password",
             "key": "password",
             "type": "string",
-            "description": "Contrasena de aplicacion (solo para action=config)",
+            "description": "App password or account password (required for action='config').",
             "required": false
           },
           {
             "name": "to",
             "key": "to",
             "type": "string",
-            "description": "Destinatario del correo (solo para action=send)",
+            "description": "Recipient email address (required for action='send').",
             "required": false
           },
           {
             "name": "subject",
             "key": "subject",
             "type": "string",
-            "description": "Asunto del correo (solo para action=send)",
+            "description": "Email subject line (for action='send').",
             "required": false
           },
           {
             "name": "body",
             "key": "body",
             "type": "string",
-            "description": "Cuerpo del mensaje (solo para action=send)",
+            "description": "Email body content (for action='send').",
             "required": false
           }
         ],
         "examples": [
           {
-            "input": "revisa mis correos",
+            "input": "check my inbox",
             "output": {
               "INTENT": "inbox",
               "action": "inbox"
             }
           },
           {
-            "input": "qué correos tengo?",
+            "input": "read email 42",
             "output": {
-              "INTENT": "inbox",
-              "action": "inbox"
+              "INTENT": "read",
+              "action": "read",
+              "id": "42"
             }
           },
           {
-            "input": "configura mi cuenta usuario@ejemplo.com con contraseña abcd efgh ijkl mnop",
+            "input": "send an email to alex@example.com with subject Hello and body How are you?",
             "output": {
-              "INTENT": "config",
-              "action": "config",
-              "email": "usuario@ejemplo.com",
-              "password": "abcd efgh ijkl mnop"
+              "INTENT": "send",
+              "action": "send",
+              "to": "alex@example.com",
+              "subject": "Hello",
+              "body": "How are you?"
             }
           }
         ]

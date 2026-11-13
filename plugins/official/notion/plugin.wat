@@ -1,7 +1,8 @@
-;; Chattree Official Notion Integration Plugin v1.2.0
-;; - 100% AI Natural Language Intent Contract (no rigid keyword slicing)
-;; - Preserves real line breaks (\\n) and splits long AI articles across multiple Notion paragraph blocks
-;; - Returns rich Markdown confirmation with clickable Notion URL + generated content preview
+;; Chattree Official Notion Integration Plugin v1.3.0
+;; - Minimalist Chattree monochrome UI (English predetermined strings; AI writes in user's language)
+;; - Native Notion Markdown blocks (heading_1/2/3, bulleted_list_item, numbered_list_item, quote, divider, paragraph)
+;; - Whitespace-tolerant JSON extraction, \uXXXX -> UTF-8 decoding, proper double-JSON escaping
+;; - Bounded search title extraction & auto-clearing of invalid parent_id
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -10,155 +11,133 @@
   ;; 64 pages = 4 MB sandbox linear memory
   (memory (export "memory") 64)
 
-  (global $phase       (mut i32) (i32.const 0))
-  (global $token_len   (mut i32) (i32.const 0))
-  (global $arg_len     (mut i32) (i32.const 0))  ;; escaped title/query length at 1303000
-  (global $op_len      (mut i32) (i32.const 0))  ;; operation length at 1306000
-  (global $parent_len  (mut i32) (i32.const 0))  ;; parent_id length at 1307000
-  (global $raw_body_len (mut i32) (i32.const 0)) ;; raw JSON-extracted content at 1400000
-  (global $preview_len (mut i32) (i32.const 0))  ;; readable UTF-8 preview at 1600000
+  (global $phase        (mut i32) (i32.const 0))
+  (global $token_len    (mut i32) (i32.const 0))
+  (global $arg_len      (mut i32) (i32.const 0))  ;; sanitized title/query length at 1303000
+  (global $op_len       (mut i32) (i32.const 0))  ;; lowercased action length at 1306000
+  (global $parent_len   (mut i32) (i32.const 0))  ;; parent_id length at 1307000
+  (global $raw_body_len (mut i32) (i32.const 0))  ;; raw JSON-extracted content at 1400000
+  (global $preview_len  (mut i32) (i32.const 0))  ;; decoded UTF-8 preview at 1600000
 
-  ;; ── Static Data Segments ─────────────────────────────────────────────────
-  ;; [140000] help (1151B)
-  (data (i32.const 140000) "\f0\9f\93\9d **Notion Workspace Integration (IA & Lenguaje Natural)**\0a\0aConecta tu espacio de trabajo de Notion con Chattree y gestiona todo en **lenguaje natural**. La IA redacta y estructura autom\c3\a1ticamente el contenido completo de tus p\c3\a1ginas.\0a\0a**Ejemplos de uso en lenguaje natural con `/notion`:**\0a\e2\80\a2 `/notion cr\c3\a9ame una p\c3\a1gina de ideas de app donde enliste las mejores ideas para este 2027`\0a\e2\80\a2 `/notion crea una nota explicando la arquitectura limpia en Flutter con ejemplos`\0a\e2\80\a2 `/notion busca mis apuntes sobre inteligencia artificial`\0a\e2\80\a2 `/notion mu\c3\a9strame mis p\c3\a1ginas recientes de Notion`\0a\e2\80\a2 `/notion configura mi token ntn_tu_integration_secret`\0a\e2\80\a2 `/notion verifica el estado de mi conexi\c3\b3n`\0a\e2\80\a2 `/notion desconectar cuenta`\0a\0a*\c2\bfC\c3\b3mo conectar tu Notion?*\0a1. Crea tu integraci\c3\b3n en https://www.notion.so/profile/integrations y copia tu **Internal Integration Secret** (`ntn_...` o `secret_...`).\0a2. En Notion, abre la p\c3\a1gina donde quieras guardar tus notas, toca el men\c3\ba **'...'** (arriba a la derecha) -> **Conexiones** (Add connections) y selecciona tu integraci\c3\b3n.\0a3. En Chattree escribe: `/notion configura mi token <tu_token>`.")
-  ;; [141167] key_saved_ok (352B)
-  (data (i32.const 141167) "\e2\9c\85 **Notion configurado y verificado exitosamente.**\0a\0aTu token de integraci\c3\b3n est\c3\a1 activo y listo para usarse con lenguaje natural.\0a\0aAhora puedes pedirle a Chattree cosas como:\0a\e2\80\a2 `/notion cr\c3\a9ame una p\c3\a1gina con las mejores ideas de negocio para 2027`\0a\e2\80\a2 `/notion busca mis notas sobre el proyecto`\0a\e2\80\a2 `/notion mu\c3\a9strame mis p\c3\a1ginas recientes`")
-  ;; [141535] key_saved_invalid (274B)
-  (data (i32.const 141535) "\e2\9a\a0\ef\b8\8f **Token guardado pero no se pudo validar con Notion.**\0a\0aNotion devolvi\c3\b3 un error de autenticaci\c3\b3n. Verifica que tu token sea un 'Internal Integration Secret' v\c3\a1lido (`ntn_...` o `secret_...`) creado en https://www.notion.so/profile/integrations y que est\c3\a9 activo.")
-  ;; [141825] key_missing (235B)
-  (data (i32.const 141825) "\e2\9a\a0\ef\b8\8f **Notion no est\c3\a1 configurado.**\0a\0aPor favor registra tu Integration Secret diciendo en lenguaje natural:\0a`/notion configura mi token <tu_integration_secret>`\0a\0aPuedes obtener tu clave en https://www.notion.so/profile/integrations")
-  ;; [142076] disconnected (94B)
-  (data (i32.const 142076) "\e2\9c\85 **Desconectado de Notion.**\0a\0aSe ha eliminado tu token de integraci\c3\b3n de este dispositivo.")
-  ;; [142186] status_ok (352B)
-  (data (i32.const 142186) "\e2\9c\85 **Conexi\c3\b3n con Notion activa y saludable.**\0a\0a\e2\80\a2 **API:** Notion API v1 (2022-06-28)\0a\e2\80\a2 **Integraci\c3\b3n:** Autenticada y lista\0a\e2\80\a2 **Modo:** 100% Lenguaje Natural con IA de Chattree (creaci\c3\b3n de p\c3\a1ginas con desarrollo completo de contenido, b\c3\basqueda sem\c3\a1ntica y listado)\0a\0aPide lo que necesites en lenguaje natural con `/notion <tu solicitud>`.")
-  ;; [142554] status_error (155B)
-  (data (i32.const 142554) "\e2\9d\8c **No se pudo conectar a Notion.**\0a\0aEl token guardado no es v\c3\a1lido o ha expirado. Configura uno nuevo diciendo:\0a`/notion configura mi token <tu_token>`")
-  ;; [142725] search_header (44B)
-  (data (i32.const 142725) "\f0\9f\93\9d **Resultados encontrados en Notion:**\0a\0a")
-  ;; [142785] search_empty (238B)
-  (data (i32.const 142785) "\e2\84\b9\ef\b8\8f **No se encontraron resultados en Notion.**\0a\0aRecuerda que para que una p\c3\a1gina o base de datos sea accesible, debes compartirla con tu integraci\c3\b3n en Notion (Men\c3\ba **'...'** -> **Conexiones** / Add connections -> Tu Integraci\c3\b3n).")
-  ;; [143039] search_error (150B)
-  (data (i32.const 143039) "\e2\9d\8c **Error al consultar Notion.**\0a\0aVerifica tu conexi\c3\b3n a internet y comprueba que tu token siga siendo v\c3\a1lido con `/notion verifica mi conexi\c3\b3n`.")
-  ;; [143205] parent_saved (137B)
-  (data (i32.const 143205) "\e2\9c\85 **P\c3\a1gina base configurada exitosamente.**\0a\0aTodas las nuevas p\c3\a1ginas que pidas crear en Notion se guardar\c3\a1n dentro de esta p\c3\a1gina.")
-  ;; [143358] create_no_parent (327B)
-  (data (i32.const 143358) "\e2\9a\a0\ef\b8\8f **No se encontr\c3\b3 ninguna p\c3\a1gina compartida en tu espacio de trabajo de Notion.**\0a\0aNotion requiere que las p\c3\a1ginas nuevas se creen dentro de una p\c3\a1gina existente a la que tu integraci\c3\b3n tenga acceso. Abre Notion, entra a una p\c3\a1gina y en el men\c3\ba **'...'** -> **Conexiones** (Add connections) a\c3\b1ade tu integraci\c3\b3n.")
-  ;; [143701] create_ok_prefix (56B)
-  (data (i32.const 143701) "\e2\9c\85 **P\c3\a1gina creada exitosamente en Notion:**\0a\0a\f0\9f\93\84 [**")
-  ;; [143773] create_ok_mid (4B)
-  (data (i32.const 143773) "**](")
-  ;; [143793] create_ok_mid2 (8B)
-  (data (i32.const 143793) ")\0a\0a---\0a\0a")
-  ;; [143817] create_ok_suffix (87B)
-  (data (i32.const 143817) "\0a\0a---\0a*Tu p\c3\a1gina ya est\c3\a1 guardada y sincronizada en tu espacio de trabajo de Notion.*")
-  ;; [143920] create_error_prefix (25B)
-  (data (i32.const 143920) "\e2\9d\8c **Error de Notion:** ")
-  ;; [143961] create_error_suffix (93B)
-  (data (i32.const 143961) "\0a\0aVerifica que tu integraci\c3\b3n tenga permisos de edici\c3\b3n en la p\c3\a1gina compartida de Notion.")
-  ;; [144070] storage_get (65B)
-  (data (i32.const 144070) "{\22api\22:\22storage\22,\22operation\22:\22get\22,\22payload\22:{\22key\22:\22api_token\22}}")
-  ;; [144151] storage_set_prefix (73B)
-  (data (i32.const 144151) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22api_token\22,\22value\22:\22")
-  ;; [144240] storage_set_suffix (3B)
-  (data (i32.const 144240) "\22}}")
-  ;; [144259] storage_delete (68B)
-  (data (i32.const 144259) "{\22api\22:\22storage\22,\22operation\22:\22delete\22,\22payload\22:{\22key\22:\22api_token\22}}")
-  ;; [144343] storage_get_parent (65B)
-  (data (i32.const 144343) "{\22api\22:\22storage\22,\22operation\22:\22get\22,\22payload\22:{\22key\22:\22parent_id\22}}")
-  ;; [144424] storage_set_parent_prefix (73B)
-  (data (i32.const 144424) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22parent_id\22,\22value\22:\22")
-  ;; [144513] storage_set_parent_suffix (3B)
-  (data (i32.const 144513) "\22}}")
-  ;; [144532] http_me_prefix (148B)
-  (data (i32.const 144532) "{\22api\22:\22network\22,\22operation\22:\22http_request\22,\22payload\22:{\22url\22:\22https://api.notion.com/v1/users/me\22,\22method\22:\22GET\22,\22headers\22:{\22Authorization\22:\22Bearer ")
-  ;; [144696] http_me_suffix (86B)
-  (data (i32.const 144696) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22timeoutMs\22:20000}}")
-  ;; [144798] http_search_prefix (147B)
-  (data (i32.const 144798) "{\22api\22:\22network\22,\22operation\22:\22http_request\22,\22payload\22:{\22url\22:\22https://api.notion.com/v1/search\22,\22method\22:\22POST\22,\22headers\22:{\22Authorization\22:\22Bearer ")
-  ;; [144961] http_search_mid1 (88B)
-  (data (i32.const 144961) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22query\5c\22:\5c\22")
-  ;; [145065] http_search_mid2 (115B)
-  (data (i32.const 145065) "\5c\22,\5c\22page_size\5c\22:5,\5c\22sort\5c\22:{\5c\22direction\5c\22:\5c\22descending\5c\22,\5c\22timestamp\5c\22:\5c\22last_edited_time\5c\22}}\22,\22timeoutMs\22:25000}}")
-  ;; [145196] http_search_empty_body (188B)
-  (data (i32.const 145196) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22page_size\5c\22:5,\5c\22sort\5c\22:{\5c\22direction\5c\22:\5c\22descending\5c\22,\5c\22timestamp\5c\22:\5c\22last_edited_time\5c\22}}\22,\22timeoutMs\22:25000}}")
-  ;; [145400] http_parent_search_body (244B)
-  (data (i32.const 145400) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22filter\5c\22:{\5c\22value\5c\22:\5c\22page\5c\22,\5c\22property\5c\22:\5c\22object\5c\22},\5c\22page_size\5c\22:3,\5c\22sort\5c\22:{\5c\22direction\5c\22:\5c\22descending\5c\22,\5c\22timestamp\5c\22:\5c\22last_edited_time\5c\22}}\22,\22timeoutMs\22:20000}}")
-  ;; [145660] http_create_prefix (146B)
-  (data (i32.const 145660) "{\22api\22:\22network\22,\22operation\22:\22http_request\22,\22payload\22:{\22url\22:\22https://api.notion.com/v1/pages\22,\22method\22:\22POST\22,\22headers\22:{\22Authorization\22:\22Bearer ")
-  ;; [145822] http_create_mid1 (102B)
-  (data (i32.const 145822) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22parent\5c\22:{\5c\22page_id\5c\22:\5c\22")
-  ;; [145940] http_create_mid2 (67B)
-  (data (i32.const 145940) "\5c\22},\5c\22properties\5c\22:{\5c\22title\5c\22:{\5c\22title\5c\22:[{\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22")
-  ;; [146023] http_create_no_children_suffix (28B)
-  (data (i32.const 146023) "\5c\22}}]}}\22,\22timeoutMs\22:25000}}")
-  ;; [146067] http_create_children_open (140B)
-  (data (i32.const 146067) "\5c\22}}]}},\5c\22children\5c\22:[{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22paragraph\5c\22,\5c\22paragraph\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22")
-  ;; [146223] http_create_children_sep (126B)
-  (data (i32.const 146223) "\5c\22}}]}},{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22paragraph\5c\22,\5c\22paragraph\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22")
-  ;; [146365] http_create_children_close (30B)
-  (data (i32.const 146365) "\5c\22}}]}}]}\22,\22timeoutMs\22:25000}}")
-  ;; [146411] needle_val_field (9B)
-  (data (i32.const 146411) "\22value\22:\22")
-  ;; [146436] needle_json_operation (13B)
-  (data (i32.const 146436) "\22operation\22:\22")
-  ;; [146465] needle_json_action (10B)
-  (data (i32.const 146465) "\22action\22:\22")
-  ;; [146491] needle_json_query (9B)
-  (data (i32.const 146491) "\22query\22:\22")
-  ;; [146516] needle_json_title (9B)
-  (data (i32.const 146516) "\22title\22:\22")
-  ;; [146541] needle_json_content (11B)
-  (data (i32.const 146541) "\22content\22:\22")
-  ;; [146568] needle_json_extra (9B)
-  (data (i32.const 146568) "\22extra\22:\22")
-  ;; [146593] needle_json_token (9B)
-  (data (i32.const 146593) "\22token\22:\22")
-  ;; [146618] needle_json_parent (13B)
-  (data (i32.const 146618) "\22parent_id\22:\22")
-  ;; [146647] needle_act_create (6B)
-  (data (i32.const 146647) "create")
-  ;; [146669] needle_act_search (6B)
-  (data (i32.const 146669) "search")
-  ;; [146691] needle_act_list (4B)
-  (data (i32.const 146691) "list")
-  ;; [146711] needle_act_status (6B)
-  (data (i32.const 146711) "status")
-  ;; [146733] needle_act_config (6B)
-  (data (i32.const 146733) "config")
-  ;; [146755] needle_act_parent (6B)
-  (data (i32.const 146755) "parent")
-  ;; [146777] needle_act_disconnect (10B)
-  (data (i32.const 146777) "disconnect")
-  ;; [146803] needle_act_help (4B)
-  (data (i32.const 146803) "help")
-  ;; [146823] needle_secret (7B)
-  (data (i32.const 146823) "secret_")
-  ;; [146846] needle_ntn (4B)
-  (data (i32.const 146846) "ntn_")
-  ;; [146866] needle_default_title (14B)
-  (data (i32.const 146866) "Nota de Notion")
-  ;; [146896] needle_status_200 (16B)
-  (data (i32.const 146896) "\22statusCode\22:200")
-  ;; [146928] needle_results_empty (12B)
-  (data (i32.const 146928) "\22results\22:[]")
-  ;; [146956] needle_id_field (6B)
-  (data (i32.const 146956) "\22id\22:\22")
-  ;; [146978] needle_url_field (15B)
-  (data (i32.const 146978) "\22url\22:\22https://")
-  ;; [147009] needle_plain_text (14B)
-  (data (i32.const 147009) "\22plain_text\22:\22")
-  ;; [147039] needle_msg_field (11B)
-  (data (i32.const 147039) "\22message\22:\22")
-  ;; [147066] needle_pages_fallback (17B)
-  (data (i32.const 147066) "P\c3\a1gina de Notion")
-  ;; [147099] bullet_page (10B)
-  (data (i32.const 147099) "\e2\80\a2 \f0\9f\93\84 [")
-  ;; [147125] bullet_mid (2B)
-  (data (i32.const 147125) "](")
-  ;; [147143] bullet_end (2B)
-  (data (i32.const 147143) ")\0a")
+  ;; ── Static NUL-Terminated Data Segments (140000+) ────────────────────────
+  (data (i32.const 140000) "**Notion Workspace**\0a\0aConnect your Notion workspace to create structured pages, search notes, and view recent updates.\0a\0a---\0a\0a**Examples**\0a- `/notion create a page with 5 mobile app ideas for 2027`\0a- `/notion search my notes about software architecture`\0a- `/notion show my recent Notion pages`\0a- `/notion set my token ntn_your_secret`\0a- `/notion check connection status`\0a- `/notion disconnect my account`\0a\0a**Setup**\0a1. Create an integration at https://www.notion.so/profile/integrations and copy your Internal Integration Secret (`ntn_...` or `secret_...`).\0a2. Open a page in Notion -> `...` -> **Connections** -> select your integration.\0a3. Run `/notion set my token <your_token>`.\00")
+
+  (data (i32.const 141200) "**Notion Connected**\0a\0aYour integration token is saved and verified.\0a\0aTry:\0a- `/notion create a page with project milestones`\0a- `/notion search my notes`\0a- `/notion show my recent pages`\00")
+
+  (data (i32.const 141600) "**Token Saved — Verification Failed**\0a\0aNotion returned an authentication error. Verify that your token is an active Internal Integration Secret (`ntn_...` or `secret_...`) from https://www.notion.so/profile/integrations.\00")
+
+  (data (i32.const 142000) "**Notion Not Configured**\0a\0aSave your Integration Secret using:\0a`/notion set my token <your_integration_secret>`\0a\0aGet your key at https://www.notion.so/profile/integrations.\00")
+
+  (data (i32.const 142400) "**Notion Disconnected**\0a\0aYour integration token has been removed from this device.\00")
+
+  (data (i32.const 142600) "**Notion Connection Active**\0a\0a- **API:** Notion API v1 (`2022-06-28`)\0a- **Status:** Authenticated\0a- **Capabilities:** Create pages with native blocks, search, and list recent pages\00")
+
+  (data (i32.const 143000) "**Notion Connection Failed**\0a\0aYour saved token is invalid or expired. Update it with:\0a`/notion set my token <your_token>`\00")
+
+  (data (i32.const 143300) "**Notion Results**\0a\0a\00")
+
+  (data (i32.const 143400) "**No Results Found**\0a\0aMake sure the target pages or databases are shared with your integration in Notion (`...` -> **Connections** -> select your integration).\00")
+
+  (data (i32.const 143700) "**Notion Request Failed**\0a\0aCheck your internet connection and verify your token with `/notion check connection status`.\00")
+
+  (data (i32.const 144000) "**Parent Page Updated**\0a\0aNew Notion pages will be created inside the configured parent page.\00")
+
+  (data (i32.const 144200) "**No Shared Parent Page Found**\0a\0aNotion requires new pages to be created inside an existing shared page. Open a page in Notion -> `...` -> **Connections** -> add your integration, then try again.\00")
+
+  (data (i32.const 144550) "**Page Created in Notion**\0a\0a[**\00")
+  (data (i32.const 144600) "**](\00")
+  (data (i32.const 144620) ")\0a\0a---\0a\0a\00")
+  (data (i32.const 144650) "\0a\0a---\0a*Saved to your Notion workspace.*\00")
+  (data (i32.const 144750) "**Notion Error:** \00")
+  (data (i32.const 144800) "\0a\0aVerify that your integration has edit permissions on a shared Notion page.\00")
+  (data (i32.const 144950) "Notion Note\00")
+  (data (i32.const 144980) "Notion Page\00")
+  (data (i32.const 145010) "- [\00")
+  (data (i32.const 145020) "](\00")
+  (data (i32.const 145030) ")\0a\00")
+
+  ;; Storage & HTTP templates
+  (data (i32.const 145100) "{\22api\22:\22storage\22,\22operation\22:\22get\22,\22payload\22:{\22key\22:\22api_token\22}}\00")
+  (data (i32.const 145200) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22api_token\22,\22value\22:\22\00")
+  (data (i32.const 145300) "\22}}\00")
+  (data (i32.const 145320) "{\22api\22:\22storage\22,\22operation\22:\22delete\22,\22payload\22:{\22key\22:\22api_token\22}}\00")
+  (data (i32.const 145420) "{\22api\22:\22storage\22,\22operation\22:\22get\22,\22payload\22:{\22key\22:\22parent_id\22}}\00")
+  (data (i32.const 145520) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22parent_id\22,\22value\22:\22\00")
+  (data (i32.const 145620) "{\22api\22:\22storage\22,\22operation\22:\22delete\22,\22payload\22:{\22key\22:\22parent_id\22}}\00")
+
+  (data (i32.const 145720) "{\22api\22:\22network\22,\22operation\22:\22http_request\22,\22payload\22:{\22url\22:\22https://api.notion.com/v1/users/me\22,\22method\22:\22GET\22,\22headers\22:{\22Authorization\22:\22Bearer \00")
+  (data (i32.const 145920) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22timeoutMs\22:20000}}\00")
+
+  (data (i32.const 146050) "{\22api\22:\22network\22,\22operation\22:\22http_request\22,\22payload\22:{\22url\22:\22https://api.notion.com/v1/search\22,\22method\22:\22POST\22,\22headers\22:{\22Authorization\22:\22Bearer \00")
+  (data (i32.const 146250) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22query\5c\22:\5c\22\00")
+  (data (i32.const 146380) "\5c\22,\5c\22page_size\5c\22:5,\5c\22sort\5c\22:{\5c\22direction\5c\22:\5c\22descending\5c\22,\5c\22timestamp\5c\22:\5c\22last_edited_time\5c\22}}\22,\22timeoutMs\22:25000}}\00")
+  (data (i32.const 146550) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22page_size\5c\22:5,\5c\22sort\5c\22:{\5c\22direction\5c\22:\5c\22descending\5c\22,\5c\22timestamp\5c\22:\5c\22last_edited_time\5c\22}}\22,\22timeoutMs\22:25000}}\00")
+  (data (i32.const 146780) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22filter\5c\22:{\5c\22value\5c\22:\5c\22page\5c\22,\5c\22property\5c\22:\5c\22object\5c\22},\5c\22page_size\5c\22:3,\5c\22sort\5c\22:{\5c\22direction\5c\22:\5c\22descending\5c\22,\5c\22timestamp\5c\22:\5c\22last_edited_time\5c\22}}\22,\22timeoutMs\22:20000}}\00")
+
+  ;; Create Page templates
+  (data (i32.const 147100) "{\22api\22:\22network\22,\22operation\22:\22http_request\22,\22payload\22:{\22url\22:\22https://api.notion.com/v1/pages\22,\22method\22:\22POST\22,\22headers\22:{\22Authorization\22:\22Bearer \00")
+  (data (i32.const 147300) "\22,\22Notion-Version\22:\222022-06-28\22,\22Content-Type\22:\22application/json\22},\22body\22:\22{\5c\22parent\5c\22:{\5c\22page_id\5c\22:\5c\22\00")
+  (data (i32.const 147440) "\5c\22},\5c\22properties\5c\22:{\5c\22title\5c\22:{\5c\22title\5c\22:[{\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 147550) "\5c\22}}]}}\22,\22timeoutMs\22:25000}}\00")
+  (data (i32.const 147600) "\5c\22}}]}},\5c\22children\5c\22:[\00")
+  (data (i32.const 147650) "]}\22,\22timeoutMs\22:25000}}\00")
+
+  ;; Block templates for native Notion Markdown blocks
+  (data (i32.const 147700) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22divider\5c\22,\5c\22divider\5c\22:{}}\00")
+  (data (i32.const 147800) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22paragraph\5c\22,\5c\22paragraph\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 147960) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22heading_1\5c\22,\5c\22heading_1\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 148120) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22heading_2\5c\22,\5c\22heading_2\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 148280) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22heading_3\5c\22,\5c\22heading_3\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 148440) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22bulleted_list_item\5c\22,\5c\22bulleted_list_item\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 148620) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22numbered_list_item\5c\22,\5c\22numbered_list_item\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 148800) "{\5c\22object\5c\22:\5c\22block\5c\22,\5c\22type\5c\22:\5c\22quote\5c\22,\5c\22quote\5c\22:{\5c\22rich_text\5c\22:[{\5c\22type\5c\22:\5c\22text\5c\22,\5c\22text\5c\22:{\5c\22content\5c\22:\5c\22\00")
+  (data (i32.const 148960) "\5c\22}}]}}\00")
+
+  ;; JSON keys & needles (NUL-terminated)
+  (data (i32.const 149000) "\22value\22:\22\00")
+  (data (i32.const 149020) "\22operation\22\00")
+  (data (i32.const 149040) "\22action\22\00")
+  (data (i32.const 149060) "\22query\22\00")
+  (data (i32.const 149080) "\22title\22\00")
+  (data (i32.const 149100) "\22content\22\00")
+  (data (i32.const 149120) "\22extra\22\00")
+  (data (i32.const 149140) "\22token\22\00")
+  (data (i32.const 149160) "\22parent_id\22\00")
+
+  (data (i32.const 149200) "create\00")
+  (data (i32.const 149220) "search\00")
+  (data (i32.const 149240) "list\00")
+  (data (i32.const 149260) "status\00")
+  (data (i32.const 149280) "config\00")
+  (data (i32.const 149300) "parent\00")
+  (data (i32.const 149320) "disconnect\00")
+  (data (i32.const 149340) "help\00")
+  (data (i32.const 149360) "secret_\00")
+  (data (i32.const 149380) "ntn_\00")
+
+  (data (i32.const 149400) "\22statusCode\22:200\00")
+  (data (i32.const 149430) "\22results\22:[]\00")
+  (data (i32.const 149460) "\22id\22:\22\00")
+  (data (i32.const 149480) "\22url\22:\22https://\00")
+  (data (i32.const 149510) "\22plain_text\22:\22\00")
+  (data (i32.const 149540) "\22message\22:\22\00")
+  (data (i32.const 149560) "\22object\22:\22\00")
 
   ;; ── Utility Functions ────────────────────────────────────────────────────
+
+  (func $zlen (param $ptr i32) (result i32)
+    (local $i i32)
+    (local.set $i (i32.const 0))
+    (loop $zl
+      (if (i32.ne (i32.load8_u (i32.add (local.get $ptr) (local.get $i))) (i32.const 0))
+        (then
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $zl)
+        )
+      )
+    )
+    (local.get $i)
+  )
 
   (func $copy_mem (param $src i32) (param $dst i32) (param $len i32) (result i32)
     (if (i32.gt_s (local.get $len) (i32.const 0))
@@ -170,6 +149,12 @@
     (local.get $dst)
   )
 
+  (func $copy_zstr (param $src i32) (param $dst i32) (result i32)
+    (local $len i32)
+    (local.set $len (call $zlen (local.get $src)))
+    (call $copy_mem (local.get $src) (local.get $dst) (local.get $len))
+  )
+
   (func $to_lower (param $src i32) (param $dst i32) (param $len i32)
     (local $i i32)
     (local $ch i32)
@@ -179,15 +164,71 @@
         (then
           (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
           (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 90)))
-            (then
-              (local.set $ch (i32.add (local.get $ch) (i32.const 32)))
-            )
+            (then (local.set $ch (i32.add (local.get $ch) (i32.const 32))))
           )
           (i32.store8 (i32.add (local.get $dst) (local.get $i)) (local.get $ch))
           (local.set $i (i32.add (local.get $i) (i32.const 1)))
           (br $l_loop)
         )
       )
+    )
+  )
+
+  (func $is_ws (param $ch i32) (result i32)
+    (i32.or
+      (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 9)))
+      (i32.or (i32.eq (local.get $ch) (i32.const 10)) (i32.eq (local.get $ch) (i32.const 13)))
+    )
+  )
+
+  (func $hex_val (param $ch i32) (result i32)
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 48)) (i32.le_u (local.get $ch) (i32.const 57)))
+      (then (return (i32.sub (local.get $ch) (i32.const 48))))
+    )
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 70)))
+      (then (return (i32.sub (local.get $ch) (i32.const 55))))
+    )
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 97)) (i32.le_u (local.get $ch) (i32.const 102)))
+      (then (return (i32.sub (local.get $ch) (i32.const 87))))
+    )
+    (i32.const -1)
+  )
+
+  (func $emit_utf8 (param $dst i32) (param $cp i32) (result i32)
+    (if (i32.lt_u (local.get $cp) (i32.const 128))
+      (then
+        (i32.store8 (local.get $dst) (local.get $cp))
+        (return (i32.add (local.get $dst) (i32.const 1)))
+      )
+    )
+    (if (i32.lt_u (local.get $cp) (i32.const 2048))
+      (then
+        (i32.store8 (local.get $dst) (i32.or (i32.const 192) (i32.shr_u (local.get $cp) (i32.const 6))))
+        (i32.store8 (i32.add (local.get $dst) (i32.const 1)) (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+        (return (i32.add (local.get $dst) (i32.const 2)))
+      )
+    )
+    (i32.store8 (local.get $dst) (i32.or (i32.const 224) (i32.shr_u (local.get $cp) (i32.const 12))))
+    (i32.store8 (i32.add (local.get $dst) (i32.const 1)) (i32.or (i32.const 128) (i32.and (i32.shr_u (local.get $cp) (i32.const 6)) (i32.const 63))))
+    (i32.store8 (i32.add (local.get $dst) (i32.const 2)) (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+    (i32.add (local.get $dst) (i32.const 3))
+  )
+
+  ;; Decodes 4 hex chars at $ptr into a codepoint, or returns -1 if invalid
+  (func $parse_hex4 (param $ptr i32) (result i32)
+    (local $h0 i32) (local $h1 i32) (local $h2 i32) (local $h3 i32)
+    (local.set $h0 (call $hex_val (i32.load8_u (local.get $ptr))))
+    (local.set $h1 (call $hex_val (i32.load8_u (i32.add (local.get $ptr) (i32.const 1)))))
+    (local.set $h2 (call $hex_val (i32.load8_u (i32.add (local.get $ptr) (i32.const 2)))))
+    (local.set $h3 (call $hex_val (i32.load8_u (i32.add (local.get $ptr) (i32.const 3)))))
+    (if (i32.or
+          (i32.or (i32.lt_s (local.get $h0) (i32.const 0)) (i32.lt_s (local.get $h1) (i32.const 0)))
+          (i32.or (i32.lt_s (local.get $h2) (i32.const 0)) (i32.lt_s (local.get $h3) (i32.const 0))))
+      (then (return (i32.const -1)))
+    )
+    (i32.or
+      (i32.or (i32.shl (local.get $h0) (i32.const 12)) (i32.shl (local.get $h1) (i32.const 8)))
+      (i32.or (i32.shl (local.get $h2) (i32.const 4)) (local.get $h3))
     )
   )
 
@@ -199,38 +240,150 @@
       (then (return (i32.const -1)))
     )
     (local.set $i (i32.const 0))
-    (block $found
-      (loop $outer
-        (if (i32.gt_u (i32.add (local.get $i) (local.get $n_len)) (local.get $h_len))
-          (then (return (i32.const -1)))
-        )
-        (local.set $j (i32.const 0))
-        (local.set $match (i32.const 1))
-        (loop $inner
-          (if (i32.lt_u (local.get $j) (local.get $n_len))
-            (then
-              (if (i32.ne
-                    (i32.load8_u (i32.add (local.get $haystack) (i32.add (local.get $i) (local.get $j))))
-                    (i32.load8_u (i32.add (local.get $needle) (local.get $j))))
-                (then
-                  (local.set $match (i32.const 0))
-                )
-                (else
-                  (local.set $j (i32.add (local.get $j) (i32.const 1)))
-                  (br $inner)
-                )
+    (loop $outer
+      (if (i32.gt_u (i32.add (local.get $i) (local.get $n_len)) (local.get $h_len))
+        (then (return (i32.const -1)))
+      )
+      (local.set $j (i32.const 0))
+      (local.set $match (i32.const 1))
+      (loop $inner
+        (if (i32.lt_u (local.get $j) (local.get $n_len))
+          (then
+            (if (i32.ne
+                  (i32.load8_u (i32.add (local.get $haystack) (i32.add (local.get $i) (local.get $j))))
+                  (i32.load8_u (i32.add (local.get $needle) (local.get $j))))
+              (then (local.set $match (i32.const 0)))
+              (else
+                (local.set $j (i32.add (local.get $j) (i32.const 1)))
+                (br $inner)
               )
             )
           )
         )
-        (if (local.get $match)
-          (then (return (local.get $i)))
-        )
-        (local.set $i (i32.add (local.get $i) (i32.const 1)))
-        (br $outer)
       )
+      (if (local.get $match)
+        (then (return (local.get $i)))
+      )
+      (local.set $i (i32.add (local.get $i) (i32.const 1)))
+      (br $outer)
     )
     (i32.const -1)
+  )
+
+  ;; Finds `"key"` followed by optional whitespace, `:`, optional whitespace, `"`, returning offset of value start (or -1)
+  (func $find_json_key_val (param $src i32) (param $src_len i32) (param $key_ptr i32) (result i32)
+    (local $key_len i32)
+    (local $pos i32)
+    (local $rel i32)
+    (local $k i32)
+    (local.set $key_len (call $zlen (local.get $key_ptr)))
+    (local.set $pos (i32.const 0))
+    (loop $search
+      (if (i32.ge_u (local.get $pos) (local.get $src_len))
+        (then (return (i32.const -1)))
+      )
+      (local.set $rel (call $find_substring
+        (i32.add (local.get $src) (local.get $pos))
+        (i32.sub (local.get $src_len) (local.get $pos))
+        (local.get $key_ptr)
+        (local.get $key_len)
+      ))
+      (if (i32.lt_s (local.get $rel) (i32.const 0))
+        (then (return (i32.const -1)))
+      )
+      (local.set $k (i32.add (i32.add (local.get $pos) (local.get $rel)) (local.get $key_len)))
+      (loop $ws1
+        (if (i32.and (i32.lt_u (local.get $k) (local.get $src_len))
+                     (call $is_ws (i32.load8_u (i32.add (local.get $src) (local.get $k)))))
+          (then
+            (local.set $k (i32.add (local.get $k) (i32.const 1)))
+            (br $ws1)
+          )
+        )
+      )
+      (if (i32.and (i32.lt_u (local.get $k) (local.get $src_len))
+                   (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $k))) (i32.const 58))) ;; ':'
+        (then
+          (local.set $k (i32.add (local.get $k) (i32.const 1)))
+          (loop $ws2
+            (if (i32.and (i32.lt_u (local.get $k) (local.get $src_len))
+                         (call $is_ws (i32.load8_u (i32.add (local.get $src) (local.get $k)))))
+              (then
+                (local.set $k (i32.add (local.get $k) (i32.const 1)))
+                (br $ws2)
+              )
+            )
+          )
+          (if (i32.and (i32.lt_u (local.get $k) (local.get $src_len))
+                       (i32.eq (i32.load8_u (i32.add (local.get $src) (local.get $k))) (i32.const 34))) ;; '"'
+            (then (return (i32.add (local.get $k) (i32.const 1))))
+          )
+        )
+      )
+      (local.set $pos (i32.add (i32.add (local.get $pos) (local.get $rel)) (i32.const 1)))
+      (br $search)
+    )
+    (i32.const -1)
+  )
+
+  ;; Extracts raw JSON string value for NUL-terminated $key_ptr into $dst_ptr up to $max_len
+  (func $extract_json_raw_ws (param $src i32) (param $src_len i32) (param $key_ptr i32) (param $dst_ptr i32) (param $max_len i32) (result i32)
+    (local $v_off i32)
+    (local $val_start i32)
+    (local $i i32)
+    (local $out i32)
+    (local $ch i32)
+    (local $esc i32)
+
+    (local.set $v_off (call $find_json_key_val (local.get $src) (local.get $src_len) (local.get $key_ptr)))
+    (if (i32.lt_s (local.get $v_off) (i32.const 0))
+      (then (return (i32.const -1)))
+    )
+
+    (local.set $val_start (i32.add (local.get $src) (local.get $v_off)))
+    (local.set $i (i32.const 0))
+    (local.set $out (i32.const 0))
+    (local.set $esc (i32.const 0))
+
+    (block $done
+      (loop $scan
+        (if (i32.ge_u (i32.add (local.get $val_start) (local.get $i)) (i32.add (local.get $src) (local.get $src_len)))
+          (then (br $done))
+        )
+        (if (i32.ge_u (local.get $out) (local.get $max_len))
+          (then (br $done))
+        )
+        (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
+        (if (local.get $esc)
+          (then
+            (local.set $esc (i32.const 0))
+            (i32.store8 (i32.add (local.get $dst_ptr) (local.get $out)) (local.get $ch))
+            (local.set $out (i32.add (local.get $out) (i32.const 1)))
+            (local.set $i (i32.add (local.get $i) (i32.const 1)))
+            (br $scan)
+          )
+          (else
+            (if (i32.eq (local.get $ch) (i32.const 92))
+              (then
+                (local.set $esc (i32.const 1))
+                (i32.store8 (i32.add (local.get $dst_ptr) (local.get $out)) (local.get $ch))
+                (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                (br $scan)
+              )
+            )
+            (if (i32.eq (local.get $ch) (i32.const 34))
+              (then (br $done))
+            )
+            (i32.store8 (i32.add (local.get $dst_ptr) (local.get $out)) (local.get $ch))
+            (local.set $out (i32.add (local.get $out) (i32.const 1)))
+            (local.set $i (i32.add (local.get $i) (i32.const 1)))
+            (br $scan)
+          )
+        )
+      )
+    )
+    (local.get $out)
   )
 
   ;; Unescapes Host API HTTP response JSON string in linear memory
@@ -291,13 +444,15 @@
     (local $val_start i32)
     (local $i i32)
     (local $ch i32)
+    (local $req_len i32)
 
-    (local.set $res_len (call $host_call (i32.const 144070) (i32.const 65) (i32.const 1300000) (i32.const 1024)))
+    (local.set $req_len (call $zlen (i32.const 145100)))
+    (local.set $res_len (call $host_call (i32.const 145100) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
     (if (i32.le_s (local.get $res_len) (i32.const 0))
       (then (return (i32.const 0)))
     )
 
-    (local.set $val_idx (call $find_substring (i32.const 1300000) (local.get $res_len) (i32.const 146411) (i32.const 9)))
+    (local.set $val_idx (call $find_substring (i32.const 1300000) (local.get $res_len) (i32.const 149000) (i32.const 9)))
     (if (i32.lt_s (local.get $val_idx) (i32.const 0))
       (then (return (i32.const 0)))
     )
@@ -329,13 +484,15 @@
     (local $val_start i32)
     (local $i i32)
     (local $ch i32)
+    (local $req_len i32)
 
-    (local.set $res_len (call $host_call (i32.const 144343) (i32.const 65) (i32.const 1300000) (i32.const 1024)))
+    (local.set $req_len (call $zlen (i32.const 145420)))
+    (local.set $res_len (call $host_call (i32.const 145420) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
     (if (i32.le_s (local.get $res_len) (i32.const 0))
       (then (return (i32.const 0)))
     )
 
-    (local.set $val_idx (call $find_substring (i32.const 1300000) (local.get $res_len) (i32.const 146411) (i32.const 9)))
+    (local.set $val_idx (call $find_substring (i32.const 1300000) (local.get $res_len) (i32.const 149000) (i32.const 9)))
     (if (i32.lt_s (local.get $val_idx) (i32.const 0))
       (then (return (i32.const 0)))
     )
@@ -360,92 +517,45 @@
     (local.get $i)
   )
 
-  ;; Extracts raw JSON string value (preserving escape sequences) into $dst_ptr up to $max_len
-  ;; Returns length of extracted raw bytes, or -1 if needle not found
-  (func $extract_json_raw (param $src i32) (param $src_len i32) (param $needle_ptr i32) (param $needle_len i32) (param $dst_ptr i32) (param $max_len i32) (result i32)
-    (local $pos i32)
-    (local $val_start i32)
-    (local $i i32)
-    (local $out i32)
-    (local $ch i32)
-    (local $esc i32)
-
-    (local.set $pos (call $find_substring (local.get $src) (local.get $src_len) (local.get $needle_ptr) (local.get $needle_len)))
-    (if (i32.lt_s (local.get $pos) (i32.const 0))
-      (then (return (i32.const -1)))
-    )
-
-    (local.set $val_start (i32.add (i32.add (local.get $src) (local.get $pos)) (local.get $needle_len)))
-    (local.set $i (i32.const 0))
-    (local.set $out (i32.const 0))
-    (local.set $esc (i32.const 0))
-
-    (block $done
-      (loop $scan
-        (if (i32.ge_u (i32.add (local.get $val_start) (local.get $i)) (i32.add (local.get $src) (local.get $src_len)))
-          (then (br $done))
-        )
-        (if (i32.ge_u (local.get $out) (local.get $max_len))
-          (then (br $done))
-        )
-        (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
-        (if (local.get $esc)
-          (then
-            (local.set $esc (i32.const 0))
-            (i32.store8 (i32.add (local.get $dst_ptr) (local.get $out)) (local.get $ch))
-            (local.set $out (i32.add (local.get $out) (i32.const 1)))
-            (local.set $i (i32.add (local.get $i) (i32.const 1)))
-            (br $scan)
-          )
-          (else
-            (if (i32.eq (local.get $ch) (i32.const 92)) ;; ''
-              (then
-                (local.set $esc (i32.const 1))
-                (i32.store8 (i32.add (local.get $dst_ptr) (local.get $out)) (local.get $ch))
-                (local.set $out (i32.add (local.get $out) (i32.const 1)))
-                (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                (br $scan)
-              )
-            )
-            (if (i32.eq (local.get $ch) (i32.const 34)) ;; closing '"'
-              (then (br $done))
-            )
-            (i32.store8 (i32.add (local.get $dst_ptr) (local.get $out)) (local.get $ch))
-            (local.set $out (i32.add (local.get $out) (i32.const 1)))
-            (local.set $i (i32.add (local.get $i) (i32.const 1)))
-            (br $scan)
-          )
-        )
-      )
-    )
-    (local.get $out)
-  )
-
-  ;; Sanitizes a single-line title/query from raw JSON string at $src ($len bytes) into 1303000
-  ;; Converts escaped quotes to single quotes and newlines/tabs to spaces so outer+inner JSON is 100% valid
+  ;; Decodes raw JSON single-line title/query (with \uXXXX) into 1303000 (UTF-8 safe <= 500 bytes)
   (func $sanitize_single_line (param $src i32) (param $len i32) (result i32)
     (local $i i32)
     (local $out i32)
     (local $ch i32)
     (local $next i32)
+    (local $cp i32)
+    (local $next_out i32)
     (local.set $i (i32.const 0))
     (local.set $out (i32.const 0))
     (loop $s_loop
-      (if (i32.and (i32.lt_u (local.get $i) (local.get $len)) (i32.lt_u (local.get $out) (i32.const 500)))
+      (if (i32.and (i32.lt_u (local.get $i) (local.get $len)) (i32.lt_u (local.get $out) (i32.const 490)))
         (then
           (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
-          (if (i32.eq (local.get $ch) (i32.const 92)) ;; ''
+          (if (i32.eq (local.get $ch) (i32.const 92)) ;; '\'
             (then
               (if (i32.lt_u (i32.add (local.get $i) (i32.const 1)) (local.get $len))
                 (then
                   (local.set $next (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 1)))))
-                  (if (i32.eq (local.get $next) (i32.const 34)) ;; escaped quote -> '
+                  (if (i32.and (i32.eq (local.get $next) (i32.const 117)) ;; \uXXXX
+                               (i32.le_u (i32.add (local.get $i) (i32.const 6)) (local.get $len)))
                     (then
-                      (i32.store8 (i32.add (i32.const 1303000) (local.get $out)) (i32.const 39))
+                      (local.set $cp (call $parse_hex4 (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 2)))))
+                      (if (i32.ge_s (local.get $cp) (i32.const 0))
+                        (then
+                          (local.set $next_out (call $emit_utf8 (i32.add (i32.const 1303000) (local.get $out)) (local.get $cp)))
+                          (local.set $out (i32.sub (local.get $next_out) (i32.const 1303000)))
+                          (local.set $i (i32.add (local.get $i) (i32.const 6)))
+                          (br $s_loop)
+                        )
+                      )
+                    )
+                  )
+                  (if (i32.or (i32.eq (local.get $next) (i32.const 34)) (i32.eq (local.get $next) (i32.const 92)))
+                    (then
+                      (i32.store8 (i32.add (i32.const 1303000) (local.get $out)) (local.get $next))
                       (local.set $out (i32.add (local.get $out) (i32.const 1)))
                     )
                     (else
-                      ;; escaped n, r, t -> space
                       (i32.store8 (i32.add (i32.const 1303000) (local.get $out)) (i32.const 32))
                       (local.set $out (i32.add (local.get $out) (i32.const 1)))
                     )
@@ -457,9 +567,6 @@
               (local.set $i (i32.add (local.get $i) (i32.const 1)))
               (br $s_loop)
             )
-          )
-          (if (i32.eq (local.get $ch) (i32.const 34))
-            (then (local.set $ch (i32.const 39)))
           )
           (if (i32.lt_u (local.get $ch) (i32.const 32))
             (then (local.set $ch (i32.const 32)))
@@ -475,25 +582,40 @@
     (local.get $out)
   )
 
-  ;; Decodes raw JSON content at 1400000 ($raw_body_len) into readable UTF-8 at 1600000 ($preview_len)
-  ;; so we can both display it in chat AND chunk/escape it cleanly into Notion paragraph blocks!
+  ;; Decodes raw JSON content at 1400000 into readable UTF-8 at 1600000 (handles \uXXXX, \n, \t, \", \\, \/)
   (func $decode_body_to_preview (param $src i32) (param $len i32) (result i32)
     (local $i i32)
     (local $out i32)
     (local $ch i32)
     (local $next i32)
+    (local $cp i32)
+    (local $next_out i32)
     (local.set $i (i32.const 0))
     (local.set $out (i32.const 0))
     (loop $d_loop
-      (if (i32.and (i32.lt_u (local.get $i) (local.get $len)) (i32.lt_u (local.get $out) (i32.const 24000)))
+      (if (i32.and (i32.lt_u (local.get $i) (local.get $len)) (i32.lt_u (local.get $out) (i32.const 32000)))
         (then
           (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
-          (if (i32.eq (local.get $ch) (i32.const 92)) ;; backslash
+          (if (i32.eq (local.get $ch) (i32.const 92)) ;; '\'
             (then
               (if (i32.lt_u (i32.add (local.get $i) (i32.const 1)) (local.get $len))
                 (then
                   (local.set $next (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 1)))))
-                  (if (i32.eq (local.get $next) (i32.const 110)) ;; escaped n -> newline (10)
+                  (if (i32.and (i32.eq (local.get $next) (i32.const 117))
+                               (i32.le_u (i32.add (local.get $i) (i32.const 6)) (local.get $len)))
+                    (then
+                      (local.set $cp (call $parse_hex4 (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 2)))))
+                      (if (i32.ge_s (local.get $cp) (i32.const 0))
+                        (then
+                          (local.set $next_out (call $emit_utf8 (i32.add (i32.const 1600000) (local.get $out)) (local.get $cp)))
+                          (local.set $out (i32.sub (local.get $next_out) (i32.const 1600000)))
+                          (local.set $i (i32.add (local.get $i) (i32.const 6)))
+                          (br $d_loop)
+                        )
+                      )
+                    )
+                  )
+                  (if (i32.eq (local.get $next) (i32.const 110)) ;; \n
                     (then
                       (i32.store8 (i32.add (i32.const 1600000) (local.get $out)) (i32.const 10))
                       (local.set $out (i32.add (local.get $out) (i32.const 1)))
@@ -501,13 +623,13 @@
                       (br $d_loop)
                     )
                   )
-                  (if (i32.eq (local.get $next) (i32.const 114)) ;; escaped r -> skip
+                  (if (i32.eq (local.get $next) (i32.const 114)) ;; \r -> skip
                     (then
                       (local.set $i (i32.add (local.get $i) (i32.const 2)))
                       (br $d_loop)
                     )
                   )
-                  (if (i32.eq (local.get $next) (i32.const 116)) ;; escaped t -> space
+                  (if (i32.eq (local.get $next) (i32.const 116)) ;; \t -> space
                     (then
                       (i32.store8 (i32.add (i32.const 1600000) (local.get $out)) (i32.const 32))
                       (local.set $out (i32.add (local.get $out) (i32.const 1)))
@@ -515,23 +637,7 @@
                       (br $d_loop)
                     )
                   )
-                  (if (i32.eq (local.get $next) (i32.const 34)) ;; escaped quote -> '
-                    (then
-                      (i32.store8 (i32.add (i32.const 1600000) (local.get $out)) (i32.const 39))
-                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
-                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
-                      (br $d_loop)
-                    )
-                  )
-                  (if (i32.eq (local.get $next) (i32.const 92)) ;; escaped backslash -> /
-                    (then
-                      (i32.store8 (i32.add (i32.const 1600000) (local.get $out)) (i32.const 47))
-                      (local.set $out (i32.add (local.get $out) (i32.const 1)))
-                      (local.set $i (i32.add (local.get $i) (i32.const 2)))
-                      (br $d_loop)
-                    )
-                  )
-                  ;; Any other escape: emit next char
+                  ;; \", \\, \/, or other -> emit $next literally
                   (i32.store8 (i32.add (i32.const 1600000) (local.get $out)) (local.get $next))
                   (local.set $out (i32.add (local.get $out) (i32.const 1)))
                   (local.set $i (i32.add (local.get $i) (i32.const 2)))
@@ -542,10 +648,7 @@
               (br $d_loop)
             )
           )
-          (if (i32.eq (local.get $ch) (i32.const 34)) ;; '"' -> '''
-            (then (local.set $ch (i32.const 39)))
-          )
-          (if (i32.eq (local.get $ch) (i32.const 13)) ;; CR -> skip
+          (if (i32.eq (local.get $ch) (i32.const 13))
             (then
               (local.set $i (i32.add (local.get $i) (i32.const 1)))
               (br $d_loop)
@@ -562,9 +665,9 @@
     (local.get $out)
   )
 
-  ;; Appends a slice of decoded UTF-8 text from 1600000 [$start .. $end) into HTTP request buffer at $dst,
-  ;; escaping newlines (10) as double-backslash n (bytes 92, 92, 110) for the inner Notion JSON body!
-  (func $append_escaped_chunk (param $dst i32) (param $start i32) (param $end i32) (result i32)
+  ;; Appends UTF-8 slice from $base [$start..$end) into outer http_request `body` string at $dst,
+  ;; properly double-escaping " -> \\\" and \ -> \\\\ and \n -> \\n
+  (func $append_json_escaped (param $dst i32) (param $base i32) (param $start i32) (param $end i32) (result i32)
     (local $i i32)
     (local $ch i32)
     (local $p i32)
@@ -573,8 +676,8 @@
     (loop $c_loop
       (if (i32.lt_u (local.get $i) (local.get $end))
         (then
-          (local.set $ch (i32.load8_u (i32.add (i32.const 1600000) (local.get $i))))
-          (if (i32.eq (local.get $ch) (i32.const 10)) ;; newline -> 92, 92, 110
+          (local.set $ch (i32.load8_u (i32.add (local.get $base) (local.get $i))))
+          (if (i32.eq (local.get $ch) (i32.const 10)) ;; \n -> \\n
             (then
               (i32.store8 (local.get $p) (i32.const 92))
               (i32.store8 (i32.add (local.get $p) (i32.const 1)) (i32.const 92))
@@ -582,14 +685,33 @@
               (local.set $p (i32.add (local.get $p) (i32.const 3)))
             )
             (else
-              (if (i32.or (i32.eq (local.get $ch) (i32.const 34)) (i32.eq (local.get $ch) (i32.const 92)))
-                (then (local.set $ch (i32.const 39)))
+              (if (i32.eq (local.get $ch) (i32.const 34)) ;; " -> \\\"
+                (then
+                  (i32.store8 (local.get $p) (i32.const 92))
+                  (i32.store8 (i32.add (local.get $p) (i32.const 1)) (i32.const 92))
+                  (i32.store8 (i32.add (local.get $p) (i32.const 2)) (i32.const 92))
+                  (i32.store8 (i32.add (local.get $p) (i32.const 3)) (i32.const 34))
+                  (local.set $p (i32.add (local.get $p) (i32.const 4)))
+                )
+                (else
+                  (if (i32.eq (local.get $ch) (i32.const 92)) ;; \ -> \\\\
+                    (then
+                      (i32.store8 (local.get $p) (i32.const 92))
+                      (i32.store8 (i32.add (local.get $p) (i32.const 1)) (i32.const 92))
+                      (i32.store8 (i32.add (local.get $p) (i32.const 2)) (i32.const 92))
+                      (i32.store8 (i32.add (local.get $p) (i32.const 3)) (i32.const 92))
+                      (local.set $p (i32.add (local.get $p) (i32.const 4)))
+                    )
+                    (else
+                      (if (i32.lt_u (local.get $ch) (i32.const 32))
+                        (then (local.set $ch (i32.const 32)))
+                      )
+                      (i32.store8 (local.get $p) (local.get $ch))
+                      (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                    )
+                  )
+                )
               )
-              (if (i32.lt_u (local.get $ch) (i32.const 32))
-                (then (local.set $ch (i32.const 32)))
-              )
-              (i32.store8 (local.get $p) (local.get $ch))
-              (local.set $p (i32.add (local.get $p) (i32.const 1)))
             )
           )
           (local.set $i (i32.add (local.get $i) (i32.const 1)))
@@ -600,90 +722,300 @@
     (local.get $p)
   )
 
-  ;; Builds and dispatches POST /v1/pages with multi-block paragraph support (each block <= 1800 UTF-8 bytes)
+  ;; Extracts a 32-char Notion UUID from a raw ID or Notion URL into $dst (returns length 32 or 0)
+  (func $extract_notion_uuid (param $src i32) (param $len i32) (param $dst i32) (result i32)
+    (local $i i32)
+    (local $count i32)
+    (local $ch i32)
+    (local $j i32)
+    (local.set $i (local.get $len))
+    (local.set $count (i32.const 0))
+    ;; Scan backwards for 32 hex chars (ignoring hyphens)
+    (block $done
+      (loop $back
+        (if (i32.le_s (local.get $i) (i32.const 0))
+          (then (br $done))
+        )
+        (local.set $i (i32.sub (local.get $i) (i32.const 1)))
+        (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
+        (if (i32.ge_s (call $hex_val (local.get $ch)) (i32.const 0))
+          (then
+            (local.set $count (i32.add (local.get $count) (i32.const 1)))
+            (i32.store8 (i32.add (local.get $dst) (i32.sub (i32.const 32) (local.get $count))) (local.get $ch))
+            (if (i32.eq (local.get $count) (i32.const 32))
+              (then (return (i32.const 32)))
+            )
+          )
+          (else
+            (if (i32.ne (local.get $ch) (i32.const 45)) ;; not '-'
+              (then (local.set $count (i32.const 0)))
+            )
+          )
+        )
+        (br $back)
+      )
+    )
+    (i32.const 0)
+  )
+
+  ;; Checks if line [start..end) in 1600000 is a divider (--- or ***, >=3 chars, only -/* and spaces)
+  (func $is_divider_line (param $start i32) (param $end i32) (result i32)
+    (local $i i32) (local $ch i32) (local $marks i32)
+    (local.set $i (local.get $start))
+    (local.set $marks (i32.const 0))
+    (loop $dl
+      (if (i32.lt_u (local.get $i) (local.get $end))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (i32.const 1600000) (local.get $i))))
+          (if (i32.or (i32.eq (local.get $ch) (i32.const 45)) (i32.eq (local.get $ch) (i32.const 42)))
+            (then (local.set $marks (i32.add (local.get $marks) (i32.const 1))))
+            (else
+              (if (i32.ne (local.get $ch) (i32.const 32))
+                (then (return (i32.const 0)))
+              )
+            )
+          )
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $dl)
+        )
+      )
+    )
+    (i32.ge_u (local.get $marks) (i32.const 3))
+  )
+
+  ;; Emits a single Notion text block (or split chunks <=1600 bytes) into $p
+  (func $emit_text_block (param $p i32) (param $tmpl i32) (param $start i32) (param $end i32) (param $blocks i32) (result i64)
+    (local $cur i32) (local $chunk_end i32) (local $b i32) (local $first i32)
+    (local.set $cur (local.get $start))
+    (local.set $b (local.get $blocks))
+    (local.set $first (i32.const 1))
+    (loop $bl
+      (if (i32.and (i32.lt_u (local.get $cur) (local.get $end)) (i32.lt_u (local.get $b) (i32.const 95)))
+        (then
+          (if (i32.gt_u (local.get $b) (i32.const 0))
+            (then
+              (i32.store8 (local.get $p) (i32.const 44)) ;; ','
+              (local.set $p (i32.add (local.get $p) (i32.const 1)))
+            )
+          )
+          (local.set $chunk_end (i32.add (local.get $cur) (i32.const 1600)))
+          (if (i32.ge_u (local.get $chunk_end) (local.get $end))
+            (then (local.set $chunk_end (local.get $end)))
+            (else
+              (loop $utf8_back
+                (if (i32.and
+                      (i32.gt_u (local.get $chunk_end) (local.get $cur))
+                      (i32.eq (i32.and (i32.load8_u (i32.add (i32.const 1600000) (local.get $chunk_end))) (i32.const 192)) (i32.const 128)))
+                  (then
+                    (local.set $chunk_end (i32.sub (local.get $chunk_end) (i32.const 1)))
+                    (br $utf8_back)
+                  )
+                )
+              )
+            )
+          )
+          (local.set $p (call $copy_zstr (if (result i32) (local.get $first) (then (local.get $tmpl)) (else (i32.const 147800))) (local.get $p)))
+          (local.set $p (call $append_json_escaped (local.get $p) (i32.const 1600000) (local.get $cur) (local.get $chunk_end)))
+          (local.set $p (call $copy_zstr (i32.const 148960) (local.get $p)))
+          (local.set $first (i32.const 0))
+          (local.set $b (i32.add (local.get $b) (i32.const 1)))
+          (local.set $cur (local.get $chunk_end))
+          (br $bl)
+        )
+      )
+    )
+    (i64.or
+      (i64.shl (i64.extend_i32_u (local.get $p)) (i64.const 32))
+      (i64.extend_i32_u (local.get $b))
+    )
+  )
+
+  ;; Builds and dispatches POST /v1/pages with native Notion Markdown blocks
   (func $send_create_page (result i32)
     (local $p i32)
     (local $req_len i32)
     (local $cur i32)
     (local $total i32)
-    (local $chunk_end i32)
-    (local $scan i32)
-    (local $first_block i32)
+    (local $line_end i32)
+    (local $ls i32)
+    (local $le i32)
+    (local $ch i32)
+    (local $tmpl i32)
+    (local $text_start i32)
+    (local $blocks i32)
+    (local $k i32)
+    (local $packed i64)
 
-    (local.set $p (call $copy_mem (i32.const 145660) (i32.const 200000) (i32.const 146)))
+    (local.set $p (call $copy_zstr (i32.const 147100) (i32.const 200000)))
     (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-    (local.set $p (call $copy_mem (i32.const 145822) (local.get $p) (i32.const 102)))
+    (local.set $p (call $copy_zstr (i32.const 147300) (local.get $p)))
     (local.set $p (call $copy_mem (i32.const 1307000) (local.get $p) (global.get $parent_len)))
-    (local.set $p (call $copy_mem (i32.const 145940) (local.get $p) (i32.const 67)))
-    (local.set $p (call $copy_mem (i32.const 1303000) (local.get $p) (global.get $arg_len)))
+    (local.set $p (call $copy_zstr (i32.const 147440) (local.get $p)))
+    (local.set $p (call $append_json_escaped (local.get $p) (i32.const 1303000) (i32.const 0) (global.get $arg_len)))
 
     (local.set $total (global.get $preview_len))
     (if (i32.gt_u (local.get $total) (i32.const 0))
       (then
-        (local.set $p (call $copy_mem (i32.const 146067) (local.get $p) (i32.const 140)))
+        (local.set $p (call $copy_zstr (i32.const 147600) (local.get $p)))
         (local.set $cur (i32.const 0))
-        (local.set $first_block (i32.const 1))
+        (local.set $blocks (i32.const 0))
 
-        (loop $block_loop
-          (if (i32.lt_u (local.get $cur) (local.get $total))
+        (loop $line_loop
+          (if (i32.and (i32.lt_u (local.get $cur) (local.get $total)) (i32.lt_u (local.get $blocks) (i32.const 95)))
             (then
-              (if (i32.eqz (local.get $first_block))
-                (then
-                  (local.set $p (call $copy_mem (i32.const 146223) (local.get $p) (i32.const 126)))
+              (local.set $line_end (local.get $cur))
+              (loop $find_eol
+                (if (i32.and (i32.lt_u (local.get $line_end) (local.get $total))
+                             (i32.ne (i32.load8_u (i32.add (i32.const 1600000) (local.get $line_end))) (i32.const 10)))
+                  (then
+                    (local.set $line_end (i32.add (local.get $line_end) (i32.const 1)))
+                    (br $find_eol)
+                  )
                 )
               )
-              (local.set $first_block (i32.const 0))
-
-              ;; Determine safe chunk end (<= 1600 bytes per paragraph block, split at newline or UTF-8 boundary)
-              (local.set $chunk_end (i32.add (local.get $cur) (i32.const 1600)))
-              (if (i32.ge_u (local.get $chunk_end) (local.get $total))
-                (then
-                  (local.set $chunk_end (local.get $total))
+              ;; Trim leading spaces
+              (local.set $ls (local.get $cur))
+              (loop $trim_l
+                (if (i32.and (i32.lt_u (local.get $ls) (local.get $line_end))
+                             (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (local.get $ls))) (i32.const 32)))
+                  (then
+                    (local.set $ls (i32.add (local.get $ls) (i32.const 1)))
+                    (br $trim_l)
+                  )
                 )
-                (else
-                  ;; Try to find a newline (10) or space (32) within the last 300 bytes of the chunk
-                  (local.set $scan (local.get $chunk_end))
-                  (block $split_found
-                    (loop $find_nl
-                      (if (i32.gt_u (local.get $scan) (i32.add (local.get $cur) (i32.const 1200)))
+              )
+              (local.set $le (local.get $line_end))
+              (if (i32.lt_u (local.get $ls) (local.get $le))
+                (then
+                  (if (call $is_divider_line (local.get $ls) (local.get $le))
+                    (then
+                      (if (i32.gt_u (local.get $blocks) (i32.const 0))
                         (then
-                          (if (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (local.get $scan))) (i32.const 10))
-                            (then
-                              (local.set $chunk_end (i32.add (local.get $scan) (i32.const 1)))
-                              (br $split_found)
-                            )
-                          )
-                          (local.set $scan (i32.sub (local.get $scan) (i32.const 1)))
-                          (br $find_nl)
+                          (i32.store8 (local.get $p) (i32.const 44))
+                          (local.set $p (i32.add (local.get $p) (i32.const 1)))
                         )
                       )
+                      (local.set $p (call $copy_zstr (i32.const 147700) (local.get $p)))
+                      (local.set $blocks (i32.add (local.get $blocks) (i32.const 1)))
                     )
-                    ;; Otherwise avoid splitting in the middle of a UTF-8 continuation byte (0x80..0xBF)
-                    (loop $utf8_back
-                      (if (i32.and
-                            (i32.gt_u (local.get $chunk_end) (local.get $cur))
-                            (i32.eq (i32.and (i32.load8_u (i32.add (i32.const 1600000) (local.get $chunk_end))) (i32.const 192)) (i32.const 128)))
+                    (else
+                      (local.set $tmpl (i32.const 147800)) ;; default paragraph
+                      (local.set $text_start (local.get $ls))
+                      (local.set $ch (i32.load8_u (i32.add (i32.const 1600000) (local.get $ls))))
+
+                      ;; Check ### / ## / #
+                      (if (i32.eq (local.get $ch) (i32.const 35)) ;; '#'
                         (then
-                          (local.set $chunk_end (i32.sub (local.get $chunk_end) (i32.const 1)))
-                          (br $utf8_back)
+                          (if (i32.and (i32.le_u (i32.add (local.get $ls) (i32.const 4)) (local.get $le))
+                                       (i32.and (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 1)))) (i32.const 35))
+                                                (i32.and (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 2)))) (i32.const 35))
+                                                         (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 3)))) (i32.const 32)))))
+                            (then
+                              (local.set $tmpl (i32.const 148280))
+                              (local.set $text_start (i32.add (local.get $ls) (i32.const 4)))
+                            )
+                            (else
+                              (if (i32.and (i32.le_u (i32.add (local.get $ls) (i32.const 3)) (local.get $le))
+                                           (i32.and (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 1)))) (i32.const 35))
+                                                    (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 2)))) (i32.const 32))))
+                                (then
+                                  (local.set $tmpl (i32.const 148120))
+                                  (local.set $text_start (i32.add (local.get $ls) (i32.const 3)))
+                                )
+                                (else
+                                  (if (i32.and (i32.le_u (i32.add (local.get $ls) (i32.const 2)) (local.get $le))
+                                               (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 1)))) (i32.const 32)))
+                                    (then
+                                      (local.set $tmpl (i32.const 147960))
+                                      (local.set $text_start (i32.add (local.get $ls) (i32.const 2)))
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                        (else
+                          ;; Check '> ' quote
+                          (if (i32.and (i32.eq (local.get $ch) (i32.const 62))
+                                       (i32.and (i32.le_u (i32.add (local.get $ls) (i32.const 2)) (local.get $le))
+                                                (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 1)))) (i32.const 32))))
+                            (then
+                              (local.set $tmpl (i32.const 148800))
+                              (local.set $text_start (i32.add (local.get $ls) (i32.const 2)))
+                            )
+                            (else
+                              ;; Check '- ' or '* ' bullet
+                              (if (i32.and (i32.or (i32.eq (local.get $ch) (i32.const 45)) (i32.eq (local.get $ch) (i32.const 42)))
+                                           (i32.and (i32.le_u (i32.add (local.get $ls) (i32.const 2)) (local.get $le))
+                                                    (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 1)))) (i32.const 32))))
+                                (then
+                                  (local.set $tmpl (i32.const 148440))
+                                  (local.set $text_start (i32.add (local.get $ls) (i32.const 2)))
+                                )
+                                (else
+                                  ;; Check UTF-8 bullet '• ' (0xE2 0x80 0xA2 0x20)
+                                  (if (i32.and (i32.le_u (i32.add (local.get $ls) (i32.const 4)) (local.get $le))
+                                               (i32.and (i32.eq (local.get $ch) (i32.const 226))
+                                                        (i32.and (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 1)))) (i32.const 128))
+                                                                 (i32.and (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 2)))) (i32.const 162))
+                                                                          (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $ls) (i32.const 3)))) (i32.const 32))))))
+                                    (then
+                                      (local.set $tmpl (i32.const 148440))
+                                      (local.set $text_start (i32.add (local.get $ls) (i32.const 4)))
+                                    )
+                                    (else
+                                      ;; Check numbered list '<digits>. '
+                                      (local.set $k (local.get $ls))
+                                      (loop $num_scan
+                                        (if (i32.and (i32.lt_u (local.get $k) (local.get $le))
+                                                     (i32.and (i32.ge_u (i32.load8_u (i32.add (i32.const 1600000) (local.get $k))) (i32.const 48))
+                                                              (i32.le_u (i32.load8_u (i32.add (i32.const 1600000) (local.get $k))) (i32.const 57))))
+                                          (then
+                                            (local.set $k (i32.add (local.get $k) (i32.const 1)))
+                                            (br $num_scan)
+                                          )
+                                        )
+                                      )
+                                      (if (i32.and (i32.gt_u (local.get $k) (local.get $ls))
+                                                   (i32.and (i32.le_u (i32.add (local.get $k) (i32.const 2)) (local.get $le))
+                                                            (i32.and (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (local.get $k))) (i32.const 46))
+                                                                     (i32.eq (i32.load8_u (i32.add (i32.const 1600000) (i32.add (local.get $k) (i32.const 1)))) (i32.const 32)))))
+                                        (then
+                                          (local.set $tmpl (i32.const 148620))
+                                          (local.set $text_start (i32.add (local.get $k) (i32.const 2)))
+                                        )
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+
+                      (if (i32.lt_u (local.get $text_start) (local.get $le))
+                        (then
+                          (local.set $packed (call $emit_text_block (local.get $p) (local.get $tmpl) (local.get $text_start) (local.get $le) (local.get $blocks)))
+                          (local.set $p (i32.wrap_i64 (i64.shr_u (local.get $packed) (i64.const 32))))
+                          (local.set $blocks (i32.wrap_i64 (local.get $packed)))
                         )
                       )
                     )
                   )
                 )
               )
-
-              (local.set $p (call $append_escaped_chunk (local.get $p) (local.get $cur) (local.get $chunk_end)))
-              (local.set $cur (local.get $chunk_end))
-              (br $block_loop)
+              (local.set $cur (i32.add (local.get $line_end) (i32.const 1)))
+              (br $line_loop)
             )
           )
         )
 
-        (local.set $p (call $copy_mem (i32.const 146365) (local.get $p) (i32.const 30)))
+        (local.set $p (call $copy_zstr (i32.const 147650) (local.get $p)))
       )
       (else
-        (local.set $p (call $copy_mem (i32.const 146023) (local.get $p) (i32.const 28)))
+        (local.set $p (call $copy_zstr (i32.const 147550) (local.get $p)))
       )
     )
 
@@ -691,6 +1023,13 @@
     (global.set $phase (i32.const 5))
     (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
     (i32.const 0)
+  )
+
+  ;; Helper: write NUL-terminated static string at $src into output buffer 65536 and return its length
+  (func $return_static (param $src i32) (result i32)
+    (local $end i32)
+    (local.set $end (call $copy_zstr (local.get $src) (i32.const 65536)))
+    (i32.sub (local.get $end) (i32.const 65536))
   )
 
   ;; ── Main Entrypoint ──────────────────────────────────────────────────────
@@ -708,6 +1047,7 @@
     (local $content_len i32)
     (local $tok_json_len i32)
     (local $par_json_len i32)
+    (local $uuid_len i32)
 
     ;; Reset globals
     (global.set $arg_len (i32.const 0))
@@ -717,70 +1057,14 @@
 
     ;; 1. Empty input -> Help
     (if (i32.eqz (local.get $in_len))
-      (then
-        (drop (call $copy_mem (i32.const 140000) (i32.const 65536) (i32.const 1151)))
-        (return (i32.const 1151))
-      )
+      (then (return (call $return_static (i32.const 140000))))
     )
 
-    ;; 2. Direct token paste convenience (if user pastes secret_... or ntn_... directly)
-    (local.set $pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 146823) (i32.const 7)))
-    (if (i32.lt_s (local.get $pos) (i32.const 0))
-      (then
-        (local.set $pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 146846) (i32.const 4)))
-      )
-    )
-    (if (i32.ge_s (local.get $pos) (i32.const 0))
-      (then
-        (local.set $token_start (i32.add (local.get $in_ptr) (local.get $pos)))
-        (local.set $i (i32.const 0))
-        (loop $scan_direct_tok
-          (if (i32.lt_u (i32.add (local.get $token_start) (local.get $i)) (i32.add (local.get $in_ptr) (local.get $in_len)))
-            (then
-              (if (i32.lt_u (local.get $i) (i32.const 120))
-                (then
-                  (local.set $ch (i32.load8_u (i32.add (local.get $token_start) (local.get $i))))
-                  (if (i32.and
-                        (i32.and (i32.gt_u (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
-                        (i32.and (i32.ne (local.get $ch) (i32.const 39)) (i32.ne (local.get $ch) (i32.const 125))))
-                    (then
-                      (i32.store8 (i32.add (i32.const 1302000) (local.get $i)) (local.get $ch))
-                      (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                      (br $scan_direct_tok)
-                    )
-                  )
-                )
-              )
-            )
-          )
-        )
-        (global.set $token_len (local.get $i))
-        (if (i32.gt_u (global.get $token_len) (i32.const 10))
-          (then
-            (local.set $p (call $copy_mem (i32.const 144151) (i32.const 200000) (i32.const 73)))
-            (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-            (local.set $p (call $copy_mem (i32.const 144240) (local.get $p) (i32.const 3)))
-            (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
-            (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
-
-            (local.set $p (call $copy_mem (i32.const 144532) (i32.const 200000) (i32.const 148)))
-            (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-            (local.set $p (call $copy_mem (i32.const 144696) (local.get $p) (i32.const 86)))
-            (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
-            (global.set $phase (i32.const 1))
-            (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
-            (return (i32.const 0))
-          )
-        )
-      )
-    )
-
-    ;; 3. Extract AI Intent Contract JSON fields
-    ;; Extract "operation":"..." or "action":"..." into 1306000
-    (local.set $raw_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146436) (i32.const 13) (i32.const 1306000) (i32.const 64)))
+    ;; 2. Extract AI Intent Contract JSON fields (whitespace-tolerant)
+    (local.set $raw_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149020) (i32.const 1306000) (i32.const 64)))
     (if (i32.lt_s (local.get $raw_len) (i32.const 0))
       (then
-        (local.set $raw_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146465) (i32.const 10) (i32.const 1306000) (i32.const 64)))
+        (local.set $raw_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149040) (i32.const 1306000) (i32.const 64)))
       )
     )
     (if (i32.gt_s (local.get $raw_len) (i32.const 0))
@@ -790,15 +1074,13 @@
       )
     )
 
-    ;; Extract "title":"..." and "query":"..."
-    (local.set $title_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146516) (i32.const 9) (i32.const 1310000) (i32.const 1000)))
-    (local.set $query_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146491) (i32.const 9) (i32.const 1312000) (i32.const 1000)))
+    (local.set $title_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149080) (i32.const 1310000) (i32.const 1000)))
+    (local.set $query_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149060) (i32.const 1312000) (i32.const 1000)))
 
-    ;; Extract "content":"..." (or "extra":"...") into 1400000
-    (local.set $content_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146541) (i32.const 11) (i32.const 1400000) (i32.const 45000)))
+    (local.set $content_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149100) (i32.const 1400000) (i32.const 45000)))
     (if (i32.le_s (local.get $content_len) (i32.const 0))
       (then
-        (local.set $content_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146568) (i32.const 9) (i32.const 1400000) (i32.const 45000)))
+        (local.set $content_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149120) (i32.const 1400000) (i32.const 45000)))
       )
     )
     (if (i32.gt_s (local.get $content_len) (i32.const 0))
@@ -808,38 +1090,89 @@
       )
     )
 
-    ;; ── Dispatch by AI Operation ──
-
-    ;; A. "help"
-    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 146803) (i32.const 4)) (i32.const 0))
+    ;; 3. Direct token paste ONLY when input is NOT an AI JSON intent payload
+    (if (i32.and (i32.eqz (global.get $op_len))
+                 (i32.and (i32.le_s (local.get $title_len) (i32.const 0)) (i32.le_s (local.get $content_len) (i32.const 0))))
       (then
-        (drop (call $copy_mem (i32.const 140000) (i32.const 65536) (i32.const 1151)))
-        (return (i32.const 1151))
+        (local.set $pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 149360) (i32.const 7)))
+        (if (i32.lt_s (local.get $pos) (i32.const 0))
+          (then
+            (local.set $pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 149380) (i32.const 4)))
+          )
+        )
+        (if (i32.ge_s (local.get $pos) (i32.const 0))
+          (then
+            (local.set $token_start (i32.add (local.get $in_ptr) (local.get $pos)))
+            (local.set $i (i32.const 0))
+            (loop $scan_direct_tok
+              (if (i32.lt_u (i32.add (local.get $token_start) (local.get $i)) (i32.add (local.get $in_ptr) (local.get $in_len)))
+                (then
+                  (if (i32.lt_u (local.get $i) (i32.const 120))
+                    (then
+                      (local.set $ch (i32.load8_u (i32.add (local.get $token_start) (local.get $i))))
+                      (if (i32.and
+                            (i32.and (i32.gt_u (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
+                            (i32.and (i32.ne (local.get $ch) (i32.const 39)) (i32.ne (local.get $ch) (i32.const 125))))
+                        (then
+                          (i32.store8 (i32.add (i32.const 1302000) (local.get $i)) (local.get $ch))
+                          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+                          (br $scan_direct_tok)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+            (global.set $token_len (local.get $i))
+            (if (i32.gt_u (global.get $token_len) (i32.const 10))
+              (then
+                (local.set $p (call $copy_zstr (i32.const 145200) (i32.const 200000)))
+                (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
+                (local.set $p (call $copy_zstr (i32.const 145300) (local.get $p)))
+                (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
+                (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
+
+                (local.set $p (call $copy_zstr (i32.const 145720) (i32.const 200000)))
+                (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
+                (local.set $p (call $copy_zstr (i32.const 145920) (local.get $p)))
+                (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
+                (global.set $phase (i32.const 1))
+                (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
+                (return (i32.const 0))
+              )
+            )
+          )
+        )
       )
     )
 
+    ;; ── Dispatch by AI Operation ──
+
+    ;; A. "help"
+    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149340) (i32.const 4)) (i32.const 0))
+      (then (return (call $return_static (i32.const 140000))))
+    )
+
     ;; B. "disconnect"
-    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 146777) (i32.const 10)) (i32.const 0))
+    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149320) (i32.const 10)) (i32.const 0))
       (then
-        (drop (call $host_call (i32.const 144259) (i32.const 68) (i32.const 1300000) (i32.const 1024)))
-        (drop (call $copy_mem (i32.const 142076) (i32.const 65536) (i32.const 94)))
-        (return (i32.const 94))
+        (local.set $req_len (call $zlen (i32.const 145320)))
+        (drop (call $host_call (i32.const 145320) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
+        (return (call $return_static (i32.const 142400)))
       )
     )
 
     ;; C. "status"
-    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 146711) (i32.const 6)) (i32.const 0))
+    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149260) (i32.const 6)) (i32.const 0))
       (then
         (local.set $raw_len (call $load_api_token))
         (if (i32.eqz (local.get $raw_len))
-          (then
-            (drop (call $copy_mem (i32.const 141825) (i32.const 65536) (i32.const 235)))
-            (return (i32.const 235))
-          )
+          (then (return (call $return_static (i32.const 142000))))
         )
-        (local.set $p (call $copy_mem (i32.const 144532) (i32.const 200000) (i32.const 148)))
+        (local.set $p (call $copy_zstr (i32.const 145720) (i32.const 200000)))
         (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-        (local.set $p (call $copy_mem (i32.const 144696) (local.get $p) (i32.const 86)))
+        (local.set $p (call $copy_zstr (i32.const 145920) (local.get $p)))
         (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
         (global.set $phase (i32.const 2))
         (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
@@ -848,9 +1181,9 @@
     )
 
     ;; D. "config"
-    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 146733) (i32.const 6)) (i32.const 0))
+    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149280) (i32.const 6)) (i32.const 0))
       (then
-        (local.set $tok_json_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146593) (i32.const 9) (i32.const 1302000) (i32.const 150)))
+        (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149140) (i32.const 1302000) (i32.const 150)))
         (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
           (then
             (if (i32.gt_s (local.get $query_len) (i32.const 0))
@@ -864,35 +1197,34 @@
         (if (i32.gt_s (local.get $tok_json_len) (i32.const 8))
           (then
             (global.set $token_len (local.get $tok_json_len))
-            (local.set $p (call $copy_mem (i32.const 144151) (i32.const 200000) (i32.const 73)))
+            (local.set $p (call $copy_zstr (i32.const 145200) (i32.const 200000)))
             (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-            (local.set $p (call $copy_mem (i32.const 144240) (local.get $p) (i32.const 3)))
+            (local.set $p (call $copy_zstr (i32.const 145300) (local.get $p)))
             (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
             (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
 
-            (local.set $p (call $copy_mem (i32.const 144532) (i32.const 200000) (i32.const 148)))
+            (local.set $p (call $copy_zstr (i32.const 145720) (i32.const 200000)))
             (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-            (local.set $p (call $copy_mem (i32.const 144696) (local.get $p) (i32.const 86)))
+            (local.set $p (call $copy_zstr (i32.const 145920) (local.get $p)))
             (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
             (global.set $phase (i32.const 1))
             (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
             (return (i32.const 0))
           )
         )
-        (drop (call $copy_mem (i32.const 141825) (i32.const 65536) (i32.const 235)))
-        (return (i32.const 235))
+        (return (call $return_static (i32.const 142000)))
       )
     )
 
-    ;; E. "parent"
-    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 146755) (i32.const 6)) (i32.const 0))
+    ;; E. "parent" (supports raw UUID or full Notion page URL)
+    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149300) (i32.const 6)) (i32.const 0))
       (then
-        (local.set $par_json_len (call $extract_json_raw (local.get $in_ptr) (local.get $in_len) (i32.const 146618) (i32.const 13) (i32.const 1307000) (i32.const 60)))
+        (local.set $par_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149160) (i32.const 1314000) (i32.const 240)))
         (if (i32.le_s (local.get $par_json_len) (i32.const 0))
           (then
             (if (i32.gt_s (local.get $query_len) (i32.const 0))
               (then
-                (drop (call $copy_mem (i32.const 1312000) (i32.const 1307000) (local.get $query_len)))
+                (drop (call $copy_mem (i32.const 1312000) (i32.const 1314000) (local.get $query_len)))
                 (local.set $par_json_len (local.get $query_len))
               )
             )
@@ -900,37 +1232,41 @@
         )
         (if (i32.gt_s (local.get $par_json_len) (i32.const 10))
           (then
-            (global.set $parent_len (local.get $par_json_len))
-            (local.set $p (call $copy_mem (i32.const 144424) (i32.const 200000) (i32.const 73)))
+            (local.set $uuid_len (call $extract_notion_uuid (i32.const 1314000) (local.get $par_json_len) (i32.const 1307000)))
+            (if (i32.gt_u (local.get $uuid_len) (i32.const 0))
+              (then (global.set $parent_len (local.get $uuid_len)))
+              (else
+                (if (i32.gt_u (local.get $par_json_len) (i32.const 60))
+                  (then (local.set $par_json_len (i32.const 60)))
+                )
+                (drop (call $copy_mem (i32.const 1314000) (i32.const 1307000) (local.get $par_json_len)))
+                (global.set $parent_len (local.get $par_json_len))
+              )
+            )
+            (local.set $p (call $copy_zstr (i32.const 145520) (i32.const 200000)))
             (local.set $p (call $copy_mem (i32.const 1307000) (local.get $p) (global.get $parent_len)))
-            (local.set $p (call $copy_mem (i32.const 144513) (local.get $p) (i32.const 3)))
+            (local.set $p (call $copy_zstr (i32.const 145300) (local.get $p)))
             (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
             (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
-            (drop (call $copy_mem (i32.const 143205) (i32.const 65536) (i32.const 137)))
-            (return (i32.const 137))
+            (return (call $return_static (i32.const 144000)))
           )
         )
       )
     )
 
-    ;; F. "create" (or if "content" or "title" was provided by AI)
+    ;; F. "create" (or if "content" or "title" was provided)
     (if (i32.or
-          (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 146647) (i32.const 6)) (i32.const 0))
+          (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149200) (i32.const 6)) (i32.const 0))
           (i32.or (i32.gt_s (local.get $content_len) (i32.const 0)) (i32.gt_s (local.get $title_len) (i32.const 0))))
       (then
-        ;; Ensure we have a clean title in 1303000
         (if (i32.gt_s (local.get $title_len) (i32.const 0))
-          (then
-            (drop (call $sanitize_single_line (i32.const 1310000) (local.get $title_len)))
-          )
+          (then (drop (call $sanitize_single_line (i32.const 1310000) (local.get $title_len))))
           (else
             (if (i32.gt_s (local.get $query_len) (i32.const 0))
-              (then
-                (drop (call $sanitize_single_line (i32.const 1312000) (local.get $query_len)))
-              )
+              (then (drop (call $sanitize_single_line (i32.const 1312000) (local.get $query_len))))
               (else
-                (drop (call $copy_mem (i32.const 146866) (i32.const 1303000) (i32.const 14)))
-                (global.set $arg_len (i32.const 14))
+                (local.set $p (call $copy_zstr (i32.const 144950) (i32.const 1303000)))
+                (global.set $arg_len (i32.sub (local.get $p) (i32.const 1303000)))
               )
             )
           )
@@ -938,23 +1274,18 @@
 
         (local.set $raw_len (call $load_api_token))
         (if (i32.eqz (local.get $raw_len))
-          (then
-            (drop (call $copy_mem (i32.const 141825) (i32.const 65536) (i32.const 235)))
-            (return (i32.const 235))
-          )
+          (then (return (call $return_static (i32.const 142000))))
         )
 
         (local.set $has_saved_parent (call $load_parent_id))
         (if (i32.gt_u (local.get $has_saved_parent) (i32.const 0))
-          (then
-            (return (call $send_create_page))
-          )
+          (then (return (call $send_create_page)))
         )
 
         ;; Auto-discover parent page in Notion workspace
-        (local.set $p (call $copy_mem (i32.const 144798) (i32.const 200000) (i32.const 147)))
+        (local.set $p (call $copy_zstr (i32.const 146050) (i32.const 200000)))
         (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-        (local.set $p (call $copy_mem (i32.const 145400) (local.get $p) (i32.const 244)))
+        (local.set $p (call $copy_zstr (i32.const 146780) (local.get $p)))
         (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
         (global.set $phase (i32.const 4))
         (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
@@ -962,41 +1293,32 @@
       )
     )
 
-    ;; G. "search" / "list" (or default when authenticated)
+    ;; G. "search" / "list"
     (local.set $raw_len (call $load_api_token))
     (if (i32.eqz (local.get $raw_len))
-      (then
-        (drop (call $copy_mem (i32.const 141825) (i32.const 65536) (i32.const 235)))
-        (return (i32.const 235))
-      )
+      (then (return (call $return_static (i32.const 142000))))
     )
 
-    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 146691) (i32.const 4)) (i32.const 0))
-      (then
-        (global.set $arg_len (i32.const 0))
-      )
+    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149240) (i32.const 4)) (i32.const 0))
+      (then (global.set $arg_len (i32.const 0)))
       (else
         (if (i32.gt_s (local.get $query_len) (i32.const 0))
-          (then
-            (drop (call $sanitize_single_line (i32.const 1312000) (local.get $query_len)))
-          )
-          (else
-            (global.set $arg_len (i32.const 0))
-          )
+          (then (drop (call $sanitize_single_line (i32.const 1312000) (local.get $query_len))))
+          (else (global.set $arg_len (i32.const 0)))
         )
       )
     )
 
-    (local.set $p (call $copy_mem (i32.const 144798) (i32.const 200000) (i32.const 147)))
+    (local.set $p (call $copy_zstr (i32.const 146050) (i32.const 200000)))
     (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
     (if (i32.gt_u (global.get $arg_len) (i32.const 0))
       (then
-        (local.set $p (call $copy_mem (i32.const 144961) (local.get $p) (i32.const 88)))
-        (local.set $p (call $copy_mem (i32.const 1303000) (local.get $p) (global.get $arg_len)))
-        (local.set $p (call $copy_mem (i32.const 145065) (local.get $p) (i32.const 115)))
+        (local.set $p (call $copy_zstr (i32.const 146250) (local.get $p)))
+        (local.set $p (call $append_json_escaped (local.get $p) (i32.const 1303000) (i32.const 0) (global.get $arg_len)))
+        (local.set $p (call $copy_zstr (i32.const 146380) (local.get $p)))
       )
       (else
-        (local.set $p (call $copy_mem (i32.const 145196) (local.get $p) (i32.const 188)))
+        (local.set $p (call $copy_zstr (i32.const 146550) (local.get $p)))
       )
     )
     (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
@@ -1016,6 +1338,9 @@
     (local $item_count i32)
     (local $url_start i32)
     (local $url_len i32)
+    (local $url_end i32)
+    (local $next_url_idx i32)
+    (local $next_bound i32)
     (local $title_start i32)
     (local $title_len i32)
     (local $i i32)
@@ -1025,25 +1350,16 @@
     (local $msg_len i32)
     (local $prev_copy_len i32)
 
-    ;; Unescape host response into 900000
     (local.set $u_len (call $unescape_response (local.get $res_ptr) (local.get $res_len) (i32.const 900000)))
-
-    ;; Check HTTP status 200
-    (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 146896) (i32.const 16)))
+    (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 149400) (i32.const 16)))
     (local.set $is_200 (i32.ge_s (local.get $idx) (i32.const 0)))
 
     ;; ─── Phase 1: Config Verification ───
     (if (i32.eq (global.get $phase) (i32.const 1))
       (then
         (if (local.get $is_200)
-          (then
-            (drop (call $copy_mem (i32.const 141167) (i32.const 65536) (i32.const 352)))
-            (return (i32.const 352))
-          )
-          (else
-            (drop (call $copy_mem (i32.const 141535) (i32.const 65536) (i32.const 274)))
-            (return (i32.const 274))
-          )
+          (then (return (call $return_static (i32.const 141200))))
+          (else (return (call $return_static (i32.const 141600))))
         )
       )
     )
@@ -1052,38 +1368,25 @@
     (if (i32.eq (global.get $phase) (i32.const 2))
       (then
         (if (local.get $is_200)
-          (then
-            (drop (call $copy_mem (i32.const 142186) (i32.const 65536) (i32.const 352)))
-            (return (i32.const 352))
-          )
-          (else
-            (drop (call $copy_mem (i32.const 142554) (i32.const 65536) (i32.const 155)))
-            (return (i32.const 155))
-          )
+          (then (return (call $return_static (i32.const 142600))))
+          (else (return (call $return_static (i32.const 143000))))
         )
       )
     )
 
-    ;; ─── Phase 3: Search / List ───
+    ;; ─── Phase 3: Search / List (bounded per-item title extraction) ───
     (if (i32.eq (global.get $phase) (i32.const 3))
       (then
         (if (i32.eqz (local.get $is_200))
-          (then
-            (drop (call $copy_mem (i32.const 143039) (i32.const 65536) (i32.const 150)))
-            (return (i32.const 150))
-          )
+          (then (return (call $return_static (i32.const 143700))))
         )
 
-        (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 146928) (i32.const 12)))
+        (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 149430) (i32.const 12)))
         (if (i32.ge_s (local.get $idx) (i32.const 0))
-          (then
-            (drop (call $copy_mem (i32.const 142785) (i32.const 65536) (i32.const 238)))
-            (return (i32.const 238))
-          )
+          (then (return (call $return_static (i32.const 143400))))
         )
 
-        (local.set $p (call $copy_mem (i32.const 142725) (i32.const 65536) (i32.const 44)))
-
+        (local.set $p (call $copy_zstr (i32.const 143300) (i32.const 65536)))
         (local.set $scan_ptr (i32.const 900000))
         (local.set $scan_end (i32.add (i32.const 900000) (local.get $u_len)))
         (local.set $item_count (i32.const 0))
@@ -1091,7 +1394,7 @@
         (loop $parse_items
           (if (i32.and (i32.lt_u (local.get $item_count) (i32.const 5)) (i32.lt_u (local.get $scan_ptr) (local.get $scan_end)))
             (then
-              (local.set $idx (call $find_substring (local.get $scan_ptr) (i32.sub (local.get $scan_end) (local.get $scan_ptr)) (i32.const 146978) (i32.const 15)))
+              (local.set $idx (call $find_substring (local.get $scan_ptr) (i32.sub (local.get $scan_end) (local.get $scan_ptr)) (i32.const 149480) (i32.const 15)))
               (if (i32.ge_s (local.get $idx) (i32.const 0))
                 (then
                   (local.set $url_start (i32.add (i32.add (local.get $scan_ptr) (local.get $idx)) (i32.const 7)))
@@ -1109,13 +1412,33 @@
                     )
                   )
                   (local.set $url_len (local.get $i))
+                  (local.set $url_end (i32.add (local.get $url_start) (local.get $url_len)))
 
-                  (local.set $title_start (i32.const 147066))
-                  (local.set $title_len (i32.const 17))
-                  (local.set $idx (call $find_substring (local.get $scan_ptr) (i32.sub (local.get $scan_end) (local.get $scan_ptr)) (i32.const 147009) (i32.const 14)))
+                  ;; Bound title search to [$scan_ptr .. $url_start] first, then [$url_end .. next_url]
+                  (local.set $title_start (i32.const 144980))
+                  (local.set $title_len (call $zlen (i32.const 144980)))
+                  (local.set $idx (call $find_substring (local.get $scan_ptr) (i32.sub (local.get $url_start) (local.get $scan_ptr)) (i32.const 149510) (i32.const 14)))
                   (if (i32.ge_s (local.get $idx) (i32.const 0))
                     (then
                       (local.set $title_start (i32.add (i32.add (local.get $scan_ptr) (local.get $idx)) (i32.const 14)))
+                    )
+                    (else
+                      (local.set $next_url_idx (call $find_substring (local.get $url_end) (i32.sub (local.get $scan_end) (local.get $url_end)) (i32.const 149480) (i32.const 15)))
+                      (local.set $next_bound (if (result i32) (i32.ge_s (local.get $next_url_idx) (i32.const 0))
+                        (then (i32.add (local.get $url_end) (local.get $next_url_idx)))
+                        (else (local.get $scan_end))))
+                      (local.set $next_url_idx (call $find_substring (local.get $url_end) (i32.sub (local.get $next_bound) (local.get $url_end)) (i32.const 149560) (i32.const 10)))
+                      (if (i32.ge_s (local.get $next_url_idx) (i32.const 0))
+                        (then (local.set $next_bound (i32.add (local.get $url_end) (local.get $next_url_idx))))
+                      )
+                      (local.set $idx (call $find_substring (local.get $url_end) (i32.sub (local.get $next_bound) (local.get $url_end)) (i32.const 149510) (i32.const 14)))
+                      (if (i32.ge_s (local.get $idx) (i32.const 0))
+                        (then (local.set $title_start (i32.add (i32.add (local.get $url_end) (local.get $idx)) (i32.const 14))))
+                      )
+                    )
+                  )
+                  (if (i32.ge_s (local.get $idx) (i32.const 0))
+                    (then
                       (local.set $i (i32.const 0))
                       (loop $find_title_end
                         (if (i32.and (i32.lt_u (local.get $i) (i32.const 80)) (i32.lt_u (i32.add (local.get $title_start) (local.get $i)) (local.get $scan_end)))
@@ -1129,21 +1452,20 @@
                           )
                         )
                       )
-                      (local.set $title_len (local.get $i))
+                      (if (i32.gt_u (local.get $i) (i32.const 0))
+                        (then (local.set $title_len (local.get $i)))
+                      )
                     )
                   )
 
-                  (local.set $p (call $copy_mem (i32.const 147099) (local.get $p) (i32.const 10)))
-                  (if (i32.gt_u (local.get $title_len) (i32.const 0))
-                    (then (local.set $p (call $copy_mem (local.get $title_start) (local.get $p) (local.get $title_len))))
-                    (else (local.set $p (call $copy_mem (i32.const 147066) (local.get $p) (i32.const 17))))
-                  )
-                  (local.set $p (call $copy_mem (i32.const 147125) (local.get $p) (i32.const 2)))
+                  (local.set $p (call $copy_zstr (i32.const 145010) (local.get $p)))
+                  (local.set $p (call $copy_mem (local.get $title_start) (local.get $p) (local.get $title_len)))
+                  (local.set $p (call $copy_zstr (i32.const 145020) (local.get $p)))
                   (local.set $p (call $copy_mem (local.get $url_start) (local.get $p) (local.get $url_len)))
-                  (local.set $p (call $copy_mem (i32.const 147143) (local.get $p) (i32.const 2)))
+                  (local.set $p (call $copy_zstr (i32.const 145030) (local.get $p)))
 
                   (local.set $item_count (i32.add (local.get $item_count) (i32.const 1)))
-                  (local.set $scan_ptr (i32.add (local.get $url_start) (local.get $url_len)))
+                  (local.set $scan_ptr (local.get $url_end))
                   (br $parse_items)
                 )
               )
@@ -1152,10 +1474,7 @@
         )
 
         (if (i32.eqz (local.get $item_count))
-          (then
-            (drop (call $copy_mem (i32.const 142785) (i32.const 65536) (i32.const 238)))
-            (return (i32.const 238))
-          )
+          (then (return (call $return_static (i32.const 143400))))
         )
 
         (return (i32.sub (local.get $p) (i32.const 65536)))
@@ -1167,7 +1486,7 @@
       (then
         (if (i32.eqz (local.get $is_200))
           (then
-            (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 147039) (i32.const 11)))
+            (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 149540) (i32.const 11)))
             (if (i32.ge_s (local.get $idx) (i32.const 0))
               (then
                 (local.set $msg_start (i32.add (i32.add (i32.const 900000) (local.get $idx)) (i32.const 11)))
@@ -1185,24 +1504,19 @@
                   )
                 )
                 (local.set $msg_len (local.get $i))
-                (local.set $p (call $copy_mem (i32.const 143920) (i32.const 65536) (i32.const 25)))
+                (local.set $p (call $copy_zstr (i32.const 144750) (i32.const 65536)))
                 (local.set $p (call $copy_mem (local.get $msg_start) (local.get $p) (local.get $msg_len)))
-                (local.set $p (call $copy_mem (i32.const 143961) (local.get $p) (i32.const 93)))
+                (local.set $p (call $copy_zstr (i32.const 144800) (local.get $p)))
                 (return (i32.sub (local.get $p) (i32.const 65536)))
               )
             )
-            (drop (call $copy_mem (i32.const 143358) (i32.const 65536) (i32.const 327)))
-            (return (i32.const 327))
+            (return (call $return_static (i32.const 144200)))
           )
         )
 
-        ;; Extract first "id":"..." from results
-        (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 146956) (i32.const 6)))
+        (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 149460) (i32.const 6)))
         (if (i32.lt_s (local.get $idx) (i32.const 0))
-          (then
-            (drop (call $copy_mem (i32.const 143358) (i32.const 65536) (i32.const 327)))
-            (return (i32.const 327))
-          )
+          (then (return (call $return_static (i32.const 144200))))
         )
 
         (local.set $url_start (i32.add (i32.add (i32.const 900000) (local.get $idx)) (i32.const 6)))
@@ -1223,14 +1537,13 @@
         )
         (global.set $parent_len (local.get $i))
 
-        ;; Persist parent ID for future calls
-        (local.set $p (call $copy_mem (i32.const 144424) (i32.const 200000) (i32.const 73)))
+        ;; Persist parent ID
+        (local.set $p (call $copy_zstr (i32.const 145520) (i32.const 200000)))
         (local.set $p (call $copy_mem (i32.const 1307000) (local.get $p) (global.get $parent_len)))
-        (local.set $p (call $copy_mem (i32.const 144513) (local.get $p) (i32.const 3)))
+        (local.set $p (call $copy_zstr (i32.const 145300) (local.get $p)))
         (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
         (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
 
-        ;; Step 4B: POST /v1/pages with title + content body
         (return (call $send_create_page))
       )
     )
@@ -1240,8 +1553,11 @@
       (then
         (if (i32.eqz (local.get $is_200))
           (then
-            ;; If parent_id was invalid/archived, clear stored parent_id so next call re-discovers a valid parent
-            (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 147039) (i32.const 11)))
+            ;; Clear stored parent_id so next call re-discovers a valid parent
+            (local.set $req_len (call $zlen (i32.const 145620)))
+            (drop (call $host_call (i32.const 145620) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
+
+            (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 149540) (i32.const 11)))
             (if (i32.ge_s (local.get $idx) (i32.const 0))
               (then
                 (local.set $msg_start (i32.add (i32.add (i32.const 900000) (local.get $idx)) (i32.const 11)))
@@ -1259,19 +1575,19 @@
                   )
                 )
                 (local.set $msg_len (local.get $i))
-                (local.set $p (call $copy_mem (i32.const 143920) (i32.const 65536) (i32.const 25)))
+                (local.set $p (call $copy_zstr (i32.const 144750) (i32.const 65536)))
                 (local.set $p (call $copy_mem (local.get $msg_start) (local.get $p) (local.get $msg_len)))
-                (local.set $p (call $copy_mem (i32.const 143961) (local.get $p) (i32.const 93)))
+                (local.set $p (call $copy_zstr (i32.const 144800) (local.get $p)))
                 (return (i32.sub (local.get $p) (i32.const 65536)))
               )
             )
-            (local.set $p (call $copy_mem (i32.const 143920) (i32.const 65536) (i32.const 25)))
-            (local.set $p (call $copy_mem (i32.const 143961) (local.get $p) (i32.const 93)))
+            (local.set $p (call $copy_zstr (i32.const 144750) (i32.const 65536)))
+            (local.set $p (call $copy_zstr (i32.const 144800) (local.get $p)))
             (return (i32.sub (local.get $p) (i32.const 65536)))
           )
         )
 
-        (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 146978) (i32.const 15)))
+        (local.set $idx (call $find_substring (i32.const 900000) (local.get $u_len) (i32.const 149480) (i32.const 15)))
         (local.set $url_start (i32.const 900000))
         (local.set $url_len (i32.const 0))
         (if (i32.ge_s (local.get $idx) (i32.const 0))
@@ -1294,12 +1610,12 @@
           )
         )
 
-        ;; Build rich response: link + generated content preview
-        (local.set $p (call $copy_mem (i32.const 143701) (i32.const 65536) (i32.const 56)))
+        ;; Minimalist Chattree Markdown response: link + preview
+        (local.set $p (call $copy_zstr (i32.const 144550) (i32.const 65536)))
         (local.set $p (call $copy_mem (i32.const 1303000) (local.get $p) (global.get $arg_len)))
-        (local.set $p (call $copy_mem (i32.const 143773) (local.get $p) (i32.const 4)))
+        (local.set $p (call $copy_zstr (i32.const 144600) (local.get $p)))
         (local.set $p (call $copy_mem (local.get $url_start) (local.get $p) (local.get $url_len)))
-        (local.set $p (call $copy_mem (i32.const 143793) (local.get $p) (i32.const 8)))
+        (local.set $p (call $copy_zstr (i32.const 144620) (local.get $p)))
 
         (if (i32.gt_u (global.get $preview_len) (i32.const 0))
           (then
@@ -1311,12 +1627,11 @@
           )
         )
 
-        (local.set $p (call $copy_mem (i32.const 143817) (local.get $p) (i32.const 87)))
+        (local.set $p (call $copy_zstr (i32.const 144650) (local.get $p)))
         (return (i32.sub (local.get $p) (i32.const 65536)))
       )
     )
 
-    (drop (call $copy_mem (i32.const 140000) (i32.const 65536) (i32.const 1151)))
-    (i32.const 1151)
+    (call $return_static (i32.const 140000))
   )
 )

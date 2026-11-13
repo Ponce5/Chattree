@@ -1,33 +1,34 @@
-# Chattree ElevenLabs Voice Generator
+# ElevenLabs Voice — Chattree Official Plugin
 
-Plugin oficial para Chattree que integra la API de síntesis de voz de ElevenLabs. Permite generar archivos de audio MP3 de alta fidelidad directamente desde el chat y descargarlos o compartirlos en el dispositivo.
+Official ElevenLabs AI voice and speech synthesis plugin for Chattree. Converts text into downloadable MP3 audio using natural-language `intentContract` routing or direct slash commands.
 
-## Capacidades requeridas
-- `network.http`: Para realizar llamadas HTTPS a la API de ElevenLabs (`https://api.elevenlabs.io/v1/text-to-speech/...`).
-- `storage.private`: Para guardar de manera segura la clave de API del usuario.
-- `files.write`: Para almacenar el archivo de audio MP3 en el sandbox del dispositivo.
+## Setup
 
-## Uso
-
-1. **Configuración inicial:**
+1. Create or copy your API key from [ElevenLabs](https://elevenlabs.io).
+2. Save your key in Chattree:
+   ```text
+   /elevenlabs config <your_api_key>
    ```
-   /elevenlabs config <tu_api_key>
-   ```
-   *(Obtén una clave gratuita con 10,000 caracteres mensuales en https://elevenlabs.io)*
-
-2. **Verificar estado:**
-   ```
+3. Verify your configuration:
+   ```text
    /elevenlabs status
    ```
 
-3. **Generar audio:**
-   ```
-   /elevenlabs Hola, este es un mensaje generado con inteligencia artificial en Chattree.
-   ```
-   O usando el alias:
-   ```
-   /tts Bienvenidos a nuestra presentación
-   ```
+## Usage
 
-El archivo generado aparecerá como una burbuja interactiva en el chat con botones nativos para **Guardar** (descargar al dispositivo) y **Compartir**.
+- `/elevenlabs <text>` — Generate MP3 audio with the default voice (`George`)
+- `/tts <text>` — Quick alias for speech synthesis
+- `/elevenlabs disconnect` — Remove your saved API key
+- Natural language: ask Chattree in plain text (for example, *"Read this summary aloud with Sarah's voice"*)
 
+## Supported Voices
+
+- `george` (default)
+- `sarah`
+- `rachel`
+- `adam`
+- `antoni`
+- `josh`
+- `elli`
+- `sam`
+- Or pass any 20-character ElevenLabs `voice_id` directly.

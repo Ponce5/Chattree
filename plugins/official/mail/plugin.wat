@@ -1,147 +1,830 @@
-;; Chattree Official Mail Plugin — WebAssembly Text format (WAT)
-;;
-;; Direct integration with Chattree Host API ('email' namespace)
-;; Backed by native IMAP & SMTP client (enough_mail) in Chattree.
-;;
-;; Supported commands:
-;;   /mail                                          (Fetches real inbox)
-;;   /mail inbox                                    (Fetches real inbox)
-;;   /mail list                                     (Fetches real inbox)
-;;   /mail config <email> <app_password_16_chars>   (Validates and saves real account)
-;;   /mail read <id>                                (Fetches full message body)
-;;   /mail send <to> | <subject> | <message>        (Sends real email via SMTP)
-;;   /mail disconnect                               (Unlinks account)
-;;
-;; Protocol:
-;;   Offset 0:    Input string written by Chattree
-;;   Offset 1024: Output string returned to chat
-;;   Offset 2048: JSON request payload for chattree.host_call
-;;   Offset 4096: JSON response payload from ChattreeHostApi
-
+;; Chattree Official Gmail / Mail Plugin (v2.2.0)
+;; Direct integration with Chattree Host API ('email' namespace).
 (module
-  ;; Import host_call from Chattree runtime
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
   )
 
-  ;; Export 4 memory pages (256 KB linear memory)
-  (memory (export "memory") 4)
+  ;; 32 pages = 2 MB linear memory
+  (memory (export "memory") 32)
 
-  ;; Pre-loaded request templates
-  ;; 3000: inbox request (47 bytes)
-  (data (i32.const 3000) "{\"api\":\"email\",\"operation\":\"inbox\",\"payload\":{}}")
-  ;; 3100: disconnect request (52 bytes)
-  (data (i32.const 3100) "{\"api\":\"email\",\"operation\":\"disconnect\",\"payload\":{}}")
-  ;; 3200: config prefix (47 bytes)
-  (data (i32.const 3200) "{\"api\":\"email\",\"operation\":\"config\",\"payload\":\"")
-  ;; 3280: config suffix (2 bytes)
-  (data (i32.const 3280) "\"}")
-  ;; 3300: read prefix (51 bytes)
-  (data (i32.const 3300) "{\"api\":\"email\",\"operation\":\"read\",\"payload\":{\"id\":\"")
-  ;; 3380: read suffix (3 bytes)
-  (data (i32.const 3380) "\"}}")
+  ;; Static Data Segments (null-terminated)
+  (data (i32.const 340000) "**Gmail & Inbox**\0a\0aRead your inbox, inspect full messages, and send emails via IMAP/SMTP.\0a\0a**Commands:**\0a- `/gmail` or `/gmail inbox` \e2\80\94 Fetch recent inbox messages\0a- `/gmail read <id>` \e2\80\94 Read full message by ID\0a- `/gmail send <to> | <subject> | <body>` \e2\80\94 Send an email\0a- `/gmail config <email> <app_password>` \e2\80\94 Connect your account\0a- `/gmail disconnect` \e2\80\94 Remove saved credentials\0a- `/gmail help` \e2\80\94 Show this help\00")
+  (data (i32.const 340600) "**Missing email or password.**\0a\0aUsage:\0a`/gmail config <email> <app_password>`\00")
+  (data (i32.const 340720) "**Missing message ID.**\0a\0aUsage:\0a`/gmail read <id>`\00")
+  (data (i32.const 340820) "**Missing recipient.**\0a\0aUsage:\0a`/gmail send <to> | <subject> | <body>`\00")
 
-  ;; Main entrypoint: (inputPtr: i32, inputLen: i32) -> outputLen: i32
-  (func (export "mail_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
-    (local $first_char i32)
-    (local $second_char i32)
-    (local $req_len i32)
-    (local $id_start i32)
-    (local $id_len i32)
+  ;; Email Host API JSON templates
+  (data (i32.const 341000) "{\22api\22:\22email\22,\22operation\22:\22inbox\22,\22payload\22:{}}\00")
+  (data (i32.const 341080) "{\22api\22:\22email\22,\22operation\22:\22disconnect\22,\22payload\22:{}}\00")
+  (data (i32.const 341160) "{\22api\22:\22email\22,\22operation\22:\22config\22,\22payload\22:{\22email\22:\22\00")
+  (data (i32.const 341240) "\22,\22password\22:\22\00")
+  (data (i32.const 341280) "\22}}\00")
+  (data (i32.const 341300) "{\22api\22:\22email\22,\22operation\22:\22read\22,\22payload\22:{\22id\22:\22\00")
+  (data (i32.const 341380) "{\22api\22:\22email\22,\22operation\22:\22send\22,\22payload\22:{\22to\22:\22\00")
+  (data (i32.const 341460) "\22,\22subject\22:\22\00")
+  (data (i32.const 341500) "\22,\22body\22:\22\00")
 
-    ;; 1. If input is empty -> fetch real inbox!
-    (if (i32.eqz (local.get $in_len))
+  ;; JSON field names & commands
+  (data (i32.const 341600) "action\00")
+  (data (i32.const 341620) "INTENT\00")
+  (data (i32.const 341640) "id\00")
+  (data (i32.const 341660) "email\00")
+  (data (i32.const 341680) "password\00")
+  (data (i32.const 341700) "to\00")
+  (data (i32.const 341720) "subject\00")
+  (data (i32.const 341740) "body\00")
+  (data (i32.const 341760) "content\00")
+  (data (i32.const 341780) "\22api\22\00")
+
+  (data (i32.const 341800) "help\00")
+  (data (i32.const 341820) "inbox\00")
+  (data (i32.const 341840) "list\00")
+  (data (i32.const 341860) "read\00")
+  (data (i32.const 341880) "send\00")
+  (data (i32.const 341900) "create\00")
+  (data (i32.const 341920) "config\00")
+  (data (i32.const 341940) "setup\00")
+  (data (i32.const 341960) "disconnect\00")
+  (data (i32.const 341980) "logout\00")
+
+  ;; ── Memory & String Helpers ──────────────────────────────────────────
+
+  (func $copy_mem (param $src i32) (param $dst i32) (param $len i32) (result i32)
+    (if (i32.gt_s (local.get $len) (i32.const 0))
       (then
-        (memory.copy (i32.const 2048) (i32.const 3000) (i32.const 48))
-        (drop (call $host_call (i32.const 2048) (i32.const 48) (i32.const 4096) (i32.const 4096)))
-        (return (i32.const 0))
+        (memory.copy (local.get $dst) (local.get $src) (local.get $len))
+        (return (i32.add (local.get $dst) (local.get $len)))
       )
     )
-
-    (local.set $first_char (i32.load8_u (local.get $in_ptr)))
-    (if (i32.ge_u (local.get $in_len) (i32.const 2))
-      (then
-        (local.set $second_char (i32.load8_u (i32.add (local.get $in_ptr) (i32.const 1))))
-      )
-    )
-
-    ;; 2. Check for "config" ('c'+'o' = 99+111)
-    (if (i32.and (i32.eq (local.get $first_char) (i32.const 99)) (i32.eq (local.get $second_char) (i32.const 111)))
-      (then
-        ;; Copy config prefix (47 bytes) to 2048
-        (memory.copy (i32.const 2048) (i32.const 3200) (i32.const 47))
-        ;; Copy user input arguments to 2048 + 47 = 2095
-        (memory.copy (i32.const 2095) (local.get $in_ptr) (local.get $in_len))
-        ;; Copy suffix to 2095 + in_len
-        (memory.copy
-          (i32.add (i32.const 2095) (local.get $in_len))
-          (i32.const 3280)
-          (i32.const 2)
-        )
-        (local.set $req_len (i32.add (i32.const 49) (local.get $in_len)))
-        (drop (call $host_call (i32.const 2048) (local.get $req_len) (i32.const 4096) (i32.const 4096)))
-        (return (i32.const 0))
-      )
-    )
-
-    ;; 3. Check for "disconnect" ('d' = 100)
-    (if (i32.eq (local.get $first_char) (i32.const 100))
-      (then
-        (memory.copy (i32.const 2048) (i32.const 3100) (i32.const 53))
-        (drop (call $host_call (i32.const 2048) (i32.const 53) (i32.const 4096) (i32.const 4096)))
-        (return (i32.const 0))
-      )
-    )
-
-    ;; 4. Check for "read" ('r' = 114)
-    (if (i32.eq (local.get $first_char) (i32.const 114))
-      (then
-        ;; Extract ID after "read " (skip 5 chars if length > 5)
-        (if (i32.gt_u (local.get $in_len) (i32.const 5))
-          (then
-            (local.set $id_start (i32.add (local.get $in_ptr) (i32.const 5)))
-            (local.set $id_len (i32.sub (local.get $in_len) (i32.const 5)))
-          )
-          (else
-            (local.set $id_start (local.get $in_ptr))
-            (local.set $id_len (local.get $in_len))
-          )
-        )
-        ;; Copy read prefix (51 bytes) to 2048
-        (memory.copy (i32.const 2048) (i32.const 3300) (i32.const 51))
-        ;; Copy id to 2048 + 51 = 2099
-        (memory.copy (i32.const 2099) (local.get $id_start) (local.get $id_len))
-        ;; Copy suffix to 2099 + id_len
-        (memory.copy
-          (i32.add (i32.const 2099) (local.get $id_len))
-          (i32.const 3380)
-          (i32.const 3)
-        )
-        (local.set $req_len (i32.add (i32.const 54) (local.get $id_len)))
-        (drop (call $host_call (i32.const 2048) (local.get $req_len) (i32.const 4096) (i32.const 4096)))
-        (return (i32.const 0))
-      )
-    )
-
-    ;; 5. Check for JSON input ('{' = 123)
-    (if (i32.eq (local.get $first_char) (i32.const 123))
-      (then
-        ;; If it already starts with {"api" -> forward directly!
-        (memory.copy (i32.const 2048) (local.get $in_ptr) (local.get $in_len))
-        (drop (call $host_call (i32.const 2048) (local.get $in_len) (i32.const 4096) (i32.const 4096)))
-        (return (i32.const 0))
-      )
-    )
-
-    ;; 6. Default: Fetch real inbox (for "inbox", "list", or any natural query)
-    (memory.copy (i32.const 2048) (i32.const 3000) (i32.const 48))
-    (drop (call $host_call (i32.const 2048) (i32.const 48) (i32.const 4096) (i32.const 4096)))
-    (return (i32.const 0))
+    (local.get $dst)
   )
 
-  ;; Exported resume function called by Chattree when async call finishes
+  (func $zlen (param $ptr i32) (result i32)
+    (local $i i32)
+    (local.set $i (i32.const 0))
+    (loop $l
+      (if (i32.ne (i32.load8_u (i32.add (local.get $ptr) (local.get $i))) (i32.const 0))
+        (then
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $l)
+        )
+      )
+    )
+    (local.get $i)
+  )
+
+  (func $copy_zstr (param $src i32) (param $dst i32) (result i32)
+    (call $copy_mem (local.get $src) (local.get $dst) (call $zlen (local.get $src)))
+  )
+
+  (func $return_zstr (param $src i32) (result i32)
+    (local $end i32)
+    (local.set $end (call $copy_zstr (local.get $src) (i32.const 65536)))
+    (i32.sub (local.get $end) (i32.const 65536))
+  )
+
+  (func $is_ws (param $ch i32) (result i32)
+    (i32.or
+      (i32.or (i32.eq (local.get $ch) (i32.const 32)) (i32.eq (local.get $ch) (i32.const 9)))
+      (i32.or (i32.eq (local.get $ch) (i32.const 10)) (i32.eq (local.get $ch) (i32.const 13)))
+    )
+  )
+
+  (func $to_lower (param $src i32) (param $dst i32) (param $len i32)
+    (local $i i32)
+    (local $ch i32)
+    (local.set $i (i32.const 0))
+    (loop $l
+      (if (i32.lt_u (local.get $i) (local.get $len))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
+          (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 90)))
+            (then (local.set $ch (i32.add (local.get $ch) (i32.const 32))))
+          )
+          (i32.store8 (i32.add (local.get $dst) (local.get $i)) (local.get $ch))
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $l)
+        )
+      )
+    )
+  )
+
+  (func $str_eq (param $a i32) (param $a_len i32) (param $b_zstr i32) (result i32)
+    (local $b_len i32)
+    (local $i i32)
+    (local.set $b_len (call $zlen (local.get $b_zstr)))
+    (if (i32.ne (local.get $a_len) (local.get $b_len))
+      (then (return (i32.const 0)))
+    )
+    (local.set $i (i32.const 0))
+    (loop $l
+      (if (i32.lt_u (local.get $i) (local.get $a_len))
+        (then
+          (if (i32.ne
+                (i32.load8_u (i32.add (local.get $a) (local.get $i)))
+                (i32.load8_u (i32.add (local.get $b_zstr) (local.get $i))))
+            (then (return (i32.const 0)))
+          )
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $l)
+        )
+      )
+    )
+    (i32.const 1)
+  )
+
+  (func $match_cmd (param $buf i32) (param $len i32) (param $kw_zstr i32) (result i32)
+    (local $k_len i32)
+    (local $i i32)
+    (local.set $k_len (call $zlen (local.get $kw_zstr)))
+    (if (i32.lt_u (local.get $len) (local.get $k_len))
+      (then (return (i32.const 0)))
+    )
+    (local.set $i (i32.const 0))
+    (loop $l
+      (if (i32.lt_u (local.get $i) (local.get $k_len))
+        (then
+          (if (i32.ne
+                (i32.load8_u (i32.add (local.get $buf) (local.get $i)))
+                (i32.load8_u (i32.add (local.get $kw_zstr) (local.get $i))))
+            (then (return (i32.const 0)))
+          )
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $l)
+        )
+      )
+    )
+    (if (i32.eq (local.get $len) (local.get $k_len))
+      (then (return (i32.const 1)))
+    )
+    (call $is_ws (i32.load8_u (i32.add (local.get $buf) (local.get $k_len))))
+  )
+
+  (func $find_substring (param $haystack i32) (param $h_len i32) (param $needle i32) (param $n_len i32) (result i32)
+    (local $i i32)
+    (local $j i32)
+    (local $match i32)
+    (local.set $i (i32.const 0))
+    (loop $outer
+      (if (i32.gt_u (i32.add (local.get $i) (local.get $n_len)) (local.get $h_len))
+        (then (return (i32.const -1)))
+      )
+      (local.set $j (i32.const 0))
+      (local.set $match (i32.const 1))
+      (loop $inner
+        (if (i32.lt_u (local.get $j) (local.get $n_len))
+          (then
+            (if (i32.ne
+                  (i32.load8_u (i32.add (local.get $haystack) (i32.add (local.get $i) (local.get $j))))
+                  (i32.load8_u (i32.add (local.get $needle) (local.get $j))))
+              (then (local.set $match (i32.const 0)))
+              (else
+                (local.set $j (i32.add (local.get $j) (i32.const 1)))
+                (br $inner)
+              )
+            )
+          )
+        )
+      )
+      (if (local.get $match)
+        (then (return (local.get $i)))
+      )
+      (local.set $i (i32.add (local.get $i) (i32.const 1)))
+      (br $outer)
+    )
+    (i32.const -1)
+  )
+
+  (func $hex_val (param $ch i32) (result i32)
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 48)) (i32.le_u (local.get $ch) (i32.const 57)))
+      (then (return (i32.sub (local.get $ch) (i32.const 48))))
+    )
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 70)))
+      (then (return (i32.sub (local.get $ch) (i32.const 55))))
+    )
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 97)) (i32.le_u (local.get $ch) (i32.const 102)))
+      (then (return (i32.sub (local.get $ch) (i32.const 87))))
+    )
+    (i32.const -1)
+  )
+
+  (func $write_utf8 (param $cp i32) (param $dst i32) (result i32)
+    (if (i32.le_u (local.get $cp) (i32.const 127))
+      (then
+        (i32.store8 (local.get $dst) (local.get $cp))
+        (return (i32.add (local.get $dst) (i32.const 1)))
+      )
+    )
+    (if (i32.le_u (local.get $cp) (i32.const 2047))
+      (then
+        (i32.store8 (local.get $dst) (i32.or (i32.const 192) (i32.shr_u (local.get $cp) (i32.const 6))))
+        (i32.store8 (i32.add (local.get $dst) (i32.const 1)) (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+        (return (i32.add (local.get $dst) (i32.const 2)))
+      )
+    )
+    (i32.store8 (local.get $dst) (i32.or (i32.const 224) (i32.shr_u (local.get $cp) (i32.const 12))))
+    (i32.store8 (i32.add (local.get $dst) (i32.const 1)) (i32.or (i32.const 128) (i32.and (i32.shr_u (local.get $cp) (i32.const 6)) (i32.const 63))))
+    (i32.store8 (i32.add (local.get $dst) (i32.const 2)) (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+    (i32.add (local.get $dst) (i32.const 3))
+  )
+
+  ;; Whitespace-tolerant JSON string extractor with escape & \uXXXX decoding
+  (func $extract_json_str (param $json i32) (param $jlen i32) (param $key_zstr i32) (param $dst i32) (param $max_out i32) (result i32)
+    (local $klen i32)
+    (local $i i32)
+    (local $j i32)
+    (local $match i32)
+    (local $pos i32)
+    (local $out i32)
+    (local $ch i32)
+    (local $esc i32)
+    (local $d0 i32)
+    (local $d1 i32)
+    (local $d2 i32)
+    (local $d3 i32)
+    (local $cp i32)
+
+    (local.set $klen (call $zlen (local.get $key_zstr)))
+    (local.set $i (i32.const 0))
+
+    (block $done
+      (loop $scan_key
+        (if (i32.gt_u (i32.add (local.get $i) (i32.add (local.get $klen) (i32.const 3))) (local.get $jlen))
+          (then (return (i32.const -1)))
+        )
+        (if (i32.and
+              (i32.eq (i32.load8_u (i32.add (local.get $json) (local.get $i))) (i32.const 34))
+              (i32.eq (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $i) (i32.add (local.get $klen) (i32.const 1))))) (i32.const 34)))
+          (then
+            (local.set $j (i32.const 0))
+            (local.set $match (i32.const 1))
+            (loop $cmp_k
+              (if (i32.lt_u (local.get $j) (local.get $klen))
+                (then
+                  (if (i32.ne
+                        (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $i) (i32.add (local.get $j) (i32.const 1)))))
+                        (i32.load8_u (i32.add (local.get $key_zstr) (local.get $j))))
+                    (then (local.set $match (i32.const 0)))
+                    (else
+                      (local.set $j (i32.add (local.get $j) (i32.const 1)))
+                      (br $cmp_k)
+                    )
+                  )
+                )
+              )
+            )
+            (if (local.get $match)
+              (then
+                (local.set $pos (i32.add (local.get $i) (i32.add (local.get $klen) (i32.const 2))))
+                (loop $ws1
+                  (if (i32.lt_u (local.get $pos) (local.get $jlen))
+                    (then
+                      (if (call $is_ws (i32.load8_u (i32.add (local.get $json) (local.get $pos))))
+                        (then
+                          (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+                          (br $ws1)
+                        )
+                      )
+                    )
+                  )
+                )
+                (if (i32.and
+                      (i32.lt_u (local.get $pos) (local.get $jlen))
+                      (i32.eq (i32.load8_u (i32.add (local.get $json) (local.get $pos))) (i32.const 58)))
+                  (then
+                    (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+                    (loop $ws2
+                      (if (i32.lt_u (local.get $pos) (local.get $jlen))
+                        (then
+                          (if (call $is_ws (i32.load8_u (i32.add (local.get $json) (local.get $pos))))
+                            (then
+                              (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+                              (br $ws2)
+                            )
+                          )
+                        )
+                      )
+                    )
+                    (if (i32.and
+                          (i32.lt_u (local.get $pos) (local.get $jlen))
+                          (i32.eq (i32.load8_u (i32.add (local.get $json) (local.get $pos))) (i32.const 34)))
+                      (then
+                        (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+                        (br $done)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+        (local.set $i (i32.add (local.get $i) (i32.const 1)))
+        (br $scan_key)
+      )
+    )
+
+    (local.set $out (local.get $dst))
+    (loop $read_val
+      (if (i32.and
+            (i32.lt_u (local.get $pos) (local.get $jlen))
+            (i32.lt_u (i32.sub (local.get $out) (local.get $dst)) (local.get $max_out)))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $json) (local.get $pos))))
+          (if (i32.eq (local.get $ch) (i32.const 34))
+            (then (return (i32.sub (local.get $out) (local.get $dst))))
+          )
+          (if (i32.eq (local.get $ch) (i32.const 92))
+            (then
+              (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+              (if (i32.ge_u (local.get $pos) (local.get $jlen))
+                (then (return (i32.sub (local.get $out) (local.get $dst))))
+              )
+              (local.set $esc (i32.load8_u (i32.add (local.get $json) (local.get $pos))))
+              (if (i32.eq (local.get $esc) (i32.const 110))
+                (then
+                  (i32.store8 (local.get $out) (i32.const 10))
+                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                  (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+                  (br $read_val)
+                )
+              )
+              (if (i32.eq (local.get $esc) (i32.const 114))
+                (then
+                  (i32.store8 (local.get $out) (i32.const 13))
+                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                  (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+                  (br $read_val)
+                )
+              )
+              (if (i32.eq (local.get $esc) (i32.const 116))
+                (then
+                  (i32.store8 (local.get $out) (i32.const 9))
+                  (local.set $out (i32.add (local.get $out) (i32.const 1)))
+                  (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+                  (br $read_val)
+                )
+              )
+              (if (i32.and
+                    (i32.eq (local.get $esc) (i32.const 117))
+                    (i32.le_u (i32.add (local.get $pos) (i32.const 4)) (i32.sub (local.get $jlen) (i32.const 1))))
+                (then
+                  (local.set $d0 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 1))))))
+                  (local.set $d1 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 2))))))
+                  (local.set $d2 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 3))))))
+                  (local.set $d3 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 4))))))
+                  (if (i32.and
+                        (i32.and (i32.ge_s (local.get $d0) (i32.const 0)) (i32.ge_s (local.get $d1) (i32.const 0)))
+                        (i32.and (i32.ge_s (local.get $d2) (i32.const 0)) (i32.ge_s (local.get $d3) (i32.const 0))))
+                    (then
+                      (local.set $cp
+                        (i32.or
+                          (i32.or (i32.shl (local.get $d0) (i32.const 12)) (i32.shl (local.get $d1) (i32.const 8)))
+                          (i32.or (i32.shl (local.get $d2) (i32.const 4)) (local.get $d3))))
+                      (if (i32.and (i32.ge_u (local.get $cp) (i32.const 55296)) (i32.le_u (local.get $cp) (i32.const 57343)))
+                        (then
+                          (local.set $pos (i32.add (local.get $pos) (i32.const 5)))
+                          (br $read_val)
+                        )
+                      )
+                      (local.set $out (call $write_utf8 (local.get $cp) (local.get $out)))
+                      (local.set $pos (i32.add (local.get $pos) (i32.const 5)))
+                      (br $read_val)
+                    )
+                  )
+                )
+              )
+              (i32.store8 (local.get $out) (local.get $esc))
+              (local.set $out (i32.add (local.get $out) (i32.const 1)))
+              (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+              (br $read_val)
+            )
+          )
+          (i32.store8 (local.get $out) (local.get $ch))
+          (local.set $out (i32.add (local.get $out) (i32.const 1)))
+          (local.set $pos (i32.add (local.get $pos) (i32.const 1)))
+          (br $read_val)
+        )
+      )
+    )
+    (i32.sub (local.get $out) (local.get $dst))
+  )
+
+  ;; JSON-escape $src[0..$len] into $dst, returning updated $dst
+  (func $copy_json_esc (param $src i32) (param $len i32) (param $dst i32) (result i32)
+    (local $i i32)
+    (local $ch i32)
+    (local $out i32)
+    (local.set $i (i32.const 0))
+    (local.set $out (local.get $dst))
+    (loop $l
+      (if (i32.lt_s (local.get $i) (local.get $len))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
+          (if (i32.eq (local.get $ch) (i32.const 34))
+            (then
+              (i32.store8 (local.get $out) (i32.const 92))
+              (i32.store8 (i32.add (local.get $out) (i32.const 1)) (i32.const 34))
+              (local.set $out (i32.add (local.get $out) (i32.const 2)))
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $l)
+            )
+          )
+          (if (i32.eq (local.get $ch) (i32.const 92))
+            (then
+              (i32.store8 (local.get $out) (i32.const 92))
+              (i32.store8 (i32.add (local.get $out) (i32.const 1)) (i32.const 92))
+              (local.set $out (i32.add (local.get $out) (i32.const 2)))
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $l)
+            )
+          )
+          (if (i32.eq (local.get $ch) (i32.const 10))
+            (then
+              (i32.store8 (local.get $out) (i32.const 92))
+              (i32.store8 (i32.add (local.get $out) (i32.const 1)) (i32.const 110))
+              (local.set $out (i32.add (local.get $out) (i32.const 2)))
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $l)
+            )
+          )
+          (if (i32.eq (local.get $ch) (i32.const 13))
+            (then
+              (i32.store8 (local.get $out) (i32.const 92))
+              (i32.store8 (i32.add (local.get $out) (i32.const 1)) (i32.const 114))
+              (local.set $out (i32.add (local.get $out) (i32.const 2)))
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $l)
+            )
+          )
+          (if (i32.eq (local.get $ch) (i32.const 9))
+            (then
+              (i32.store8 (local.get $out) (i32.const 92))
+              (i32.store8 (i32.add (local.get $out) (i32.const 1)) (i32.const 116))
+              (local.set $out (i32.add (local.get $out) (i32.const 2)))
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $l)
+            )
+          )
+          (if (i32.lt_u (local.get $ch) (i32.const 32))
+            (then (local.set $ch (i32.const 32)))
+          )
+          (i32.store8 (local.get $out) (local.get $ch))
+          (local.set $out (i32.add (local.get $out) (i32.const 1)))
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $l)
+        )
+      )
+    )
+    (local.get $out)
+  )
+
+  ;; Dispatch helpers
+  (func $call_inbox (result i32)
+    (local $len i32)
+    (local.set $len (call $zlen (i32.const 341000)))
+    (drop (call $copy_mem (i32.const 341000) (i32.const 450000) (local.get $len)))
+    (drop (call $host_call (i32.const 450000) (local.get $len) (i32.const 600000) (i32.const 524288)))
+    (i32.const 0)
+  )
+
+  (func $call_disconnect (result i32)
+    (local $len i32)
+    (local.set $len (call $zlen (i32.const 341080)))
+    (drop (call $copy_mem (i32.const 341080) (i32.const 450000) (local.get $len)))
+    (drop (call $host_call (i32.const 450000) (local.get $len) (i32.const 600000) (i32.const 524288)))
+    (i32.const 0)
+  )
+
+  (func $call_config (param $em_ptr i32) (param $em_len i32) (param $pw_ptr i32) (param $pw_len i32) (result i32)
+    (local $p i32)
+    (if (i32.or (i32.le_s (local.get $em_len) (i32.const 0)) (i32.le_s (local.get $pw_len) (i32.const 0)))
+      (then (return (call $return_zstr (i32.const 340600))))
+    )
+    (local.set $p (call $copy_zstr (i32.const 341160) (i32.const 450000)))
+    (local.set $p (call $copy_json_esc (local.get $em_ptr) (local.get $em_len) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const 341240) (local.get $p)))
+    (local.set $p (call $copy_json_esc (local.get $pw_ptr) (local.get $pw_len) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const 341280) (local.get $p)))
+    (drop (call $host_call (i32.const 450000) (i32.sub (local.get $p) (i32.const 450000)) (i32.const 600000) (i32.const 524288)))
+    (i32.const 0)
+  )
+
+  (func $call_read (param $id_ptr i32) (param $id_len i32) (result i32)
+    (local $p i32)
+    (if (i32.le_s (local.get $id_len) (i32.const 0))
+      (then (return (call $return_zstr (i32.const 340720))))
+    )
+    (local.set $p (call $copy_zstr (i32.const 341300) (i32.const 450000)))
+    (local.set $p (call $copy_json_esc (local.get $id_ptr) (local.get $id_len) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const 341280) (local.get $p)))
+    (drop (call $host_call (i32.const 450000) (i32.sub (local.get $p) (i32.const 450000)) (i32.const 600000) (i32.const 524288)))
+    (i32.const 0)
+  )
+
+  (func $call_send (param $to_ptr i32) (param $to_len i32) (param $sub_ptr i32) (param $sub_len i32) (param $body_ptr i32) (param $body_len i32) (result i32)
+    (local $p i32)
+    (if (i32.le_s (local.get $to_len) (i32.const 0))
+      (then (return (call $return_zstr (i32.const 340820))))
+    )
+    (local.set $p (call $copy_zstr (i32.const 341380) (i32.const 450000)))
+    (local.set $p (call $copy_json_esc (local.get $to_ptr) (local.get $to_len) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const 341460) (local.get $p)))
+    (if (i32.gt_s (local.get $sub_len) (i32.const 0))
+      (then (local.set $p (call $copy_json_esc (local.get $sub_ptr) (local.get $sub_len) (local.get $p))))
+    )
+    (local.set $p (call $copy_zstr (i32.const 341500) (local.get $p)))
+    (if (i32.gt_s (local.get $body_len) (i32.const 0))
+      (then (local.set $p (call $copy_json_esc (local.get $body_ptr) (local.get $body_len) (local.get $p))))
+    )
+    (local.set $p (call $copy_zstr (i32.const 341280) (local.get $p)))
+    (drop (call $host_call (i32.const 450000) (i32.sub (local.get $p) (i32.const 450000)) (i32.const 600000) (i32.const 524288)))
+    (i32.const 0)
+  )
+
+  ;; ── Entrypoint ───────────────────────────────────────────────────────
+
+  (func (export "mail_entry") (param $in_ptr i32) (param $in_len i32) (result i32)
+    (local $ts i32)
+    (local $tl i32)
+    (local $act_len i32)
+    (local $id_len i32)
+    (local $em_len i32)
+    (local $pw_len i32)
+    (local $to_len i32)
+    (local $sub_len i32)
+    (local $body_len i32)
+    (local $arg_ptr i32)
+    (local $arg_len i32)
+    (local $p1 i32)
+    (local $p2 i32)
+    (local $i i32)
+    (local $pipe1 i32)
+    (local $pipe2 i32)
+    (local $to_s i32)
+    (local $to_e i32)
+    (local $sub_s i32)
+    (local $sub_e i32)
+    (local $bd_s i32)
+    (local $bd_e i32)
+
+    ;; Trim leading & trailing whitespace
+    (local.set $ts (local.get $in_ptr))
+    (local.set $tl (local.get $in_len))
+    (loop $ltrim
+      (if (i32.and (i32.gt_u (local.get $tl) (i32.const 0)) (call $is_ws (i32.load8_u (local.get $ts))))
+        (then
+          (local.set $ts (i32.add (local.get $ts) (i32.const 1)))
+          (local.set $tl (i32.sub (local.get $tl) (i32.const 1)))
+          (br $ltrim)
+        )
+      )
+    )
+    (loop $rtrim
+      (if (i32.and (i32.gt_u (local.get $tl) (i32.const 0))
+                   (call $is_ws (i32.load8_u (i32.add (local.get $ts) (i32.sub (local.get $tl) (i32.const 1))))))
+        (then
+          (local.set $tl (i32.sub (local.get $tl) (i32.const 1)))
+          (br $rtrim)
+        )
+      )
+    )
+
+    ;; Empty -> fetch inbox
+    (if (i32.eqz (local.get $tl))
+      (then (return (call $call_inbox)))
+    )
+
+    ;; ── Case A: JSON input ──────────────────────────────────────────────
+    (if (i32.eq (i32.load8_u (local.get $ts)) (i32.const 123)) ;; '{'
+      (then
+        ;; If already a raw Host API request containing "api", forward directly
+        (if (i32.ge_s (call $find_substring (local.get $ts) (local.get $tl) (i32.const 341780) (i32.const 5)) (i32.const 0))
+          (then
+            (drop (call $copy_mem (local.get $ts) (i32.const 450000) (local.get $tl)))
+            (drop (call $host_call (i32.const 450000) (local.get $tl) (i32.const 600000) (i32.const 524288)))
+            (return (i32.const 0))
+          )
+        )
+
+        (local.set $act_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341600) (i32.const 350000) (i32.const 64)))
+        (if (i32.le_s (local.get $act_len) (i32.const 0))
+          (then (local.set $act_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341620) (i32.const 350000) (i32.const 64))))
+        )
+        (if (i32.gt_s (local.get $act_len) (i32.const 0))
+          (then
+            (call $to_lower (i32.const 350000) (i32.const 350000) (local.get $act_len))
+            (if (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341800)) ;; help
+              (then (return (call $return_zstr (i32.const 340000))))
+            )
+            (if (i32.or (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341960))
+                        (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341980)))
+              (then (return (call $call_disconnect)))
+            )
+            (if (i32.or (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341920))
+                        (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341940)))
+              (then
+                (local.set $em_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341660) (i32.const 350300) (i32.const 256)))
+                (local.set $pw_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341680) (i32.const 350600) (i32.const 256)))
+                (return (call $call_config (i32.const 350300) (local.get $em_len) (i32.const 350600) (local.get $pw_len)))
+              )
+            )
+            (if (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341860)) ;; read
+              (then
+                (local.set $id_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341640) (i32.const 350100) (i32.const 128)))
+                (return (call $call_read (i32.const 350100) (local.get $id_len)))
+              )
+            )
+            (if (i32.or (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341880))
+                        (call $str_eq (i32.const 350000) (local.get $act_len) (i32.const 341900)))
+              (then
+                (local.set $to_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341700) (i32.const 351000) (i32.const 256)))
+                (local.set $sub_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341720) (i32.const 351400) (i32.const 1024)))
+                (local.set $body_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341740) (i32.const 353000) (i32.const 16384)))
+                (if (i32.le_s (local.get $body_len) (i32.const 0))
+                  (then (local.set $body_len (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const 341760) (i32.const 353000) (i32.const 16384))))
+                )
+                (return (call $call_send (i32.const 351000) (local.get $to_len) (i32.const 351400) (local.get $sub_len) (i32.const 353000) (local.get $body_len)))
+              )
+            )
+          )
+        )
+        (return (call $call_inbox))
+      )
+    )
+
+    ;; ── Case B: Direct slash command / plain text ───────────────────────
+    (call $to_lower (local.get $ts) (i32.const 370000) (local.get $tl))
+
+    (if (i32.or (call $match_cmd (i32.const 370000) (local.get $tl) (i32.const 341800))
+                (i32.and (i32.eq (local.get $tl) (i32.const 1)) (i32.eq (i32.load8_u (local.get $ts)) (i32.const 63))))
+      (then (return (call $return_zstr (i32.const 340000))))
+    )
+
+    (if (i32.or (call $match_cmd (i32.const 370000) (local.get $tl) (i32.const 341960))
+                (call $match_cmd (i32.const 370000) (local.get $tl) (i32.const 341980)))
+      (then (return (call $call_disconnect)))
+    )
+
+    ;; config <email> <password>
+    (if (call $match_cmd (i32.const 370000) (local.get $tl) (i32.const 341920))
+      (then
+        (local.set $arg_ptr (i32.add (local.get $ts) (i32.const 6)))
+        (local.set $arg_len (i32.sub (local.get $tl) (i32.const 6)))
+        (loop $ws_cfg
+          (if (i32.and (i32.gt_s (local.get $arg_len) (i32.const 0)) (call $is_ws (i32.load8_u (local.get $arg_ptr))))
+            (then
+              (local.set $arg_ptr (i32.add (local.get $arg_ptr) (i32.const 1)))
+              (local.set $arg_len (i32.sub (local.get $arg_len) (i32.const 1)))
+              (br $ws_cfg)
+            )
+          )
+        )
+        ;; First whitespace-delimited token = email
+        (local.set $p1 (i32.const 0))
+        (loop $scan_em
+          (if (i32.and (i32.lt_s (local.get $p1) (local.get $arg_len))
+                       (i32.eqz (call $is_ws (i32.load8_u (i32.add (local.get $arg_ptr) (local.get $p1))))))
+            (then
+              (local.set $p1 (i32.add (local.get $p1) (i32.const 1)))
+              (br $scan_em)
+            )
+          )
+        )
+        (local.set $p2 (local.get $p1))
+        (loop $ws_pw
+          (if (i32.and (i32.lt_s (local.get $p2) (local.get $arg_len))
+                       (call $is_ws (i32.load8_u (i32.add (local.get $arg_ptr) (local.get $p2)))))
+            (then
+              (local.set $p2 (i32.add (local.get $p2) (i32.const 1)))
+              (br $ws_pw)
+            )
+          )
+        )
+        (return (call $call_config
+          (local.get $arg_ptr)
+          (local.get $p1)
+          (i32.add (local.get $arg_ptr) (local.get $p2))
+          (i32.sub (local.get $arg_len) (local.get $p2))))
+      )
+    )
+
+    ;; read <id>
+    (if (call $match_cmd (i32.const 370000) (local.get $tl) (i32.const 341860))
+      (then
+        (local.set $arg_ptr (i32.add (local.get $ts) (i32.const 4)))
+        (local.set $arg_len (i32.sub (local.get $tl) (i32.const 4)))
+        (loop $ws_rd
+          (if (i32.and (i32.gt_s (local.get $arg_len) (i32.const 0)) (call $is_ws (i32.load8_u (local.get $arg_ptr))))
+            (then
+              (local.set $arg_ptr (i32.add (local.get $arg_ptr) (i32.const 1)))
+              (local.set $arg_len (i32.sub (local.get $arg_len) (i32.const 1)))
+              (br $ws_rd)
+            )
+          )
+        )
+        (return (call $call_read (local.get $arg_ptr) (local.get $arg_len)))
+      )
+    )
+
+    ;; send <to> | <subject> | <body>
+    (if (call $match_cmd (i32.const 370000) (local.get $tl) (i32.const 341880))
+      (then
+        (local.set $arg_ptr (i32.add (local.get $ts) (i32.const 4)))
+        (local.set $arg_len (i32.sub (local.get $tl) (i32.const 4)))
+        (loop $ws_sd
+          (if (i32.and (i32.gt_s (local.get $arg_len) (i32.const 0)) (call $is_ws (i32.load8_u (local.get $arg_ptr))))
+            (then
+              (local.set $arg_ptr (i32.add (local.get $arg_ptr) (i32.const 1)))
+              (local.set $arg_len (i32.sub (local.get $arg_len) (i32.const 1)))
+              (br $ws_sd)
+            )
+          )
+        )
+        (local.set $pipe1 (i32.const -1))
+        (local.set $pipe2 (i32.const -1))
+        (local.set $i (i32.const 0))
+        (loop $find_pipes
+          (if (i32.lt_s (local.get $i) (local.get $arg_len))
+            (then
+              (if (i32.eq (i32.load8_u (i32.add (local.get $arg_ptr) (local.get $i))) (i32.const 124)) ;; '|'
+                (then
+                  (if (i32.lt_s (local.get $pipe1) (i32.const 0))
+                    (then (local.set $pipe1 (local.get $i)))
+                    (else
+                      (if (i32.lt_s (local.get $pipe2) (i32.const 0))
+                        (then (local.set $pipe2 (local.get $i)))
+                      )
+                    )
+                  )
+                )
+              )
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $find_pipes)
+            )
+          )
+        )
+        (if (i32.lt_s (local.get $pipe1) (i32.const 0))
+          (then (return (call $return_zstr (i32.const 340820))))
+        )
+        ;; Slice 1: to = [0 .. pipe1)
+        (local.set $to_s (local.get $arg_ptr))
+        (local.set $to_e (i32.add (local.get $arg_ptr) (local.get $pipe1)))
+        (loop $r_to
+          (if (i32.and (i32.gt_u (local.get $to_e) (local.get $to_s)) (call $is_ws (i32.load8_u (i32.sub (local.get $to_e) (i32.const 1)))))
+            (then (local.set $to_e (i32.sub (local.get $to_e) (i32.const 1))) (br $r_to))
+          )
+        )
+        ;; Slice 2 & 3
+        (if (i32.ge_s (local.get $pipe2) (i32.const 0))
+          (then
+            (local.set $sub_s (i32.add (local.get $arg_ptr) (i32.add (local.get $pipe1) (i32.const 1))))
+            (local.set $sub_e (i32.add (local.get $arg_ptr) (local.get $pipe2)))
+            (local.set $bd_s (i32.add (local.get $arg_ptr) (i32.add (local.get $pipe2) (i32.const 1))))
+            (local.set $bd_e (i32.add (local.get $arg_ptr) (local.get $arg_len)))
+          )
+          (else
+            (local.set $sub_s (i32.add (local.get $arg_ptr) (i32.add (local.get $pipe1) (i32.const 1))))
+            (local.set $sub_e (i32.add (local.get $arg_ptr) (local.get $arg_len)))
+            (local.set $bd_s (local.get $sub_e))
+            (local.set $bd_e (local.get $sub_e))
+          )
+        )
+        (loop $l_sub
+          (if (i32.and (i32.lt_u (local.get $sub_s) (local.get $sub_e)) (call $is_ws (i32.load8_u (local.get $sub_s))))
+            (then (local.set $sub_s (i32.add (local.get $sub_s) (i32.const 1))) (br $l_sub))
+          )
+        )
+        (loop $r_sub
+          (if (i32.and (i32.gt_u (local.get $sub_e) (local.get $sub_s)) (call $is_ws (i32.load8_u (i32.sub (local.get $sub_e) (i32.const 1)))))
+            (then (local.set $sub_e (i32.sub (local.get $sub_e) (i32.const 1))) (br $r_sub))
+          )
+        )
+        (loop $l_bd
+          (if (i32.and (i32.lt_u (local.get $bd_s) (local.get $bd_e)) (call $is_ws (i32.load8_u (local.get $bd_s))))
+            (then (local.set $bd_s (i32.add (local.get $bd_s) (i32.const 1))) (br $l_bd))
+          )
+        )
+        (return (call $call_send
+          (local.get $to_s) (i32.sub (local.get $to_e) (local.get $to_s))
+          (local.get $sub_s) (i32.sub (local.get $sub_e) (local.get $sub_s))
+          (local.get $bd_s) (i32.sub (local.get $bd_e) (local.get $bd_s))))
+      )
+    )
+
+    ;; Default: inbox
+    (call $call_inbox)
+  )
+
+  ;; Resume handler: copies Host API response to outputOffset (65536), clamped to 262144 bytes
   (func (export "resume") (param $res_ptr i32) (param $res_len i32) (result i32)
-    (memory.copy (i32.const 1024) (local.get $res_ptr) (local.get $res_len))
-    (local.get $res_len)
+    (local $out_len i32)
+    (local.set $out_len (local.get $res_len))
+    (if (i32.gt_u (local.get $out_len) (i32.const 262144))
+      (then (local.set $out_len (i32.const 262144)))
+    )
+    (drop (call $copy_mem (local.get $res_ptr) (i32.const 65536) (local.get $out_len)))
+    (local.get $out_len)
   )
 )

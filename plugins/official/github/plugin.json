@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "GitHub Integration",
-  "description": "Official GitHub developer integration powered by natural language and AI tool calling. Draft and open complete technical Issues, inspect repository issues, list your repositories, and search GitHub directly from chat.",
+  "description": "Official GitHub developer integration powered by natural language and AI tool calling. Draft and open technical Issues, inspect repository issues, list your repositories, and search GitHub directly from chat.",
   "author": "Chattree Core Team",
   "primaryCommand": "github",
   "aliases": [
@@ -26,13 +26,13 @@
     "code",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.0.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.0.0",
-  "changelog": "1.0.0: Initial official release of GitHub Integration with 100% natural language AI workflow for Issue drafting/creation, repository inspection, issue tracking, and global repository search.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.1.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.1.0",
+  "changelog": "1.1.0: English predetermined UI strings with minimalist Chattree monochrome styling, Unicode \\uXXXX decoding, whitespace-tolerant JSON parsing, proper double-JSON escaping, bounded repo/issue parsing (filtering out user URLs), URL-safe query percent-encoding, owner/repo URL normalization, and token-safe AI content guidelines.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "dcd6e7d59d13d422d038d72f4a0ee4bc224d9707b12221a7d86a81db9d4c0f63",
+  "wasmSha256": "e60a3cd8d0adbe4d1729f4445b6ebe3966dced0e30c0a5eddc22d2ebd645b2d5",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 35000,
@@ -45,7 +45,7 @@
       "id": "com.chattree.official.github.workspace",
       "command": "github",
       "displayName": "GitHub Workspace",
-      "description": "Integración oficial de GitHub que funciona 100% con lenguaje natural. Permite crear Issues técnicos completos redactados por IA (action='create'), listar los issues abiertos de un repositorio (action='issues'), ver tus repositorios recientes (action='repos'), buscar repositorios en GitHub (action='search'), configurar un repositorio predeterminado (action='set_repo') o configurar tu Personal Access Token (action='config'). Cuando el usuario pida crear o reportar un issue, bug, mejora o tarea (action='create'), tú DEBES redactar y desarrollar por completo el cuerpo técnico del issue en 'content' (contexto, descripción detallada, pasos o propuesta técnica y criterios de aceptación separados por \\n\\n) y un título claro en 'title'. No uses comillas dobles literales dentro de 'content' (usa comillas simples '). Emite únicamente la llamada JSON válida.",
+      "description": "Official GitHub integration. Output ONLY a single valid JSON object with no extra text. For action='create', provide 'repo' ('owner/repo' if specified), a concise 'title' (max 80 chars), and a well-structured Markdown 'content' (150-350 words: context, technical proposal/steps, and acceptance criteria separated by \\n\\n) in the user's language.",
       "capabilities": [
         "network.http",
         "storage.private"
@@ -63,57 +63,57 @@
           "disconnect",
           "help"
         ],
-        "description": "Interpreta cualquier solicitud en lenguaje natural para GitHub y emite UNA SOLA llamada JSON válida. Si el usuario pide crear un issue, reportar un bug o proponer una funcionalidad (action='create'), genera un 'title' claro y redacta todo el desarrollo técnico estructurado en 'content' usando saltos de línea \\n\\n y sin comillas dobles literales.",
+        "description": "Interpret the user's natural-language GitHub request and return ONE valid JSON tool call only. For action='create', generate a clear 'title' and structured Markdown 'content' (150-350 words) in the same language as the user's request.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Acción a realizar: 'create' (crear un nuevo Issue redactando su contenido completo), 'issues' (listar issues abiertos de un repositorio), 'repos' (listar mis repositorios recientes), 'search' (buscar repositorios en GitHub por tema/tecnología), 'set_repo' (guardar repositorio predeterminado owner/repo), 'status' (verificar conexión), 'config' (guardar token ghp_ o github_pat_), 'disconnect' (desconectar cuenta) o 'help' (mostrar ayuda).",
+            "description": "Action to perform: 'create' (open a new Issue with full Markdown body), 'issues' (list open issues for a repository), 'repos' (list your recent repositories), 'search' (search GitHub repositories), 'set_repo' (save default 'owner/repo'), 'status' (check connection), 'config' (save ghp_/github_pat_ token), 'disconnect' (remove saved token), or 'help' (show usage).",
             "required": true
           },
           {
             "name": "repo",
             "key": "repo",
             "type": "string",
-            "description": "Repositorio objetivo en formato 'owner/repo' (por ejemplo 'Ponce5/Chattree'). Inclúyelo cuando el usuario mencione el repositorio para crear un issue, ver issues o configurar el repositorio por defecto.",
+            "description": "Target repository in 'owner/repo' format (e.g. 'Ponce5/Chattree'). Include whenever mentioned for 'create', 'issues', or 'set_repo'.",
             "required": false
           },
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Título claro, técnico y conciso del Issue a crear en GitHub (máximo 80 caracteres). Ejemplo: 'Optimización de consumo de batería en segundo plano'.",
+            "description": "Concise, technical Issue title (max 80 chars). Never copy the raw user prompt verbatim.",
             "required": false
           },
           {
             "name": "content",
             "key": "content",
             "type": "string",
-            "description": "Cuerpo completo y bien estructurado en Markdown del Issue a crear en GitHub (obligatorio cuando action='create'). Redacta aquí la descripción técnica detallada, contexto, pasos/propuesta de implementación y criterios de aceptación solicitados por el usuario (200 a 600 palabras). Separa las secciones con \\n\\n y no uses comillas dobles literales (usa comillas simples ').",
+            "description": "Structured Markdown Issue body (required when action='create', 150-350 words). Include context, implementation proposal or repro steps, and acceptance criteria separated by \\n\\n.",
             "required": false
           },
           {
             "name": "query",
             "key": "query",
             "type": "string",
-            "description": "Término de búsqueda (cuando action='search'), o el token ghp_/github_pat_ (cuando action='config'), o el nombre 'owner/repo' (si no se puso en 'repo').",
+            "description": "Search query (for action='search'), Personal Access Token ghp_/github_pat_ (for action='config'), or 'owner/repo' (for action='set_repo' if 'repo' is omitted).",
             "required": false
           }
         ],
         "examples": [
           {
-            "input": "creame un issue en Ponce5/Chattree sobre implementar modo offline con sincronizacion automatica",
+            "input": "create an issue in Ponce5/Chattree to add offline sync queue",
             "output": {
               "tool": "github",
               "action": "create",
               "repo": "Ponce5/Chattree",
-              "title": "Implementar modo offline con cola de sincronización automática",
-              "content": "## Contexto y Objetivo\nActualmente algunas operaciones de red requieren conexión activa inmediata. Se propone diseñar un modo offline resiliente que almacene las operaciones pendientes localmente y las sincronice automáticamente al recuperar la conectividad.\n\n## Propuesta Técnica\n1. Cola Persistente Local\n• Almacenar eventos y mutaciones pendientes en almacenamiento local cifrado con estado ('pending', 'syncing', 'failed').\n\n2. Monitor de Conectividad\n• Detectar cambios de red y disparar el vaciado de la cola con backoff exponencial.\n\n3. Resolución de Conflictos\n• Aplicar marcas de tiempo (timestamps) e idempotencia para evitar duplicados.\n\n## Criterios de Aceptación\n• El usuario puede registrar acciones sin conexión sin perder datos.\n• Al reconectar, las operaciones se sincronizan en segundo plano y actualizan el estado en la interfaz."
+              "title": "Add offline mode with automatic sync queue",
+              "content": "## Context\nNetwork operations currently require an active connection. Adding a local queue improves reliability on unstable networks.\n\n## Technical Proposal\n1. Persist pending mutations locally with status (`pending`, `syncing`, `failed`).\n2. Watch connectivity changes and flush the queue with exponential backoff.\n3. Use idempotency keys to avoid duplicate writes.\n\n## Acceptance Criteria\n- Actions can be queued offline without data loss.\n- Queued items sync automatically once connectivity returns."
             }
           },
           {
-            "input": "muéstrame los issues abiertos del repositorio Ponce5/Chattree",
+            "input": "show open issues in Ponce5/Chattree",
             "output": {
               "tool": "github",
               "action": "issues",
@@ -121,22 +121,22 @@
             }
           },
           {
-            "input": "muéstrame mis repositorios recientes de github",
+            "input": "list my recent github repositories",
             "output": {
               "tool": "github",
               "action": "repos"
             }
           },
           {
-            "input": "busca en github repositorios de webassembly en flutter",
+            "input": "search github repositories for flutter wasm",
             "output": {
               "tool": "github",
               "action": "search",
-              "query": "webassembly flutter"
+              "query": "flutter wasm"
             }
           },
           {
-            "input": "configura mi token de github ghp_1234567890abcdef",
+            "input": "set my github token ghp_1234567890abcdef",
             "output": {
               "tool": "github",
               "action": "config",
@@ -144,7 +144,7 @@
             }
           }
         ],
-        "maxResponseTokens": 3000
+        "maxResponseTokens": 1800
       }
     }
   ]

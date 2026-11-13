@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.pdf",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "name": "PDF Generator",
   "description": "Official AI-powered PDF generator. Describe the content you need and receive a formatted, downloadable PDF directly in the chat.",
   "author": "Chattree Core Team",
@@ -23,13 +23,13 @@
     "export",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png?v=2.4.1",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png?v=2.4.1",
-  "changelog": "2.4.1: Updated PDF visual branding to classic red theme with white typography.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/icon.png?v=2.5.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/pdf/banner.png?v=2.5.0",
+  "changelog": "2.5.0: Minimalist Chattree grayscale/black/white PDF styling, English default plugin strings, wrapped title/subtitle, vector separator & Markdown rules, blockquote indentation, tolerant JSON key parsing, and 55-page memory safety cap.",
   "runtime": "wasm",
   "entrypoint": "pdf_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "8421029b73540f37f664e9cdcf442300def96c8a344eee106ff90fb981449364",
+  "wasmSha256": "07de105fad7a40859b7509fac48570c569a6fd448b1fbd888c48b45d20b5a1bf",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 10000,
@@ -39,44 +39,43 @@
       "id": "com.chattree.official.pdf.generator",
       "command": "pdf",
       "displayName": "PDF Generator",
-      "description": "Crea y entrega un archivo PDF descargable en el chat. Cuando el usuario pide un PDF o documento, invoca esta herramienta con una llamada JSON completa y válida; nunca muestres el objeto como respuesta. Mantén content en unas 600-800 palabras y no uses comillas dobles literales dentro del contenido (usa comillas simples). También acepta /pdf <instrucciones del documento>.",
+      "description": "Genera un archivo PDF descargable en el chat. Redacta el documento sobre el tema solicitado y responde ÚNICAMENTE con un objeto JSON válido en una sola línea (sin texto previo, sin bloques Markdown, sin razonamiento). Usa \\n para saltos de línea y comillas simples ' dentro del texto, nunca comillas dobles literales.",
       "capabilities": [
         "files.write"
       ],
       "intentContract": {
         "intent": "pdf_generate",
         "validIntents": [
-          "pdf_generate",
-          "unknown"
+          "pdf_generate"
         ],
-        "description": "Ante una solicitud de PDF, genera una única llamada JSON sintácticamente válida a la herramienta pdf con title, subtitle, content y footer. No devuelvas el objeto como texto al usuario. La llamada debe estar completa, sin bloques Markdown ni texto antes o después. Mantén content entre 600 y 800 palabras como máximo y no uses comillas dobles literales dentro de content; usa comillas simples para que el JSON pueda analizarse y ejecutarse.",
+        "description": "Responde ÚNICAMENTE con un objeto JSON válido para la herramienta pdf con action='pdf_generate', title, subtitle, content y footer. Redacta siempre un documento completo y útil de 200 a 350 palabras en Markdown (## secciones y listas -) sobre el tema pedido. No devuelvas texto fuera del JSON ni bloques Markdown. Usa \\n para saltos de línea y comillas simples ' en lugar de comillas dobles dentro de los valores.",
         "fields": [
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Título breve y descriptivo del documento, máximo 60 caracteres.",
+            "description": "Título breve del documento (máximo 60 caracteres).",
             "required": true
           },
           {
             "name": "subtitle",
             "key": "subtitle",
             "type": "string",
-            "description": "Subtítulo descriptivo, máximo 80 caracteres.",
+            "description": "Subtítulo descriptivo corto (máximo 80 caracteres, opcional).",
             "required": false
           },
           {
             "name": "content",
             "key": "content",
             "type": "string",
-            "description": "Cuerpo del documento en Markdown, de 600 a 800 palabras como máximo. Incluye secciones, párrafos y listas. No uses comillas dobles literales dentro del contenido; usa comillas simples. No envuelvas la llamada en bloques Markdown ni añadas texto fuera del JSON.",
+            "description": "Cuerpo completo en Markdown (200-350 palabras, secciones ## y listas -). Usa \\n para saltos de línea y comillas simples ' en lugar de \".",
             "required": true
           },
           {
             "name": "footer",
             "key": "footer",
             "type": "string",
-            "description": "Pie opcional de hasta 80 caracteres. Déjalo vacío salvo que haya una fuente, autor o nota útil para el documento. No añadas créditos de generación ni menciones a Chattree o al plugin.",
+            "description": "Pie opcional corto (máximo 60 caracteres) o cadena vacía \"\".",
             "required": false
           }
         ],
@@ -85,34 +84,26 @@
             "input": "crea un pdf sobre la fotosíntesis",
             "output": {
               "tool": "pdf",
+              "action": "pdf_generate",
               "title": "La fotosíntesis",
-              "subtitle": "Proceso biologico fundamental de las plantas",
-              "content": "## Que es la fotosintesis\nLa fotosintesis es el proceso mediante el cual las plantas, algas y algunas bacterias convierten la energia luminica en energia quimica almacenada en forma de glucosa.\n\n## Etapas principales\n- Captura de luz solar por la clorofila\n- Reacciones luminosas en los tilacoides\n- Ciclo de Calvin en el estroma\n\n## Ecuacion general\nDioxido de carbono + Agua + Luz → Glucosa + Oxigeno\n\n## Importancia ecologica\nLa fotosintesis es la base de casi todas las cadenas alimentarias en la Tierra. Produce el oxigeno que respiramos y fija el carbono atmosferico.\n\n## Factores que la afectan\n- Intensidad de la luz\n- Concentracion de CO2\n- Temperatura\n- Disponibilidad de agua\n\n## Conclusion\nSin la fotosintesis, la vida tal como la conocemos no seria posible en nuestro planeta.",
+              "subtitle": "Proceso biológico fundamental de las plantas",
+              "content": "## Qué es la fotosíntesis\nLa fotosíntesis es el proceso mediante el cual plantas, algas y algunas bacterias convierten la energía lumínica en energía química almacenada en glucosa.\n\n## Etapas principales\n- Captura de luz solar por la clorofila\n- Reacciones luminosas en los tilacoides\n- Ciclo de Calvin en el estroma\n\n## Ecuación general\nDióxido de carbono + Agua + Luz → Glucosa + Oxígeno\n\n## Importancia ecológica\nEs la base de las cadenas alimentarias, produce el oxígeno que respiramos y fija el carbono atmosférico.\n\n## Conclusión\nSin la fotosíntesis, la vida tal como la conocemos no sería posible.",
               "footer": "Uso educativo"
             }
           },
           {
-            "input": "/pdf crea un informe detallado sobre inteligencia artificial",
+            "input": "/pdf informe breve sobre inteligencia artificial",
             "output": {
               "tool": "pdf",
+              "action": "pdf_generate",
               "title": "Inteligencia Artificial",
-              "subtitle": "Estado actual, aplicaciones y retos eticos",
-              "content": "## Definicion\nLa inteligencia artificial (IA) es la simulacion de procesos cognitivos humanos por parte de maquinas.\n\n## Aplicaciones actuales\n- Salud: diagnostico por imagen, descubrimiento de farmacos\n- Educacion: tutores adaptativos, correccion automatica\n- Industria: mantenimiento predictivo, control de calidad\n- Entretenimiento: recomendaciones, generacion de contenido\n\n## Tipos de IA\n| Tipo | Descripcion | Ejemplo |\n|---|---|---|\n| IA estrecha | Especializada en una tarea | GPT, AlphaGo |\n| IA general | Razonamiento amplio | Investigacion activa |\n| IA superinteligente | Superior al humano | Hipotetica |\n\n## Retos eticos\n1. Privacidad y vigilancia masiva\n2. Sesgos en los modelos\n3. Desplazamiento laboral\n4. Responsabilidad legal\n\n## Perspectivas futuras\nLa IA continuara transformando la sociedad. Es crucial desarrollar marcos regulatorios solidos y promover una IA responsable.\n\n## Conclusion\nLa IA representa una de las mayores oportunidades y desafios tecnologicos de nuestra era.",
-              "footer": "Informe educativo - 2025"
-            }
-          },
-          {
-            "input": "genera un documento pdf sobre el cambio climatico",
-            "output": {
-              "tool": "pdf",
-              "title": "Cambio Climatico",
-              "subtitle": "Causas, consecuencias y soluciones globales",
-              "content": "## Que es el cambio climatico\nEl cambio climatico se refiere a las alteraciones a largo plazo en las temperaturas y los patrones climaticos globales.\n\n## Causas principales\n- Emision de gases de efecto invernadero\n- Deforestacion masiva\n- Combustibles fosiles en industria y transporte\n\n## Impactos observados\n1. Aumento del nivel del mar\n2. Eventos climaticos extremos mas frecuentes\n3. Perdida de biodiversidad\n4. Inseguridad alimentaria en zonas vulnerables\n\n## Respuestas y soluciones\n- Transicion a energias renovables\n- Reforestacion y conservacion de bosques\n- Acuerdos internacionales (Acuerdo de Paris)\n- Economia circular y reduccion de residuos\n\n## Conclusion\nActuar ahora es esencial. Cada fraccion de grado de calentamiento evitado marca una diferencia significativa para los ecosistemas y las comunidades humanas.",
-              "footer": "Fuente: IPCC 2023 - Uso educativo"
+              "subtitle": "Aplicaciones actuales y retos éticos",
+              "content": "## Definición\nLa inteligencia artificial (IA) es la simulación de procesos cognitivos humanos mediante sistemas computacionales.\n\n## Aplicaciones actuales\n- Salud: diagnóstico por imagen y descubrimiento de fármacos\n- Educación: tutores adaptativos y evaluación automatizada\n- Industria: mantenimiento predictivo y control de calidad\n\n## Retos éticos\n1. Privacidad y uso responsable de datos\n2. Sesgos en los modelos\n3. Impacto en el empleo\n\n## Conclusión\nLa IA ofrece grandes oportunidades si se desarrolla bajo marcos éticos y regulatorios sólidos.",
+              "footer": "Informe educativo"
             }
           }
         ],
-        "maxResponseTokens": 3000
+        "maxResponseTokens": 2048
       }
     }
   ]

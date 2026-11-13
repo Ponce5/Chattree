@@ -1,24 +1,24 @@
-# 🐙 GitHub Integration Plugin (`com.chattree.official.github`)
+# Chattree GitHub Integration (`com.chattree.official.github`)
 
-Official **GitHub Integration** plugin for **Chattree**, compiled to native WebAssembly (`WASM`) and engineered to work **100% with Natural Language (`intentContract`)**.
-
----
-
-## 🎯 Purpose & Utility
-
-The **GitHub Integration** plugin turns Chattree into a conversational engineering assistant connected directly to the **GitHub REST API (`2022-11-28`)**. It enables developers and teams to:
-
-1. **AI-Powered Issue Creation (`create`)**: Ask Chattree in plain Spanish or English to report a bug, propose an architecture improvement, or plan a feature. The AI generates a structured technical specification in Markdown (Context, Technical Proposal / Reproduction Steps, and Acceptance Criteria), publishes the Issue directly to your GitHub repository, and returns a clickable link alongside a full preview.
-2. **Issue Tracking (`issues`)**: Inspect open issues on any public or private repository (`owner/repo`) directly inside your chat conversation.
-3. **Repository Discovery (`search` & `repos`)**: Search global GitHub repositories by topic/technology or list your own most recently updated repositories.
-4. **Stateful Repository Memory (`set_repo`)**: Save a default repository (`owner/repo`) in encrypted plugin private storage so you can create or list issues without repeating the repository name on every message.
-5. **Secure Personal Access Token Storage (`config`, `status`, `disconnect`)**: Store your GitHub Personal Access Token (`ghp_...` or `github_pat_...`) in isolated private storage (`storage.private`) and verify your `@username` identity at any time.
+Official **GitHub Integration** plugin for **Chattree**, compiled to WebAssembly (`WASM`) and powered by natural-language AI tool calling (`intentContract`).
 
 ---
 
-## 💬 Natural Language Examples
+## Features
 
-Once installed, invoke `/github` (or aliases `/gh`, `/git`) using natural conversation:
+Connected to the **GitHub REST API (`2022-11-28`)**, you can:
+
+1. **AI-Drafted Issues (`create`)**: Describe a bug, feature, or task in natural language. The AI drafts a structured Markdown specification and opens the Issue directly in your repository.
+2. **Issue Tracking (`issues`)**: List open Issues on any accessible public or private repository (`owner/repo`).
+3. **Repository Discovery (`search` & `repos`)**: Search GitHub repositories by topic or list your recently updated repositories.
+4. **Default Repository (`set_repo`)**: Save a default `owner/repo` in private plugin storage so you do not have to repeat it.
+5. **Token Management (`config`, `status`, `disconnect`)**: Store your GitHub Personal Access Token (`ghp_...` or `github_pat_...`) in isolated private storage (`storage.private`).
+
+---
+
+## Usage Examples
+
+Invoke `/github` (or aliases `/gh`, `/git`):
 
 - **Connect your GitHub Token:**
   ```text
@@ -26,33 +26,32 @@ Once installed, invoke `/github` (or aliases `/gh`, `/git`) using natural conver
   ```
 - **Set your default repository:**
   ```text
-  /github usa el repositorio Ponce5/Chattree por defecto
+  /github set default repo Ponce5/Chattree
   ```
-- **Draft and open a rich technical Issue with AI:**
+- **Draft and open a technical Issue:**
   ```text
-  /github crea un issue en Ponce5/Chattree para optimizar el motor WASM y reducir el consumo de memoria en Android con criterios de aceptación
+  /github create an issue in Ponce5/Chattree to optimize WASM memory usage on Android
   ```
-- **List open Issues in a repository:**
+- **List open Issues:**
   ```text
-  /github muéstrame los issues abiertos de Ponce5/Chattree
+  /github show open issues in Ponce5/Chattree
   ```
 - **List your recent repositories:**
   ```text
-  /github lista mis repositorios recientes
+  /github list my recent repositories
   ```
 - **Search repositories on GitHub:**
   ```text
-  /github busca repositorios de flutter wasm runtime
+  /github search repositories for flutter wasm runtime
   ```
-- **Check connection & active repository status:**
+- **Check account & default repository status:**
   ```text
-  /github estado de mi cuenta
+  /github check connection status
   ```
 
 ---
 
-## 🔐 Permissions & Security
+## Permissions & Security
 
-- `network.http`: Communicates exclusively with `https://api.github.com` over HTTPS TLS 1.3.
+- `network.http`: Communicates exclusively with `https://api.github.com` over HTTPS.
 - `storage.private`: Stores `api_token` and `default_repo` in Chattree's isolated per-plugin key-value store.
-- **Zero Rigid Keyword Slicing**: Powered by Chattree's `intentContract` (`action`, `repo`, `title`, `content`, `query`) with `maxResponseTokens: 3000`.
