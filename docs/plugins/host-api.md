@@ -3,6 +3,10 @@
 The **ChattreeHostApi** is the bridge between a WASM plugin and Chattree's internal services.
 Your plugin communicates with it through a single imported function: `chattree.host_call`.
 
+> [!NOTE]
+> **Slash-Command Input (`lang=<code>`)**  
+> When a user invokes a plugin slash command from chat, Chattree appends the active app language to plain-text arguments (e.g., `/mycmd` passes `"lang=es"` and `/mycmd test` passes `"test lang=es"`). Strip trailing `lang=<code>` tokens before matching exact subcommands.
+
 ---
 
 ## Import the host function
@@ -92,7 +96,7 @@ Your WASM module must declare this import to use any Host API:
 | `chattree.context` | Current message & bounded chat history | ❌ Async | `chattree.context.read` / `chat.history.read` |
 | `ai` | Single-turn LLM completion, embeddings & RAG | ❌ Async | `ai.context` / `ai.embeddings` |
 | `websocket` | Real-time bidirectional WebSockets | ❌ Async | `network.websocket` (+ optional `network.local`) |
-| `ui` | Declarative rich UI cards, badges, progress & buttons | ✅ Sync | `ui.components` / `ui.render` |
+| `ui` | Declarative rich UI cards, badges, progress & buttons | ❌ Async (`ui.validate` is Sync) | `ui.components` / `ui.render` |
 | `scheduler` | Wall-clock Cron & periodic background tasks | ❌ Async | `scheduler.task` / `scheduler.cron` |
 | `database` | Private isolated relational SQLite & transactions | ❌ Async | `database.sql` / `storage.database` |
 
@@ -204,13 +208,15 @@ The `notifications` namespace covers local notification dispatch and the full un
 |-----------|------|---------------------|-------|--------|-------------|
 | `notifications.send` | ❌ | `notifications.send` | `{ title: string, body?: string }` | `{ notificationId, sent, remainingQuota }` | Sends a local system alert (rate limited to 15/hr). |
 | `notifications.cancel` | ❌ | `notifications.send` | `{ notificationId: number }` | `{ notificationId, cancelled: boolean }` | Cancels a local notification previously posted by this plugin. |
-| `notifications.getStatus` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ status: "active" \| "disconnected" \| "permission_required" \| "reconnecting" \| "unsupported" }` | Returns current Android Notification Listener service status. |
-| `notifications.getActive` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ notifications: DeviceNotificationSummary[] }` | Queries active status bar alerts, filtered strictly by `allowedNotificationPackages`. |
-| `notifications.reply` | ❌ | `notifications.reply` | `{ packageName: string, logicalId: string, reply: string }` | `{ success: boolean, logicalId: string }` | Sends inline quick reply via Android native `RemoteInput` (max 4,000 characters). |
-| `notifications.dismiss` | ❌ | `notifications.action` | `{ packageName: string, logicalId: string }` | `{ success: boolean, logicalId: string }` | Swipes away / cancels an active notification from the Android status bar. |
-| `notifications.invokeAction` | ❌ | `notifications.action` | `{ actionHandle: string, packageName: string, logicalId?: string }` | `{ success: boolean, actionInvoked: boolean, actionHandle: string }` | Triggers a native action button via its single-use, cryptographically secure `ActionHandle`. |
-| `notifications.subscribe` | ❌ | `notifications.read` | `{}` | `{ subscribed: boolean }` | Ensures the platform event listener is initialized. |
-| `notifications.openSettings` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ opened: boolean }` | Launches Android OS Notification Listener Access settings screen. |
+| `notifications.getStatus` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ status: "active" \| "disconnected" \| "permission_required" \| "reconnecting" \| "unsupported", isListenerEnabled: boolean, isSupported: boolean }` | Returns current Android Notification Listener service status. |
+| `notifications.getActive` | ❌ | `notifications.query` | `{ packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean, includeRecent?: boolean, limit?: number }` | `DeviceNotificationSummary[]` | Queries active status bar alerts (and optionally recent RAM history), filtered strictly by `allowedNotificationPackages`. |
+| `notifications.query` | ❌ | `notifications.query` | `{ packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean, includeRecent?: boolean, limit?: number }` | `DeviceNotificationSummary[]` | Alias of `notifications.getActive`. |
+| `notifications.getRecent` | ❌ | `notifications.query` | `{ limit?: number, packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean }` | `DeviceNotificationSummary[]` | Queries the ephemeral in-memory circular buffer (up to 100 recent non-ongoing notifications), filtered by `allowedNotificationPackages`. |
+| `notifications.reply` | ❌ | `notifications.reply` | `{ logicalId: string, message: string }` | `{ replied: boolean, logicalId: string }` | Sends inline quick reply via Android native `RemoteInput` (max 4,000 characters). Package scope is verified from `logicalId`. |
+| `notifications.dismiss` | ❌ | `notifications.action` | `{ logicalId: string }` | `{ dismissed: boolean, logicalId: string }` | Swipes away / cancels an active notification from the Android status bar. |
+| `notifications.invokeAction` | ❌ | `notifications.action` | `{ actionHandle: string, logicalId?: string, packageName?: string, actionIndex?: number }` | `{ invoked: boolean, actionHandle: string }` | Triggers a native action button via its single-use, cryptographically secure `ActionHandle` (or `logicalId` + `actionIndex`). |
+| `notifications.subscribe` | ❌ | `notifications.read` | `{}` | `{ subscribed: boolean, status: string, isListenerEnabled: boolean, isSupported: boolean }` | Ensures the platform event listener is initialized. |
+| `notifications.openSettings` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ opened: boolean, isSupported: boolean }` | Launches Android OS Notification Listener Access settings screen. |
 
 #### Real-Time EventBus Subscriptions (`notifications.read`)
 
@@ -222,12 +228,18 @@ When `notifications.read` is granted, the plugin receives ephemeral in-memory ev
   {
     "logicalId": "com.whatsapp_1042_null",
     "packageName": "com.whatsapp",
+    "appName": "WhatsApp",
+    "channelId": "group_chat_notifications_1",
     "postTime": 1711234567890,
     "title": "Juan Pérez",
     "body": "Hola, ¿cómo estás?",
     "subText": "WhatsApp",
+    "infoText": "",
     "category": "msg",
     "isGroupSummary": false,
+    "isOngoing": false,
+    "isClearable": true,
+    "isFromMe": false,
     "canReply": true,
     "conversationTitle": "Familia",
     "isGroup": true,
@@ -237,7 +249,8 @@ When `notifications.read` is granted, the plugin receives ephemeral in-memory ev
       {
         "text": "Hola, ¿cómo estás?",
         "timestamp": 1711234567890,
-        "sender": "Juan Pérez"
+        "sender": "Juan Pérez",
+        "isSelf": false
       }
     ],
     "actions": [
@@ -245,12 +258,14 @@ When `notifications.read` is granted, the plugin receives ephemeral in-memory ev
         "actionHandle": "act_4f8b9123cde4a7812bcdeff012345678",
         "title": "Responder",
         "isReply": true,
+        "semanticAction": "reply",
         "index": 0
       },
       {
         "actionHandle": "act_8e2a149b561c437a89ff0123456789ab",
         "title": "Marcar como leído",
         "isReply": false,
+        "semanticAction": "mark_as_read",
         "index": 1
       }
     ]
@@ -525,50 +540,68 @@ Closes an active socket cleanly with optional status code and reason string.
 
 ## `ui` Namespace
 
-The `ui` namespace (`UiApiHandler`) enables plugins to emit structured interactive UI cards.
+The `ui` namespace (`UiApiHandler`) enables plugins to emit and validate structured interactive UI cards and alerts.
 
 ### Operations
 
-#### `ui.render` / `ui.show_card`
+#### `ui.render` / `ui.card` *(Async)*
 Sanitizes and renders an interactive UI card in the chat.
 - **Payload:**
-  - `card` (object, required): Structured card specification:
-    - `title` (string, required): Card headline.
-    - `subtitle` (string, optional): Secondary caption.
-    - `elements` (array, required): Array of UI element objects (max 60 elements).
+  - `title` (string, optional): Card headline (also accepts card properties at root or nested).
+  - `subtitle` (string, optional): Secondary caption.
+  - `hideText` (boolean, optional): When `true`, hides the plain-text intro bubble above the rendered card.
+  - `elements` (array, required): Array of UI element objects (max 60 elements).
 - **Supported Elements:**
   - `text`: `{ "type": "text", "content": "Hello", "style": "body", "markdown": true }`
-  - `badge`: `{ "type": "badge", "text": "OK", "variant": "success" }`
+  - `badge`: `{ "type": "badge", "text": "OK", "variant": "success", "icon": "note" }` (variants include `info`, `success`, `warning`, `error`, `neutral`, `white`, `mono`, `monochrome`, `primary`; icons include `note`/`notes`, `alarm`/`reminder`, etc.)
   - `progress`: `{ "type": "progress", "value": 75, "label": "75%" }`
   - `key_value`: `{ "type": "key_value", "items": [{ "label": "Status", "value": "Active" }] }` (max 40 items)
+  - `list`: `{ "type": "list", "items": [{ "title": "Note Title", "subtitle": "Preview snippet..." }] }` (max 40 items; `title` max 100 chars, `subtitle` max 160 chars)
   - `divider`: `{ "type": "divider" }`
-  - `button_row`: `{ "type": "button_row", "buttons": [{ "label": "Run", "action": "command", "payload": "/mycommand" }] }` (max 8 buttons)
+  - `button_row`: `{ "type": "button_row", "buttons": [{ "label": "Run", "action": "command", "payload": "/mycommand", "variant": "primary" }] }` (max 8 buttons; variants include `primary`, `secondary`, `danger`, `white`, `mono`, `monochrome`)
 - **Response `data`:**
   - `rendered` (boolean): `true`.
-  - `elementCount` (number): Number of elements rendered after sanitization.
+  - `pluginId` (string): The plugin ID.
+  - `ui` (object): Sanitized UI card payload.
+
+#### `ui.alert` / `ui.toast` *(Async)*
+Displays a lightweight alert or toast message.
+- **Payload:**
+  - `message` (string, required): Alert text.
+  - `title` (string, optional): Alert title.
+  - `level` (string, optional): Severity level (`info`, `success`, `warning`, `error`; default `info`).
+- **Response `data`:**
+  - `type`: `"alert"`, `title`, `message`, `level`.
+
+#### `ui.validate` *(Sync)*
+Synchronously validates a UI card payload against schema and size limits without rendering.
+- **Response `data`:** `{ "valid": true }`.
 
 ---
 
 ## `scheduler` Namespace
 
-The `scheduler` namespace (`PluginTaskScheduler` / `SchedulerApiHandler`) registers recurring Cron and interval-based background tasks.
+The `scheduler` namespace (`PluginTaskScheduler` / `SchedulerApiHandler`) registers recurring Cron, interval-based, and one-shot background tasks.
 
 ### Operations
 
-#### `scheduler.schedule_task`
-Schedules a recurring task with anti-battery drain enforcement.
+#### `scheduler.schedule`
+Schedules a recurring or one-shot task with anti-battery drain enforcement.
 - **Payload:**
-  - `taskId` (string, required): Unique task ID within the plugin.
-  - `cron` (string, optional): 5-field Cron expression (e.g., `0 * * * *`, `*/15 * * * *`).
-  - `intervalSeconds` (number, optional): Recurrent interval in seconds (minimum 60).
-  - `payload` (any, optional): Structured JSON payload dispatched with the event (max 128 KB).
-  - `description` (string, optional): Human-readable task description.
+  - `targetAction` (string, required): Action or command name to dispatch when triggered (max 100 chars, `[a-zA-Z0-9_.:-]+`).
+  - `cronExpression` (string, optional): 5-field Cron expression (e.g., `0 * * * *`, `*/15 * * * *`).
+  - `intervalMs` (number, optional): Recurrent interval in milliseconds (minimum `60000` ms / 60 seconds).
+  - `scheduledAt` (string, optional): ISO-8601 timestamp for a one-shot task (e.g., `2026-11-15T15:30:00Z`).
+  - `payload` (object, optional): Structured JSON payload dispatched with the event (max 128 KB).
 - **Response `data`:**
   - `scheduled` (boolean): `true`.
-  - `taskId` (string): The registered task ID.
-  - `nextExecution` (string): ISO 8601 timestamp of next trigger.
+  - `taskId` (string): Generated unique task ID.
+  - `targetAction` (string): Registered target action.
+  - `isPeriodic` (boolean): Whether the task recurs.
+  - `intervalMs` (number, optional): Effective interval in ms.
+  - `createdAt` (string): ISO-8601 creation timestamp.
 
-#### `scheduler.cancel_task`
+#### `scheduler.cancel`
 Cancels and removes an active scheduled task.
 - **Payload:**
   - `taskId` (string, required): Task ID to cancel.
@@ -576,12 +609,19 @@ Cancels and removes an active scheduled task.
   - `cancelled` (boolean): `true`.
   - `taskId` (string): The cancelled task ID.
 
-#### `scheduler.list_tasks`
+#### `scheduler.list`
 Lists all active scheduled tasks for this plugin.
 - **Payload:** `{}`
 - **Response `data`:**
   - `tasks` (array): Array of registered task descriptors.
-  - `count` (number): Total tasks registered (max 25).
+  - `count` (number): Total tasks registered.
+  - `maxAllowed` (number): Maximum allowed active tasks per plugin (`25`).
+
+#### `scheduler.status`
+Retrieves the current state of a single scheduled task.
+- **Payload:**
+  - `taskId` (string, required): Task ID to inspect.
+- **Response `data`:** Full task descriptor object.
 
 ---
 

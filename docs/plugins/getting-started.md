@@ -362,9 +362,10 @@ When your exported function or `resume()` writes formatted Markdown into the out
 Beyond Markdown, plugins requesting the `ui.components` capability can return **rich interactive UI cards** directly into the conversation.
 
 By returning a JSON object with `"type": "card"`, your plugin can display:
-- **Status Badges:** Color-coded visual tags (`success`, `warning`, `error`, `info`, `neutral`).
+- **Status Badges:** Color-coded or monochrome visual tags (`success`, `warning`, `error`, `info`, `neutral`, `white`, `mono`, `monochrome`, `primary`) with optional icons (`note`, `alarm`, etc.).
 - **Progress Bars:** Visual progress tracking (0.0 to 1.0 or 0% to 100%).
-- **Key-Value Tables:** Structured grids for system metrics, specifications, or details (up to 40 items).
+- **Key-Value Tables & Lists:** Structured `key_value` grids and `list` items (`title` + `subtitle` preview) up to 40 items.
+- **Hide Intro Text (`hideText`):** Optional `"hideText": true` card property to render only the visual card without duplicating a text bubble above it.
 - **Interactive Action Buttons:** Buttons with actions:
   - `command`: Triggers another slash command (commands starting with `/` prompt the user with a confirmation modal).
   - `url`: Opens an external link safely in the browser.

@@ -174,7 +174,7 @@ Allows plugins to receive real-time streaming events when notifications are post
 **Security & Privacy Safeguards:**
 - **Native OTP / 2FA Exclusion:** Any notification containing one-time passwords, verification codes (regex `\b\d{4,8}\b` with security keywords like *code*, *OTP*, *2FA*, *verificación*), or marked with security flags is immediately dropped in the Android native service. It never enters Dart memory, EventBus, or plugin sandboxes.
 - **True Zero-Persistence Core:** Chattree Core does NOT persist notification text or metadata to disk or SQLite `EventJournal`. Notifications are delivered as transient in-memory signals. Plugins requiring historical retention must manage their own storage using their isolated SQLite database (`database.sql`).
-- **Debounced Stream:** Burst updates (e.g. rapid group chat messages) are throttled with a 200ms debounce per notification session to protect CPU and memory.
+- **Debounced Stream:** Burst updates (e.g. rapid group chat messages) are throttled with a 500ms debounce per notification session to protect CPU and memory.
 
 ---
 
@@ -185,43 +185,48 @@ Allows plugins to receive real-time streaming events when notifications are post
 **Permission required:** User consent + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
-Allows plugins to inspect the status of the native notification listener service and retrieve currently active status bar notifications filtered by the plugin's package authorization.
+Allows plugins to inspect the status of the native notification listener service, retrieve currently active status bar notifications, and query the ephemeral in-memory recent buffer (up to 100 entries) filtered strictly by the plugin's package authorization.
 
 **Operations:**
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `notifications.getStatus` | `{}` | `{ status: "active" \| "disconnected" \| "unsupported" }` |
-| `notifications.getActive` | `{}` | `{ notifications: DeviceNotificationSummary[] }` |
+| `notifications.getStatus` | `{}` | `{ status: "active" \| "disconnected" \| "permission_required" \| "reconnecting" \| "unsupported", isListenerEnabled: boolean, isSupported: boolean }` |
+| `notifications.getActive` | `{ packageName?, category?, canReplyOnly?, excludeOngoing?, excludeFromMe?, includeRecent?, limit? }` | `DeviceNotificationSummary[]` |
+| `notifications.query` | `{ packageName?, category?, canReplyOnly?, excludeOngoing?, excludeFromMe?, includeRecent?, limit? }` | `DeviceNotificationSummary[]` |
+| `notifications.getRecent` | `{ limit?, packageName?, category?, canReplyOnly?, excludeOngoing?, excludeFromMe? }` | `DeviceNotificationSummary[]` |
 
 **Example Response (`notifications.getStatus`):**
 ```json
 {
-  "status": "active"
+  "status": "active",
+  "isListenerEnabled": true,
+  "isSupported": true
 }
 ```
 
-**Example Response (`notifications.getActive`):**
+**Example Response (`notifications.getActive` / `notifications.getRecent`):**
 ```json
-{
-  "notifications": [
-    {
-      "id": "1001",
-      "logicalId": "com.whatsapp_1001_chat_42",
-      "packageName": "com.whatsapp",
-      "title": "Alice Smith",
-      "text": "Are we still meeting at 3 PM?",
-      "category": "msg",
-      "postTime": 1711234567890,
-      "isClearable": true,
-      "hasReplyAction": true,
-      "isUpdate": false,
-      "actions": [
-        { "title": "Reply", "hasRemoteInput": true, "isQuickReply": true, "actionHandle": "act_8f7b2c1409d1e56b..." }
-      ]
-    }
-  ]
-}
+[
+  {
+    "logicalId": "com.whatsapp_1001_chat_42",
+    "packageName": "com.whatsapp",
+    "appName": "WhatsApp",
+    "channelId": "individual_chat_notifications",
+    "title": "Alice Smith",
+    "body": "Are we still meeting at 3 PM?",
+    "category": "msg",
+    "postTime": 1711234567890,
+    "isOngoing": false,
+    "isClearable": true,
+    "isFromMe": false,
+    "isGroupSummary": false,
+    "canReply": true,
+    "actions": [
+      { "title": "Reply", "isReply": true, "semanticAction": "reply", "index": 0, "actionHandle": "act_8f7b2c1409d1e56b..." }
+    ]
+  }
+]
 ```
 
 ---
@@ -239,20 +244,20 @@ Allows plugins to execute inline direct replies to active notifications using An
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `notifications.reply` | `{ notificationKey: string, reply: string }` | `{ success: boolean, notificationKey: string }` |
+| `notifications.reply` | `{ logicalId: string, message: string }` | `{ replied: boolean, logicalId: string }` |
 
 **Input fields:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `notificationKey` | string | ✅ | Identifier of the active notification (as received in `DeviceNotificationSummary.id` or `logicalId`) |
-| `reply` | string | ✅ | Text content to send (max **4,000 characters**) |
+| `logicalId` | string | ✅ | Identifier of the active notification (as received in `DeviceNotificationSummary.logicalId`) |
+| `message` | string | ✅ | Text content to send (max **4,000 characters**) |
 
 **Safety & Lifetime Boundaries:**
-- The native `RemoteInput` and `PendingIntent` objects reside exclusively in an Android in-memory `LruCache` (500 capacity). They are never saved to disk and are invalidated immediately when the user dismisses the notification.
-- Double-checked package authorization: The plugin must have the target app in its `allowedNotificationPackages`.
+- The native `RemoteInput` and `PendingIntent` objects reside exclusively in an Android in-memory session cache. They are never saved to disk and are invalidated immediately when the notification is dismissed.
+- Double-checked package authorization: The plugin must have the target app (extracted from `logicalId`) in its `allowedNotificationPackages`.
 - Max payload length is strictly capped at **4,000 characters** to protect against Android Binder `TransactionTooLargeException`.
-- Fails safely with `reply_action_unavailable` or `notification_not_found` if the notification has been dismissed or lacks a reply action.
+- Fails safely with `NOTIFICATION_EXPIRED` or `ACTION_UNAVAILABLE` if the notification has been dismissed or lacks a reply action.
 
 ---
 
@@ -263,30 +268,29 @@ Allows plugins to execute inline direct replies to active notifications using An
 **Permission required:** Explicit user authorization + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
-Allows plugins to programmatically interact with active notifications: dismiss them from the status bar or trigger interactive quick actions (e.g. "Mark as Read", "Archive", "Call Back", custom inline prompts).
+Allows plugins to programmatically interact with active notifications: dismiss them from the status bar or trigger interactive quick actions (e.g. "Mark as Read", "Archive", "Call Back") using either `actionHandle` or `logicalId` + `actionIndex`, with `semanticAction` metadata (`reply`, `mark_as_read`, `archive`, `delete`, etc.) on Android 9+.
 
 **Operations:**
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `notifications.dismiss` | `{ notificationKey: string }` | `{ success: boolean, notificationKey: string }` |
-| `notifications.invokeAction` | `{ actionHandle: string, notificationKey?: string, actionIndex?: integer, actionTitle?: string, inputs?: object }` | `{ success: boolean, actionHandle: string, executedAt: integer }` |
+| `notifications.dismiss` | `{ logicalId: string }` | `{ dismissed: boolean, logicalId: string }` |
+| `notifications.invokeAction` | `{ actionHandle: string, logicalId?: string, packageName?: string, actionIndex?: integer }` | `{ invoked: boolean, actionHandle: string }` |
 
 **Input fields (`notifications.dismiss`):**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `notificationKey` | string | ✅ | Target notification identifier (`StatusBarNotification.key` or `id`) |
+| `logicalId` | string | ✅ | Target notification identifier |
 
 **Input fields (`notifications.invokeAction`):**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `actionHandle` | string | ✅ | Cryptographic single-use token (`act_<uuid4>`) identifying the action |
-| `notificationKey` | string | ❌ | Expected notification key (validated against token binding) |
-| `actionIndex` | integer | ❌ | Expected action index (validated against token binding) |
-| `actionTitle` | string | ❌ | Action title label (informative) |
-| `inputs` | object | ❌ | Optional key-value inputs for actions requiring `RemoteInput` parameters |
+| `logicalId` | string | ❌ | Expected notification `logicalId` (used for validation and fallback index resolution) |
+| `packageName` | string | ❌ | Expected Android package name (validated against token binding) |
+| `actionIndex` | integer | ❌ | Expected action index within the notification |
 
 **Security & Lifetime Boundaries for Actions:**
 - **Cryptographic Handle:** `actionHandle` is an unguessable 128-bit UUID v4 token generated when the notification is parsed.
@@ -629,7 +633,7 @@ Searches Chattree Notes by keyword.
 **Permission required:** User consent  
 **Host API namespace:** `chattree.notes`
 
-Creates a new note in Chattree Notes.
+Creates a new note in Chattree Notes (also accepts legacy capability aliases `notes.write` / `writeNotes`).
 
 **Operations:**
 
@@ -700,7 +704,7 @@ Lists and retrieves reminders from Chattree.
 **Permission required:** User consent  
 **Host API namespace:** `chattree.reminders`
 
-Creates a new reminder with an optional alarm.
+Creates a new reminder with an optional alarm (also accepts legacy capability aliases `reminders.write` / `writeReminders`).
 
 **Operations:**
 
@@ -992,11 +996,14 @@ Allows plugins to emit rich, interactive declarative UI cards in the chat rather
 | Component | Properties | Description |
 |-----------|------------|-------------|
 | `text` | `content` (string), `style` (`"body"` \| `"caption"` \| `"headline"` \| `"code"`), `markdown` (boolean) | Text block with optional markdown formatting |
-| `badge` | `text` (string), `variant` (`"info"` \| `"success"` \| `"warning"` \| `"error"` \| `"neutral"`), `icon` (string?) | Color-coded status badge |
+| `badge` | `text` (string), `variant` (`"info"` \| `"success"` \| `"warning"` \| `"error"` \| `"neutral"` \| `"white"` \| `"mono"` \| `"monochrome"` \| `"primary"`), `icon` (string?, e.g. `"note"`, `"alarm"`) | Status badge with color-coded or monochrome styling |
 | `progress` | `value` (number 0.0 to 1.0 or 0 to 100), `label` (string?), `status` (string?) | Progress bar with optional indicator text |
 | `key_value` | `items`: `[{ label: string, value: string, copyable?: boolean }]` | Structured label-value grid (up to 40 items) |
+| `list` | `items`: `[{ title: string, subtitle?: string }]` | Compact title-and-preview list (up to 40 items; `title` max 100 chars, `subtitle` max 160 chars) |
 | `divider` | None | Subtle horizontal separator line |
-| `button_row` | `buttons`: `[{ label: string, action: "command" \| "url" \| "copy", payload: string, variant?: "primary" \| "secondary" \| "danger" }]` | Interactive action row (up to 8 buttons per row) |
+| `button_row` | `buttons`: `[{ label: string, action: "command" \| "url" \| "copy", payload: string, variant?: "primary" \| "secondary" \| "danger" \| "white" \| "mono" \| "monochrome" }]` | Interactive action row (up to 8 buttons per row) |
+
+> **Card-level options:** Cards also accept `"hideText": true` to suppress the plain-text intro bubble above the declarative card when the card itself carries the full visual response.
 
 **Limitations & Security Guarantees:**
 - **Element density limits:** Max **60 elements** per card; max **40 key-value items** per table; max **8 buttons** per button row; max nesting depth of 3 levels.

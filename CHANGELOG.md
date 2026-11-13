@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Notes Hybrid Search, Declarative UI Enhancements & Persistence Hardening
+- **Native Notes Hybrid Search & Bounded RAG Context (`NotesService`, `NoteTool`)**:
+  - Upgraded `/note` search to hybrid retrieval (`_hybridSearch`) combining accent-insensitive tokenized lexical matching with `RAGService` semantic embeddings via Reciprocal Rank Fusion (`RRF`, `k=60`).
+  - Added `rag_search` action in `NoteTool`, automatic hybrid search fallback on `get` lookups, and bounded note context injection (max 5 notes, 1,200 chars per note, 3,600 chars total).
+  - `NotesService` now awaits SQLite persistence on CRUD operations before returning.
+- **Declarative UI Cards (`DeclarativeUiBubble`, `UiApiHandler`) & `/note` / `/reminder` Redesign**:
+  - Added `list` element type (`{ "type": "list", "items": [{ "title", "subtitle" }] }`, up to 40 items; `title` max 100 chars, `subtitle` max 160 chars).
+  - Added card-level `hideText: true` option to suppress redundant plain-text bubbles above declarative cards.
+  - Added monochrome styling variants (`white`, `mono`, `monochrome`, `primary`) and header icons (`alarm`/`reminder`, `note`/`notes`), applied to `/note` and `/reminder` list cards.
+- **Persistence, Memory, Download Integrity & Chat UX**:
+  - Migrated `ChatHistoryService` persistence to SQLite (`chattree_chat_history.db`) with `SharedPreferences` fallback.
+  - Reduced RAM usage in `SqliteVectorStore` by caching only IDs and float vectors in memory and fetching `text`/`metadata` from SQLite in batches of 500.
+  - Added `Content-Length` and optional `sha256` / `vocabSha256` verification in `DownloadManager` and `EmbeddingDownloadManager`.
+  - Disabled the New Chat button while `isGenerating` is active, added a floating pinned-command badge in `ChatScreen`, and added minimalist delete animations in `ChatDrawer` and `NotesScreen`.
+
 ### Webhook Subsystem Technical Audit & Production Readiness Specifications
 - **Comprehensive Local vs. Cloud Inbound Audit**:
   - Formalized dual-entrypoint architecture specifications and operational boundaries across local loopback (`InboundHttpServer`, 256 KB) and cloud relay (`Cloudflare Worker + FCM`, ~3.5 KB).

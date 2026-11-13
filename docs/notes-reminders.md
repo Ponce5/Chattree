@@ -36,11 +36,14 @@ Chattree exposes Notes and Reminders through dedicated, official first-class plu
 
 - **Explicit Slash Command:** Users type `/note` directly for deterministic operations:
   ```text
+  /note
   /note buy coffee beans and milk
   /note project deadline: submit final report on Friday
   /note search student ID
   /note list
   ```
+- **Declarative Visual Cards:** Typing `/note` without arguments renders a minimalist monochrome `DeclarativeUiBubble` card (`hideText: true`, `note` icon, `list` elements with note title and truncated content preview).
+- **Hybrid Search & `rag_search`:** `NotesService` and `NoteTool` combine accent-insensitive tokenized lexical search with on-device `RAGService` semantic embeddings via Reciprocal Rank Fusion (`RRF`, `k=60`). `/note` also supports the `rag_search` action and falls back to hybrid search on `get` lookups when an exact title/ID match is not found, injecting bounded note context (up to 5 notes, 1,200 chars per note, 3,600 chars total).
 - **Conversational Safety:** In standard conversational chat without slash commands, Chattree prioritizes natural conversation. If a note-taking or reminder intent is detected, Chattree transparently guides the user to invoke `/note` or `/reminder`, ensuring side-effects are never performed without explicit user consent.
 - **Confirmation:** Destructive actions (such as deletion) require explicit user confirmation. If a request is ambiguous or references multiple notes, the assistant asks for clarification rather than deleting the wrong entry.
 
@@ -48,7 +51,7 @@ Chattree exposes Notes and Reminders through dedicated, official first-class plu
 
 Reminders handle time-sensitive tasks with scheduled notifications on Android:
 
-- **Explicit Slash Command:** Typing `/reminder` without arguments immediately lists all pending reminders. With arguments, it routes to the assistant:
+- **Explicit Slash Command:** Typing `/reminder` without arguments immediately lists all pending reminders inside a minimalist monochrome `DeclarativeUiBubble` card (`hideText: true`, `alarm` icon, `key_value` items, and action buttons). With arguments, it routes to the assistant:
   ```text
   /reminder
   /reminder submit tax report next Monday at 9:00 AM
@@ -62,12 +65,12 @@ Reminders handle time-sensitive tasks with scheduled notifications on Android:
 
 When chatting, if a user query might benefit from saved notes, Chattree can automatically augment the AI prompt with relevant context:
 
-1. **Automatic Embedding Generation:** Every time a note is created or updated, Chattree generates vector embeddings locally using the on-device ONNX embedding model (`EmbeddingService` and `RAGService` index notes sequentially in the background to avoid isolate contention).
-2. **Local Vector Storage & In-Memory Cache:** Embeddings are persisted in SQLite (`SqliteVectorStore`) and cached in memory (`_memoryCache`) for zero-I/O cosine similarity lookups, with deterministic cache invalidation whenever notes are inserted, updated, or deleted.
-3. **Semantic Cosine Search:** When a conversational prompt is submitted (`ChatController.sendMessage`) while RAG is enabled and initialized, semantic similarity against stored note vectors is computed in milliseconds.
+1. **Automatic Embedding Generation:** Every time a note is created or updated, Chattree awaits SQLite persistence and generates vector embeddings locally using the on-device ONNX embedding model (`EmbeddingService` and `RAGService` index notes sequentially in the background to avoid isolate contention).
+2. **Local Vector Storage & Compact RAM Index:** Embeddings are persisted in SQLite (`SqliteVectorStore`). To minimize memory footprint, `SqliteVectorStore` keeps only document IDs and float vectors in RAM and fetches `text` and `metadata` from SQLite in batches of 500 for matching chunks, with deterministic cache invalidation whenever notes are inserted, updated, or deleted.
+3. **Semantic & Hybrid Search:** When a conversational prompt is submitted (`ChatController.sendMessage`) while RAG is enabled and initialized, semantic similarity against stored note vectors is computed in milliseconds. Inside `/note`, `NoteTool` fuses semantic RAG results with accent-insensitive lexical matching via RRF (`k=60`).
 4. **Context Injection:** Relevant note excerpts are automatically injected into the prompt context window before local or remote LLM inference.
 5. **Zero Data Leakage:** Vectors, notes, and queries never leave the device. When a note is deleted, its vector embeddings are purged synchronously.
-6. **Fallback:** If RAG is disabled in Settings or returns no high-confidence matches, standard conversation continues without interruption.
+6. **Fallback:** If RAG is disabled in Settings or returns no high-confidence matches, standard conversation and lexical note search continue without interruption.
 
 ---
 
