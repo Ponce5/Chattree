@@ -1,17 +1,11 @@
 # GitHub Actions Workflows
 
-This directory is reserved for continuous integration, testing, and deployment workflows powered by GitHub Actions.
+This directory is designated for continuous integration, testing, and deployment workflows powered by GitHub Actions.
 
 ---
 
-## Planned CI/CD Pipelines
+## Validation & CI Checks
 
-Future workflow definitions will include:
-- **Linting & Code Style**: Enforcing format and quality standards across Markdown, JavaScript/TypeScript, and schemas.
-- **Schema Validation**: Automated validation of plugin manifests and test cases against authoritative schemas.
-- **Test Automation**: Running test suites for developer tools and official plugins.
-- **Release Automation**: Automating package builds, changelog validation, and release assets publishing.
-
----
-
-> **Note:** Workflows will be configured and activated once the primary toolchains and test runners for the repository are defined.
+Before submitting changes or cutting a release, run the repository validation suite locally:
+- **Schema & Plugin Validation**: `node scripts/validate-all.mjs` validates all examples, templates, and official plugins against `schemas/`.
+- **Web Docs Sync & Type-Checking**: `npm run lint` and `npx tsc --noEmit` in `Web/` verify documentation synchronization and Next.js build integrity.
