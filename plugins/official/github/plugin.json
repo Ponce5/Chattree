@@ -17,6 +17,9 @@
     "network.http",
     "storage.private"
   ],
+  "allowedDomains": [
+    "api.github.com"
+  ],
   "tags": [
     "github",
     "git",

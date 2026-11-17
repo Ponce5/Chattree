@@ -10,7 +10,7 @@ Security updates and patches are provided for currently supported production rel
 
 | Version | Supported |
 | ------- | --------- |
-| `1.0.x` | ✅ Supported |
+| `1.0.x` | Supported |
 
 ---
 

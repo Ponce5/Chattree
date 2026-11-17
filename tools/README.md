@@ -4,7 +4,7 @@ This directory and the [`packages/cli`](../../../packages/cli) workspace contain
 
 ---
 
-## ⚡ Unified Developer CLI (`@chattree/cli`)
+## Unified Developer CLI (`@chattree/cli`)
 
 The official all-in-one CLI tool is published on [npm as `@chattree/cli`](https://www.npmjs.com/package/@chattree/cli). No prior installation is required:
 

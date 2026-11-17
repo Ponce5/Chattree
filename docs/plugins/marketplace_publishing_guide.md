@@ -104,6 +104,9 @@ The `plugin.json` file is the contract that defines your plugin's identity, perm
     "network.http",
     "location.current"
   ],
+  "allowedDomains": [
+    "api.open-meteo.com"
+  ],
   "changelog": "1.0.0: Initial public release.",
   "runtime": "wasm",
   "entrypoint": "weather_entry",
@@ -217,24 +220,24 @@ Content-Type: application/json
 #### Request Headers
 | Header | Value | Required | Description |
 |---|---|---|---|
-| `Content-Type` | `application/json` | ✅ | Must specify JSON body |
-| `User-Agent` | `your-tool/1.0` | ⚪ | Recommended identifier |
+| `Content-Type` | `application/json` | Yes | Must specify JSON body |
+| `User-Agent` | `your-tool/1.0` | No | Recommended identifier |
 
 #### Request Payload Specification
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `download_url` | string (URL) | ✅ | Direct HTTPS download URL to the `.chattree-plugin` asset attached to a GitHub Release. |
-| `icon_url` | string (URL) | ✅ | Public HTTPS URL for the 512x512 plugin icon, strictly hosted on GitHub domains (`raw.githubusercontent.com`, `user-images.githubusercontent.com`, `github.com`). |
-| `banner_url` | string (URL) | ⚪ | Optional promotional banner image (1200x630 px) hosted on GitHub. |
-| `source_url` | string (URL) | ⚪ | Public GitHub repository URL containing the plugin source code. |
-| `homepage_url` | string (URL) | ⚪ | Project or author website URL. |
-| `author_url` | string (URL) | ⚪ | GitHub profile or personal page of the developer. |
-| `license` | string | ⚪ | SPDX license identifier (default: `"MIT"`). |
-| `category` | string | ⚪ | One of: `productivity`, `utilities`, `devtools`, `ai`, `automation`, `files`, `communication`, `media`, `education`, `other` (default: `"utilities"`). |
-| `name` | string | ⚪ | Overrides manifest display name if desired. |
-| `short_description` | string | ⚪ | Brief summary shown in mobile cards (max 120 chars). |
-| `description` | string | ⚪ | Extended description shown on the plugin details page. |
-| `changelog` | string | ⚪ | Release notes describing the updates in this version. |
+| `download_url` | string (URL) | Yes | Direct HTTPS download URL to the `.chattree-plugin` asset attached to a GitHub Release. |
+| `icon_url` | string (URL) | Yes | Public HTTPS URL for the 512x512 plugin icon, strictly hosted on GitHub domains (`raw.githubusercontent.com`, `user-images.githubusercontent.com`, `github.com`). |
+| `banner_url` | string (URL) | No | Optional promotional banner image (1200x630 px) hosted on GitHub. |
+| `source_url` | string (URL) | No | Public GitHub repository URL containing the plugin source code. |
+| `homepage_url` | string (URL) | No | Project or author website URL. |
+| `author_url` | string (URL) | No | GitHub profile or personal page of the developer. |
+| `license` | string | No | SPDX license identifier (default: `"MIT"`). |
+| `category` | string | No | One of: `productivity`, `utilities`, `devtools`, `ai`, `automation`, `files`, `communication`, `media`, `education`, `other` (default: `"utilities"`). |
+| `name` | string | No | Overrides manifest display name if desired. |
+| `short_description` | string | No | Brief summary shown in mobile cards (max 120 chars). |
+| `description` | string | No | Extended description shown on the plugin details page. |
+| `changelog` | string | No | Release notes describing the updates in this version. |
 
 #### JSON Payload Example
 ```json
@@ -417,9 +420,10 @@ When an update is submitted:
 
 | Check | Requirement | Reason |
 |-------|-------------|--------|
-| ✅ **No Subfolders** | `plugin.json` and `plugin.wasm` at ZIP root | Chattree extractor looks at root entries only. |
-| ✅ **Version Sync** | Manifest `version` matches GitHub Release tag | Prevents version mismatch errors during validation. |
-| ✅ **WASM Hash Sync** | `wasmSha256` in manifest matches `plugin.wasm` | Detects mismatched binary contents; it is not publisher authentication. |
-| ✅ **Version discipline** | Publish a strictly higher SemVer for each update | Enforced by the submit API (`409 VERSION_NOT_NEWER`). |
-| ✅ **Raw Image URLs** | Use `raw.githubusercontent.com` for icons | Ensures public accessibility without HTML page wrappers. |
-| ✅ **Minimal Capabilities** | Only declare capabilities actually used | Excessive permissions lower community adoption and trust. |
+| **No Subfolders** | `plugin.json` and `plugin.wasm` at ZIP root | Chattree extractor looks at root entries only. |
+| **Version Sync** | Manifest `version` matches GitHub Release tag | Prevents version mismatch errors during validation. |
+| **WASM Hash Sync** | `wasmSha256` in manifest matches `plugin.wasm` | Detects mismatched binary contents; it is not publisher authentication. |
+| **Version Discipline** | Publish a strictly higher SemVer for each update | Enforced by the submit API (`409 VERSION_NOT_NEWER`). |
+| **Raw Image URLs** | Use `raw.githubusercontent.com` for icons | Ensures public accessibility without HTML page wrappers. |
+| **Allowed Domains** | Declare `allowedDomains` when using `network.http` | Required by runtime egress firewall (`SEC-4.3.4-05`). |
+| **Minimal Capabilities** | Only declare capabilities actually used | Excessive permissions lower community adoption and trust. |

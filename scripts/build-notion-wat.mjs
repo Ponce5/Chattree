@@ -51,7 +51,7 @@ function registerData(name, str) {
 }
 
 // Static user-facing messages
-const s_help = `📝 **Notion Workspace Integration (IA & Lenguaje Natural)**
+const s_help = `**Notion Workspace Integration (IA & Lenguaje Natural)**
 
 Conecta tu espacio de trabajo de Notion con Chattree y gestiona todo en **lenguaje natural**. La IA redacta y estructura automáticamente el contenido completo de tus páginas.
 
@@ -69,25 +69,25 @@ Conecta tu espacio de trabajo de Notion con Chattree y gestiona todo en **lengua
 2. En Notion, abre la página donde quieras guardar tus notas, toca el menú **'...'** (arriba a la derecha) -> **Conexiones** (Add connections) y selecciona tu integración.
 3. En Chattree escribe: \`/notion configura mi token <tu_token>\`.`;
 
-const s_key_saved_ok = `✅ **Notion configurado y verificado exitosamente.**\n\nTu token de integración está activo y listo para usarse con lenguaje natural.\n\nAhora puedes pedirle a Chattree cosas como:\n• \`/notion créame una página con las mejores ideas de negocio para 2027\`\n• \`/notion busca mis notas sobre el proyecto\`\n• \`/notion muéstrame mis páginas recientes\``;
-const s_key_saved_invalid = `⚠️ **Token guardado pero no se pudo validar con Notion.**\n\nNotion devolvió un error de autenticación. Verifica que tu token sea un 'Internal Integration Secret' válido (\`ntn_...\` o \`secret_...\`) creado en https://www.notion.so/profile/integrations y que esté activo.`;
-const s_key_missing = `⚠️ **Notion no está configurado.**\n\nPor favor registra tu Integration Secret diciendo en lenguaje natural:\n\`/notion configura mi token <tu_integration_secret>\`\n\nPuedes obtener tu clave en https://www.notion.so/profile/integrations`;
-const s_disconnected = `✅ **Desconectado de Notion.**\n\nSe ha eliminado tu token de integración de este dispositivo.`;
+const s_key_saved_ok = `**Notion configurado y verificado exitosamente.**\n\nTu token de integración está activo y listo para usarse con lenguaje natural.\n\nAhora puedes pedirle a Chattree cosas como:\n• \`/notion créame una página con las mejores ideas de negocio para 2027\`\n• \`/notion busca mis notas sobre el proyecto\`\n• \`/notion muéstrame mis páginas recientes\``;
+const s_key_saved_invalid = `**Token guardado pero no se pudo validar con Notion.**\n\nNotion devolvió un error de autenticación. Verifica que tu token sea un 'Internal Integration Secret' válido (\`ntn_...\` o \`secret_...\`) creado en https://www.notion.so/profile/integrations y que esté activo.`;
+const s_key_missing = `**Notion no está configurado.**\n\nPor favor registra tu Integration Secret diciendo en lenguaje natural:\n\`/notion configura mi token <tu_integration_secret>\`\n\nPuedes obtener tu clave en https://www.notion.so/profile/integrations`;
+const s_disconnected = `**Desconectado de Notion.**\n\nSe ha eliminado tu token de integración de este dispositivo.`;
 
-const s_status_ok = `✅ **Conexión con Notion activa y saludable.**\n\n• **API:** Notion API v1 (2022-06-28)\n• **Integración:** Autenticada y lista\n• **Modo:** 100% Lenguaje Natural con IA de Chattree (creación de páginas con desarrollo completo de contenido, búsqueda semántica y listado)\n\nPide lo que necesites en lenguaje natural con \`/notion <tu solicitud>\`.`;
-const s_status_error = `❌ **No se pudo conectar a Notion.**\n\nEl token guardado no es válido o ha expirado. Configura uno nuevo diciendo:\n\`/notion configura mi token <tu_token>\``;
+const s_status_ok = `**Conexión con Notion activa y saludable.**\n\n• **API:** Notion API v1 (2022-06-28)\n• **Integración:** Autenticada y lista\n• **Modo:** 100% Lenguaje Natural con IA de Chattree (creación de páginas con desarrollo completo de contenido, búsqueda semántica y listado)\n\nPide lo que necesites en lenguaje natural con \`/notion <tu solicitud>\`.`;
+const s_status_error = `**No se pudo conectar a Notion.**\n\nEl token guardado no es válido o ha expirado. Configura uno nuevo diciendo:\n\`/notion configura mi token <tu_token>\``;
 
-const s_search_header = `📝 **Resultados encontrados en Notion:**\n\n`;
-const s_search_empty = `ℹ️ **No se encontraron resultados en Notion.**\n\nRecuerda que para que una página o base de datos sea accesible, debes compartirla con tu integración en Notion (Menú **'...'** -> **Conexiones** / Add connections -> Tu Integración).`;
-const s_search_error = `❌ **Error al consultar Notion.**\n\nVerifica tu conexión a internet y comprueba que tu token siga siendo válido con \`/notion verifica mi conexión\`.`;
+const s_search_header = `**Resultados encontrados en Notion:**\n\n`;
+const s_search_empty = `**No se encontraron resultados en Notion.**\n\nRecuerda que para que una página o base de datos sea accesible, debes compartirla con tu integración en Notion (Menú **'...'** -> **Conexiones** / Add connections -> Tu Integración).`;
+const s_search_error = `**Error al consultar Notion.**\n\nVerifica tu conexión a internet y comprueba que tu token siga siendo válido con \`/notion verifica mi conexión\`.`;
 
-const s_parent_saved = `✅ **Página base configurada exitosamente.**\n\nTodas las nuevas páginas que pidas crear en Notion se guardarán dentro de esta página.`;
-const s_create_no_parent = `⚠️ **No se encontró ninguna página compartida en tu espacio de trabajo de Notion.**\n\nNotion requiere que las páginas nuevas se creen dentro de una página existente a la que tu integración tenga acceso. Abre Notion, entra a una página y en el menú **'...'** -> **Conexiones** (Add connections) añade tu integración.`;
-const s_create_ok_prefix = `✅ **Página creada exitosamente en Notion:**\n\n📄 [**`;
+const s_parent_saved = `**Página base configurada exitosamente.**\n\nTodas las nuevas páginas que pidas crear en Notion se guardarán dentro de esta página.`;
+const s_create_no_parent = `**No se encontró ninguna página compartida en tu espacio de trabajo de Notion.**\n\nNotion requiere que las páginas nuevas se creen dentro de una página existente a la que tu integración tenga acceso. Abre Notion, entra a una página y en el menú **'...'** -> **Conexiones** (Add connections) añade tu integración.`;
+const s_create_ok_prefix = `**Página creada exitosamente en Notion:**\n\n[**`;
 const s_create_ok_mid = `**](`;
 const s_create_ok_mid2 = `)\n\n---\n\n`;
 const s_create_ok_suffix = `\n\n---\n*Tu página ya está guardada y sincronizada en tu espacio de trabajo de Notion.*`;
-const s_create_error_prefix = `❌ **Error de Notion:** `;
+const s_create_error_prefix = `**Error de Notion:** `;
 const s_create_error_suffix = `\n\nVerifica que tu integración tenga permisos de edición en la página compartida de Notion.`;
 
 // Storage templates
@@ -210,7 +210,7 @@ const needle_msg_field = registerData('needle_msg_field', '"message":"');
 const needle_pages_fallback = registerData('needle_pages_fallback', 'Página de Notion');
 
 // Bullet points formatting
-const d_bullet_page = registerData('bullet_page', '• 📄 [');
+const d_bullet_page = registerData('bullet_page', '• [');
 const d_bullet_mid = registerData('bullet_mid', '](');
 const d_bullet_end = registerData('bullet_end', ')\n');
 
@@ -1411,14 +1411,14 @@ const watPath = path.join(pluginDir, 'plugin.wat');
 const wasmPath = path.join(pluginDir, 'plugin.wasm');
 
 fs.writeFileSync(watPath, watContent, 'utf8');
-console.log('✅ Generated plugin.wat successfully:', watPath);
+console.log('[OK] Generated plugin.wat successfully:', watPath);
 
 execSync(`wat2wasm "${watPath}" -o "${wasmPath}"`, { stdio: 'inherit' });
-console.log('✅ Compiled plugin.wasm successfully:', wasmPath);
+console.log('[OK] Compiled plugin.wasm successfully:', wasmPath);
 
 const wasmBytes = fs.readFileSync(wasmPath);
 const wasmSha256 = crypto.createHash('sha256').update(wasmBytes).digest('hex');
-console.log('🔑 WASM SHA-256:', wasmSha256);
+console.log('[SHA-256] WASM SHA-256:', wasmSha256);
 
 // Write schema-compliant plugin.json v1.2.0
 const manifest = {
@@ -1566,4 +1566,4 @@ const manifest = {
 
 const manifestPath = path.join(pluginDir, 'plugin.json');
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-console.log('✅ Generated plugin.json v1.2.0 successfully:', manifestPath);
+console.log('[OK] Generated plugin.json v1.2.0 successfully:', manifestPath);

@@ -67,14 +67,14 @@ const payloadStart = JSON.stringify({
 - Antorcha de Brea x1 (duración: 20 turnos)
 - Monedero de Cuero: 50 Monedas de Oro
 
-> 📜 **DIRECTIVA MAESTRA PARA EL NARRADOR IA DE CHATTREE (GAME MASTER):**
+> **DIRECTIVA MAESTRA PARA EL NARRADOR IA DE CHATTREE (GAME MASTER):**
 > 1. **HISTORIA LINEAL Y CONTINUA:** Esta es una campaña narrativa viva y coherente. Jamás trates las acciones como combates sueltos de relleno. Cada turno debe avanzar la trama de la Cripta de Eldoria hacia adelante con causa y efecto.
 > 2. **PROTAGONISTA Y ATMÓSFERA:** Comienza con una introducción inmersiva, cinematográfica y literaria. Describe el polvo flotando en los rayos de luz de la luna, el frío de la piedra centenaria, el peso de la armadura y el susurro espectral del Centinela que vigila la puerta sellada.
 > 3. **PROHIBIDO ALTERAR O INVENTAR NÚMEROS:** Los valores de vida (120 HP), maná, oro y pociones son matemáticos del motor WASM.
 > 4. **OPCIONES TÁCTICAS:** Al final de tu narración, formula siempre 3 opciones narrativas tentadoras (Ataque frontal, Uso del entorno/sigilo, o Magia/objeto).
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-🕯️ **Prólogo — El Despertar en las Sombras de Eldoria**
+**Prólogo — El Despertar en las Sombras de Eldoria**
 
 Despiertas sobre un lecho de losas heladas, cubierto por el polvo de siglos. Una extraña marca en tu muñeca brilla con un sutil resplandor cerúleo, pulsando al compás de los latidos de tu corazón. 
 
@@ -85,7 +85,7 @@ Al incorporarte empuñando tu espada, la niebla de la cripta se arremolina. Ante
     title: "Crónicas de Eldoria — Capítulo I",
     subtitle: "El Despertar de la Cripta • Turno 1",
     elements: [
-      { type: "badge", text: "⚔️ ENCUENTRO HOSTIL ACTIVO", variant: "warning" },
+      { type: "badge", text: "ENCUENTRO HOSTIL ACTIVO", variant: "warning" },
       { type: "progress", value: 100, label: "Salud (HP): 120/120 (100%)" },
       { type: "progress", value: 100, label: "Maná (MP): 30/30 (100%)" },
       { type: "progress", value: 0, label: "Progreso al Nivel 2: 0/100 XP (0%)" },
@@ -102,10 +102,10 @@ Al incorporarte empuñando tu espada, la niebla de la cripta se arremolina. Ante
       {
         type: "button_row",
         buttons: [
-          { label: "⚔️ Atacar con Espada", action: "command", payload: "/rpg action atacar al centinela", variant: "danger" },
-          { label: "🛡️ Posición Defensiva", action: "command", payload: "/rpg action cubrirse con escudo", variant: "primary" },
-          { label: "🧪 Beber Poción", action: "command", payload: "/rpg action beber pocion", variant: "neutral" },
-          { label: "📊 Ficha y Mochila", action: "command", payload: "/rpg status", variant: "neutral" }
+          { label: "Atacar con Espada", action: "command", payload: "/rpg action atacar al centinela", variant: "danger" },
+          { label: "Posición Defensiva", action: "command", payload: "/rpg action cubrirse con escudo", variant: "primary" },
+          { label: "Beber Poción", action: "command", payload: "/rpg action beber pocion", variant: "neutral" },
+          { label: "Ficha y Mochila", action: "command", payload: "/rpg status", variant: "neutral" }
         ]
       }
     ]
@@ -135,11 +135,11 @@ const payloadAttack = JSON.stringify({
   "summary": "Impacto contundente. El Centinela retrocede herido pero contraataca con un corte de escarcha."
 }
 \`\`\`
-> 📜 **DIRECTIVA PARA EL NARRADOR IA:**
+> **DIRECTIVA PARA EL NARRADOR IA:**
 > Narra la colisión de metales: tu espada envuelta en fuerza rompe la guardia del Centinela cortando su esencia etérea (24 de daño, le quedan 11 HP). A cambio, su hoja fantasmal roza tu hombro helándote la sangre (-8 HP, tienes 112 HP). Mantén el suspenso y describe la criatura tambaleándose antes del golpe final.
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-⚔️ **Intercambio de Acero y Sombras**
+**Intercambio de Acero y Sombras**
 
 Te impulsas hacia adelante con un grito de guerra. Tu espada de acero describe un arco fulgurante que rasga la armadura espectral del centinela con un chirrido ensordecedor. Partículas de luz azulada brotan de la herida (**-24 de daño**). 
 
@@ -155,8 +155,8 @@ Sin embargo, el ente responde con rapidez sobrenatural: su filo helado hiere tu 
         type: "key_value",
         items: [
           { label: "Tirada de Ataque", value: "d20: 18 (+3 STR) = 21 vs AC 12 [ÉXITO]" },
-          { label: "Daño Asestado", value: "⚔️ 24 puntos de corte" },
-          { label: "Daño Recibido", value: "❄️ 8 puntos de frío espectral" },
+          { label: "Daño Asestado", value: "24 puntos de corte" },
+          { label: "Daño Recibido", value: "8 puntos de frío espectral" },
           { label: "Estado del Centinela", value: "Esencia quebrada (11/35 HP)" }
         ]
       },
@@ -164,10 +164,10 @@ Sin embargo, el ente responde con rapidez sobrenatural: su filo helado hiere tu 
       {
         type: "button_row",
         buttons: [
-          { label: "⚔️ Asestar Golpe Final", action: "command", payload: "/rpg action golpe de gracia", variant: "danger" },
-          { label: "🧪 Beber Poción", action: "command", payload: "/rpg action beber pocion", variant: "primary" },
-          { label: "🏃 Esquivar y Flanquear", action: "command", payload: "/rpg action esquivar", variant: "neutral" },
-          { label: "💾 Guardar Partida", action: "command", payload: "/rpg save", variant: "neutral" }
+          { label: "Asestar Golpe Final", action: "command", payload: "/rpg action golpe de gracia", variant: "danger" },
+          { label: "Beber Poción", action: "command", payload: "/rpg action beber pocion", variant: "primary" },
+          { label: "Esquivar y Flanquear", action: "command", payload: "/rpg action esquivar", variant: "neutral" },
+          { label: "Guardar Partida", action: "command", payload: "/rpg save", variant: "neutral" }
         ]
       }
     ]
@@ -192,11 +192,11 @@ const payloadPotion = JSON.stringify({
   "status": "Vitalidad completa restaurada al 100%"
 }
 \`\`\`
-> 📜 **DIRECTIVA PARA EL NARRADOR IA:**
+> **DIRECTIVA PARA EL NARRADOR IA:**
 > Narra cómo destapas el frasco con un movimiento diestro mientras te cubres con el escudo. El brebaje cálido disuelve el frío espectral de tu herida, cicatrizando tu hombro por completo. Describe el sonido del frasco al guardarlo y la preparación para la siguiente maniobra.
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-🧪 **Restauración Alquímica de Vitalidad**
+**Restauración Alquímica de Vitalidad**
 
 Dando un paso atrás para ganar distancia, descorchas con los dientes uno de tus frascos de vidrio. El líquido carmesí resplandece en la penumbra. Al beberlo, una oleada de calor vigorizante recorre tus venas, cerrando la herida helada y despejando tu visión. Tu salud regresa al máximo absoluto (**120/120 HP**). Te quedan **2 pociones** en el cinto.`,
   ui: {
@@ -209,7 +209,7 @@ Dando un paso atrás para ganar distancia, descorchas con los dientes uno de tus
       {
         type: "key_value",
         items: [
-          { label: "Pociones en zurrón", value: "🧪 2 frascos curativos restantes" },
+          { label: "Pociones en zurrón", value: "2 frascos curativos restantes" },
           { label: "Estado corporal", value: "Heridas cerradas, vigor renovado" },
           { label: "Enemigo frente a ti", value: "Centinela Espectral (HP 11/35)" }
         ]
@@ -218,9 +218,9 @@ Dando un paso atrás para ganar distancia, descorchas con los dientes uno de tus
       {
         type: "button_row",
         buttons: [
-          { label: "⚔️ Rematar al Centinela", action: "command", payload: "/rpg action atacar al centinela", variant: "danger" },
-          { label: "🛡️ Bloqueo con Escudo", action: "command", payload: "/rpg action cubrirse con escudo", variant: "primary" },
-          { label: "📊 Ver Ficha", action: "command", payload: "/rpg status", variant: "neutral" }
+          { label: "Rematar al Centinela", action: "command", payload: "/rpg action atacar al centinela", variant: "danger" },
+          { label: "Bloqueo con Escudo", action: "command", payload: "/rpg action cubrirse con escudo", variant: "primary" },
+          { label: "Ver Ficha", action: "command", payload: "/rpg status", variant: "neutral" }
         ]
       }
     ]
@@ -255,11 +255,11 @@ const payloadStatus = JSON.stringify({
   ]
 }
 \`\`\`
-> 📜 **DIRECTIVA PARA EL NARRADOR IA:**
+> **DIRECTIVA PARA EL NARRADOR IA:**
 > Resume con elegancia la condición del héroe, sus cicatrices, el brillo del acero y la determinación que arde en su mirada para superar la cripta.
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-📊 **Hoja de Personaje y Pertinencias**
+**Hoja de Personaje y Pertinencias**
 
 Te detienes un instante al amparo de las columnas caídas para revisar tus fuerzas y equipo antes del siguiente paso crucial de tu expedición.`,
   ui: {
@@ -273,7 +273,7 @@ Te detienes un instante al amparo de las columnas caídas para revisar tus fuerz
         type: "key_value",
         items: [
           { label: "Atributos Físicos", value: "Fuerza 16 • Destreza 11 • Inteligencia 9" },
-          { label: "Bolsa de Monedas", value: "💰 50 monedas de oro antiguo" },
+          { label: "Bolsa de Monedas", value: "50 monedas de oro antiguo" },
           { label: "Armamento", value: "Espada de Acero (+6) • Escudo (+3)" },
           { label: "Consumibles", value: "2 Pociones de Salud • 1 Antorcha" }
         ]
@@ -282,10 +282,10 @@ Te detienes un instante al amparo de las columnas caídas para revisar tus fuerz
       {
         type: "button_row",
         buttons: [
-          { label: "⚔️ Continuar Combate", action: "command", payload: "/rpg action atacar", variant: "danger" },
-          { label: "🔍 Inspeccionar Alrededor", action: "command", payload: "/rpg action explorar cripta", variant: "primary" },
-          { label: "💾 Guardar Partida", action: "command", payload: "/rpg save", variant: "neutral" },
-          { label: "🔄 Reiniciar Partida", action: "command", payload: "/rpg reset", variant: "neutral" }
+          { label: "Continuar Combate", action: "command", payload: "/rpg action atacar", variant: "danger" },
+          { label: "Inspeccionar Alrededor", action: "command", payload: "/rpg action explorar cripta", variant: "primary" },
+          { label: "Guardar Partida", action: "command", payload: "/rpg save", variant: "neutral" },
+          { label: "Reiniciar Partida", action: "command", payload: "/rpg reset", variant: "neutral" }
         ]
       }
     ]
@@ -309,7 +309,7 @@ const payloadSave = JSON.stringify({
 \`\`\`
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-💾 **Punto de Control Fijado en la Memoria de Eldoria**
+**Punto de Control Fijado en la Memoria de Eldoria**
 
 Tu progreso, estadísticas, objetos reunidos y el estado de tu enemigo han sido salvaguardados en la base de datos relacional SQLite protegida de Chattree. Puedes cerrar la conversación o apagar tu terminal con la total seguridad de que la historia continuará exactamente donde la dejaste.`,
   ui: {
@@ -329,9 +329,9 @@ Tu progreso, estadísticas, objetos reunidos y el estado de tu enemigo han sido 
       {
         type: "button_row",
         buttons: [
-          { label: "⚔️ Reanudar Aventura", action: "command", payload: "/rpg action atacar", variant: "primary" },
-          { label: "📊 Ficha del Héroe", action: "command", payload: "/rpg status", variant: "neutral" },
-          { label: "🔄 Reiniciar", action: "command", payload: "/rpg reset", variant: "neutral" }
+          { label: "Reanudar Aventura", action: "command", payload: "/rpg action atacar", variant: "primary" },
+          { label: "Ficha del Héroe", action: "command", payload: "/rpg status", variant: "neutral" },
+          { label: "Reiniciar", action: "command", payload: "/rpg reset", variant: "neutral" }
         ]
       }
     ]
@@ -354,7 +354,7 @@ const payloadLoad = JSON.stringify({
 \`\`\`
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-📂 **Aventura Restaurada desde las Crónicas**
+**Aventura Restaurada desde las Crónicas**
 
 El velo del tiempo retrocede. Vuelves a encontrarte en el húmedo suelo de la cripta, frente al Centinela Espectral con tu acero alzado y tu salud íntegra.`,
   ui: {
@@ -374,9 +374,9 @@ El velo del tiempo retrocede. Vuelves a encontrarte en el húmedo suelo de la cr
       {
         type: "button_row",
         buttons: [
-          { label: "⚔️ Atacar", action: "command", payload: "/rpg action atacar", variant: "danger" },
-          { label: "📊 Ver Ficha", action: "command", payload: "/rpg status", variant: "neutral" },
-          { label: "🔄 Reiniciar", action: "command", payload: "/rpg reset", variant: "neutral" }
+          { label: "Atacar", action: "command", payload: "/rpg action atacar", variant: "danger" },
+          { label: "Ver Ficha", action: "command", payload: "/rpg status", variant: "neutral" },
+          { label: "Reiniciar", action: "command", payload: "/rpg reset", variant: "neutral" }
         ]
       }
     ]
@@ -397,17 +397,17 @@ const payloadResetPrompt = JSON.stringify({
   "status": "awaiting_confirmation"
 }
 \`\`\`
-> 📜 **DIRECTIVA PARA EL NARRADOR IA:**
+> **DIRECTIVA PARA EL NARRADOR IA:**
 > Explica al aventurero con gravedad y solemnidad que reiniciar la partida restablecerá la rueda del destino: se borrará todo el progreso actual, los datos almacenados en la base de datos relacional SQLite y el inventario acumulado para comenzar una historia completamente fresca desde el Turno 1. Pregúntale con dramatismo si realmente desea confirmar el reinicio o si prefiere continuar con su gesta actual.
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-⚠️ **¿Deseas reiniciar toda la aventura de rol?**
+**¿Deseas reiniciar toda la aventura de rol?**
 
 Esta acción borrará de forma permanente tu progreso actual, tus puntos de guardado en la base de datos relacional SQLite y tus objetos acumulados, devolviendo tu campaña al **Capítulo I (Turno 1)** con un nuevo inicio narrativo.
 
 *Para continuar, pulsa el botón rojo **"Sí, Reiniciar Todo"** abajo o escribe **"confirmar reinicio"**.*`,
   ui: {
-    title: "⚠️ Confirmar Reinicio de Partida",
+    title: "Confirmar Reinicio de Partida",
     subtitle: "¿Restablecer la campaña desde el inicio?",
     elements: [
       { type: "badge", text: "ADVERTENCIA: ACCIÓN DESTRUCTIVA", variant: "warning" },
@@ -423,8 +423,8 @@ Esta acción borrará de forma permanente tu progreso actual, tus puntos de guar
       {
         type: "button_row",
         buttons: [
-          { label: "✅ Sí, Reiniciar Todo", action: "command", payload: "/rpg action confirmar_reinicio", variant: "danger" },
-          { label: "❌ Cancelar y Continuar", action: "command", payload: "/rpg status", variant: "neutral" }
+          { label: "Sí, Reiniciar Todo", action: "command", payload: "/rpg action confirmar_reinicio", variant: "danger" },
+          { label: "Cancelar y Continuar", action: "command", payload: "/rpg status", variant: "neutral" }
         ]
       }
     ]
@@ -460,11 +460,11 @@ const payloadResetConfirmed = JSON.stringify({
 - Antorcha de Brea x1 (duración: 20 turnos)
 - Monedero de Cuero: 50 Monedas de Oro
 
-> 📜 **DIRECTIVA PARA EL NARRADOR IA:**
+> **DIRECTIVA PARA EL NARRADOR IA:**
 > Narra el reinicio con una atmósfera poética y mística de renacimiento: las sombras se disuelven, el tiempo retrocede en un torbellino etéreo y el aventurero abre los ojos de nuevo en una cripta diferente con misterios renovados. ¡Crea un inicio fresco, emocionante y lineal desde el Turno 1!
 <!-- [/CHATTREE_RPG_ENGINE_CONTEXT] -->
 
-🔄 **Partida Reiniciada con Éxito**
+**Partida Reiniciada con Éxito**
 
 Todos los registros de la base de datos SQLite y la memoria lineal del motor han sido purgados y restaurados a los valores iniciales. Las piedras de la cripta tiemblan y la historia vuelve a comenzar desde el principio.
 
@@ -488,9 +488,9 @@ Todos los registros de la base de datos SQLite y la memoria lineal del motor han
       {
         type: "button_row",
         buttons: [
-          { label: "⚔️ Iniciar Combate", action: "command", payload: "/rpg action atacar al centinela", variant: "danger" },
-          { label: "🛡️ Postura Defensiva", action: "command", payload: "/rpg action cubrirse con escudo", variant: "primary" },
-          { label: "📊 Ficha del Héroe", action: "command", payload: "/rpg status", variant: "neutral" }
+          { label: "Iniciar Combate", action: "command", payload: "/rpg action atacar al centinela", variant: "danger" },
+          { label: "Postura Defensiva", action: "command", payload: "/rpg action cubrirse con escudo", variant: "primary" },
+          { label: "Ficha del Héroe", action: "command", payload: "/rpg status", variant: "neutral" }
         ]
       }
     ]

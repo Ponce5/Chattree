@@ -4,7 +4,7 @@ The **Official Gmail Plugin** provides sandboxed, on-device email integration wi
 
 ---
 
-## 🚀 Guía Rápida: Cómo Obtener tu Contraseña de Aplicación de Gmail (16 Letras)
+## Guía Rápida: Cómo Obtener tu Contraseña de Aplicación de Gmail (16 Letras)
 
 1. Ve a tu cuenta de Google: [myaccount.google.com/security](https://myaccount.google.com/security).
 2. Asegúrate de tener activada la **Verificación en 2 pasos**.
@@ -19,7 +19,7 @@ The **Official Gmail Plugin** provides sandboxed, on-device email integration wi
 
 ---
 
-## ⚡ Comandos Disponibles
+## Comandos Disponibles
 
 | Comando | Descripción |
 | :--- | :--- |
@@ -32,7 +32,7 @@ The **Official Gmail Plugin** provides sandboxed, on-device email integration wi
 
 ---
 
-## 🛡️ Seguridad y Privacidad
+## Seguridad y Privacidad
 
 - Se activa **estrictamente con `/mail`** (sin alias ni interferencias en chats ordinarios).
 - Las credenciales se almacenan exclusivamente en el espacio aislado del plugin (`storage.private`).

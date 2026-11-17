@@ -73,6 +73,16 @@
       "format": "uri",
       "description": "Project website, GitHub repository, or documentation page."
     },
+    "iconUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Public URL or repository raw link to the plugin icon image."
+    },
+    "bannerUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Public URL or repository raw link to the marketplace banner artwork."
+    },
     "primaryCommand": {
       "type": "string",
       "pattern": "^[a-z0-9-]+$",
@@ -130,6 +140,14 @@
         "type": "string"
       },
       "description": "Whitelist of Android package identifiers permitted for notification access (e.g. ['com.whatsapp', 'com.google.android.gm'] or ['*']). Required when requesting notification capabilities."
+    },
+    "allowedDomains": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      },
+      "description": "Explicit allowlist of internet domains or subdomain wildcards (e.g. ['api.github.com', '*.example.com']) authorized for network.http requests (SEC-4.3.4-05)."
     },
     "tags": {
       "type": "array",
@@ -412,7 +430,7 @@
         },
         "authType": {
           "type": "string",
-          "enum": ["bearer", "hmacSha256Raw", "none"],
+          "enum": ["bearer", "hmacSha256Raw"],
           "description": "Cryptographic authentication required for requests to this endpoint."
         },
         "eventType": {

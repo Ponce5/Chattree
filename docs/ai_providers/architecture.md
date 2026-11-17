@@ -166,11 +166,11 @@ await SecureCredentialStore.instance.delete('openai');
 
 | Resource | Permitted in SecureCredentialStore | Permitted in Public Config / Logs |
 |---|---|---|
-| API Keys | ✅ Yes | ❌ Never |
-| Auth Headers / Bearer Tokens | ✅ Yes | ❌ Never |
-| Selected Model ID | ❌ No (stored in config store) | ✅ Yes |
-| Custom Base URL | ❌ No (stored in config store) | ✅ Yes |
-| Temperature / Max Tokens | ❌ No (stored in config store) | ✅ Yes |
+| API Keys | Yes | Never |
+| Auth Headers / Bearer Tokens | Yes | Never |
+| Selected Model ID | No (stored in config store) | Yes |
+| Custom Base URL | No (stored in config store) | Yes |
+| Temperature / Max Tokens | No (stored in config store) | Yes |
 
 ---
 

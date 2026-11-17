@@ -1633,7 +1633,7 @@
     )
 
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52850) (i32.const 32)))
-    (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52882) (i32.const 7)))
+    (local.set $out_p (call $write_str (local.get $out_p) (i32.const 52882) (i32.const 2)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 49408) (global.get $fname_len)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 53010) (i32.const 73)))
     (local.set $out_p (call $write_str (local.get $out_p) (i32.const 49664) (global.get $handle_len)))
@@ -1702,7 +1702,7 @@
 
   ;; Output JSON parts
   (data (i32.const 52850) "{\"type\":\"direct\",\"displayText\":\"")
-  (data (i32.const 52882) "\f0\9f\93\84 **")
+  (data (i32.const 52882) "**")
   (data (i32.const 52900) "** generado con exito\\n\\nListo para descargar desde el chat.\",\"fileHandle\":\"")
   (data (i32.const 52990) "\",\"fileName\":\"")
   (data (i32.const 53010) "** generated successfully\\n\\nReady to download from chat.\",\"fileHandle\":\"")

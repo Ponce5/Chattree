@@ -31,10 +31,10 @@ Welcome to the technical documentation library for the **Chattree** ecosystem â€
 ### 3. Developer Tutorials, Examples & Diagnostics
 - **[Guides & Tutorials](./tutorials.md)**: Step-by-step tutorials for building plugins in WAT and Rust, HTTP networking, and private storage.
 - **[Code Examples](./code-examples.md)**: Copy-pasteable recipes and patterns for common extension scenarios.
-- **[Runnable Examples (`examples/`)](../examples/README.md)**:
-  - **[`/hello`](../examples/hello/)**: Zero-capability minimal WAT greeting plugin.
-  - **[`/notes-demo`](../examples/notes-demo/)**: Asynchronous integration with Chattree Notes Host API.
-- **[Official Starter Template (`templates/plugin/`)](../templates/plugin/README.md)**: Turnkey starter kit featuring WAT and Rust configurations.
+- **Runnable Examples**:
+  - **[`/hello`](./plugins/examples/hello/README.md)**: Zero-capability minimal WAT greeting plugin.
+  - **[`/notes-demo`](./plugins/examples/notes-demo/README.md)**: Asynchronous integration with Chattree Notes Host API.
+- **[Official Starter Template (`templates/plugin/`)](https://github.com/Ponce5/Chattree/tree/main/templates/plugin)**: Turnkey starter kit featuring WAT and Rust configurations.
 - **[Troubleshooting & Diagnostics](./troubleshooting.md)**: Solutions for common installation, compilation, timeout, and permission issues.
 - **[Frequently Asked Questions (FAQ)](./faq.md)**: Answers to common questions regarding offline inference, storage, and privacy.
 

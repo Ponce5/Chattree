@@ -53,7 +53,7 @@ function registerData(name, str) {
 }
 
 // Static user-facing messages
-const s_help = `🐙 **GitHub Copilot & Workspace Integration (IA & Lenguaje Natural)**
+const s_help = `**GitHub Copilot & Workspace Integration (IA & Lenguaje Natural)**
 
 Conecta tu cuenta de GitHub con Chattree y administra tus repositorios, issues y búsquedas en **lenguaje natural**. La IA redacta y estructura automáticamente tus reportes de bugs, historias de usuario y propuestas técnicas.
 
@@ -71,31 +71,31 @@ Conecta tu cuenta de GitHub con Chattree y administra tus repositorios, issues y
 2. Genera un token clásico (\`ghp_...\`) o Fine-grained (\`github_pat_...\`) con permisos \`repo\` (o \`public_repo\` y \`issues:write\`).
 3. En Chattree escribe: \`/github configura mi token <tu_token>\`.`;
 
-const s_key_saved_ok_prefix = `✅ **GitHub configurado y verificado exitosamente.**\n\n👤 **Cuenta conectada:** \`@`;
+const s_key_saved_ok_prefix = `**GitHub configurado y verificado exitosamente.**\n\n**Cuenta conectada:** \`@`;
 const s_key_saved_ok_suffix = `\`\n\nAhora puedes pedir en lenguaje natural:\n• \`/github muéstrame mis repositorios recientes\`\n• \`/github crea un issue en usuario/repo explicando...\`\n• \`/github busca repositorios sobre...\``;
-const s_key_saved_invalid = `⚠️ **Token guardado pero no se pudo validar con GitHub.**\n\nGitHub devolvió un error de autenticación (401). Verifica que tu Personal Access Token (\`ghp_...\` o \`github_pat_...\`) sea válido y no haya expirado en https://github.com/settings/tokens`;
-const s_key_missing = `⚠️ **GitHub no está configurado.**\n\nPara crear issues o ver tus repositorios privados, registra tu Personal Access Token diciendo:\n\`/github configura mi token ghp_tu_token\`\n\nPuedes generar uno en https://github.com/settings/tokens (Nota: aún sin token puedes buscar repositorios públicos o ver issues de repositorios públicos).`;
-const s_disconnected = `✅ **Desconectado de GitHub.**\n\nSe ha eliminado tu Personal Access Token de este dispositivo.`;
+const s_key_saved_invalid = `**Token guardado pero no se pudo validar con GitHub.**\n\nGitHub devolvió un error de autenticación (401). Verifica que tu Personal Access Token (\`ghp_...\` o \`github_pat_...\`) sea válido y no haya expirado en https://github.com/settings/tokens`;
+const s_key_missing = `**GitHub no está configurado.**\n\nPara crear issues o ver tus repositorios privados, registra tu Personal Access Token diciendo:\n\`/github configura mi token ghp_tu_token\`\n\nPuedes generar uno en https://github.com/settings/tokens (Nota: aún sin token puedes buscar repositorios públicos o ver issues de repositorios públicos).`;
+const s_disconnected = `**Desconectado de GitHub.**\n\nSe ha eliminado tu Personal Access Token de este dispositivo.`;
 
-const s_status_ok_prefix = `✅ **Conexión con GitHub activa y saludable.**\n\n• **Usuario:** \`@`;
+const s_status_ok_prefix = `**Conexión con GitHub activa y saludable.**\n\n• **Usuario:** \`@`;
 const s_status_ok_mid = `\`\n• **Repositorio predeterminado:** \``;
 const s_status_ok_suffix = `\`\n• **API:** GitHub REST API v2022-11-28\n• **Modo:** 100% Lenguaje Natural con IA de Chattree (creación de issues con redacción técnica automática, consulta de repositorios, issues y búsqueda global)\n\nPide lo que necesites con \`/github <tu solicitud en lenguaje natural>\`.`;
 const s_status_none_repo = `No configurado (usa /github configura mi repo owner/repo)`;
-const s_status_error = `❌ **No se pudo autenticar con GitHub.**\n\nEl token guardado no es válido o ha expirado. Configura uno nuevo diciendo:\n\`/github configura mi token <tu_token>\``;
+const s_status_error = `**No se pudo autenticar con GitHub.**\n\nEl token guardado no es válido o ha expirado. Configura uno nuevo diciendo:\n\`/github configura mi token <tu_token>\``;
 
-const s_repo_saved_prefix = `✅ **Repositorio predeterminado configurado:** \``;
+const s_repo_saved_prefix = `**Repositorio predeterminado configurado:** \``;
 const s_repo_saved_suffix = `\`\n\nAhora puedes crear issues o listar issues sin necesidad de repetir el nombre del repositorio en cada mensaje.`;
-const s_repo_missing = `⚠️ **Falta indicar el repositorio (\`owner/repo\`).**\n\nPor favor indica el repositorio en tu solicitud (por ejemplo: *"en el repo Ponce5/Chattree"*) o configura un repositorio predeterminado diciendo:\n\`/github configura mi repositorio por defecto como owner/repo\``;
+const s_repo_missing = `**Falta indicar el repositorio (\`owner/repo\`).**\n\nPor favor indica el repositorio en tu solicitud (por ejemplo: *"en el repo Ponce5/Chattree"*) o configura un repositorio predeterminado diciendo:\n\`/github configura mi repositorio por defecto como owner/repo\``;
 
-const s_repos_header = `🐙 **Tus repositorios recientes en GitHub:**\n\n`;
-const s_search_header = `🔍 **Repositorios encontrados en GitHub:**\n\n`;
-const s_issues_header_prefix = `📋 **Issues abiertos en `;
+const s_repos_header = `**Tus repositorios recientes en GitHub:**\n\n`;
+const s_search_header = `**Repositorios encontrados en GitHub:**\n\n`;
+const s_issues_header_prefix = `**Issues abiertos en `;
 const s_issues_header_suffix = `:**\n\n`;
-const s_empty_results = `ℹ️ **No se encontraron resultados en GitHub para esta consulta.**`;
-const s_api_error_prefix = `❌ **Error de GitHub API:** `;
+const s_empty_results = `**No se encontraron resultados en GitHub para esta consulta.**`;
+const s_api_error_prefix = `**Error de GitHub API:** `;
 const s_api_error_suffix = `\n\nVerifica que el repositorio exista y que tu token tenga permisos suficientes (\`repo\` / \`issues:write\`).`;
 
-const s_create_ok_prefix = `✅ **Issue creado exitosamente en GitHub:**\n\n🐛 [**`;
+const s_create_ok_prefix = `**Issue creado exitosamente en GitHub:**\n\n[**`;
 const s_create_ok_mid = `**](`;
 const s_create_ok_mid2 = `)\n\n---\n\n`;
 const s_create_ok_suffix = `\n\n---\n*El issue ya está publicado y activo en el repositorio de GitHub.*`;
@@ -243,8 +243,8 @@ const needle_msg_field = registerData('needle_msg_field', '"message":"');
 const needle_fallback_item = registerData('needle_fallback_item', 'Ver en GitHub');
 
 // Bullet formatting
-const d_bullet_repo = registerData('bullet_repo', '• 📦 [**');
-const d_bullet_issue = registerData('bullet_issue', '• 🐛 [**');
+const d_bullet_repo = registerData('bullet_repo', '• [**');
+const d_bullet_issue = registerData('bullet_issue', '• [**');
 const d_bullet_mid = registerData('bullet_mid', '**](https://github.com/');
 const d_bullet_desc = registerData('bullet_desc', ') — ');
 const d_bullet_end = registerData('bullet_end', ')\n');
@@ -1342,7 +1342,7 @@ ${dataSectionWat}
                   )
                   (local.set $title_len (local.get $i))
 
-                  ;; Emit "• 📦 [**owner/repo**](https://github.com/owner/repo)"
+                  ;; Emit "• [**owner/repo**](https://github.com/owner/repo)"
                   (local.set $p (call $copy_mem (i32.const ${d_bullet_repo.offset}) (local.get $p) (i32.const ${d_bullet_repo.length})))
                   (local.set $p (call $copy_mem (local.get $title_start) (local.get $p) (local.get $title_len)))
                   (local.set $p (call $copy_mem (i32.const ${d_bullet_mid.offset}) (local.get $p) (i32.const ${d_bullet_mid.length})))
@@ -1607,14 +1607,14 @@ const watPath = path.join(pluginDir, 'plugin.wat');
 const wasmPath = path.join(pluginDir, 'plugin.wasm');
 
 fs.writeFileSync(watPath, watContent, 'utf8');
-console.log('✅ Generated plugin.wat successfully:', watPath);
+console.log('[OK] Generated plugin.wat successfully:', watPath);
 
 execSync(`wat2wasm "${watPath}" -o "${wasmPath}"`, { stdio: 'inherit' });
-console.log('✅ Compiled plugin.wasm successfully:', wasmPath);
+console.log('[OK] Compiled plugin.wasm successfully:', wasmPath);
 
 const wasmBytes = fs.readFileSync(wasmPath);
 const wasmSha256 = crypto.createHash('sha256').update(wasmBytes).digest('hex');
-console.log('🔑 WASM SHA-256:', wasmSha256);
+console.log('[SHA-256] WASM SHA-256:', wasmSha256);
 
 const manifest = {
   $schema: "../../../schemas/plugin.manifest.v1.schema.json",
@@ -1770,4 +1770,4 @@ const manifest = {
 
 const manifestPath = path.join(pluginDir, 'plugin.json');
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-console.log('✅ Generated plugin.json v1.0.0 successfully:', manifestPath);
+console.log('[OK] Generated plugin.json v1.0.0 successfully:', manifestPath);

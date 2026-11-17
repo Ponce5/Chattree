@@ -223,17 +223,18 @@ El módulo WASM no exporta la memoria ("memory").
 
 ---
 
-### `network denied`
+### `network denied` / `Destino de red bloqueado (SEC-4.3.4-05)`
 
-**What it means:** The HTTP request was blocked by Chattree's SSRF protection or
-the URL violates allowed schemes.
+**What it means:** The HTTP request was blocked by Chattree's egress domain allowlist (`SEC-4.3.4-05`), SSRF protection, or URL scheme rules.
 
 **Probable cause:**
-- Requesting a local/private IP address.
+- The target domain is not declared in `"allowedDomains"` in `plugin.json` (mandatory for imported/marketplace plugins using `network.http`).
+- Requesting a local/private IP address without `network.local`.
 - Using a non-HTTP scheme (e.g. `ftp://`).
-- HTTP method not allowed (only GET, POST, PUT, DELETE).
+- HTTP method not allowed (only GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS).
 
 **How to fix:**
+- Declare every external host your plugin contacts in `"allowedDomains"` in `plugin.json` (e.g. `"allowedDomains": ["api.github.com", "*.example.com"]`).
 - Use only public `https://` or `http://` URLs by default.
 - If your plugin genuinely needs to connect to `localhost`, `192.168.x.x`, `10.x.x.x`, or `.local` services on the user's LAN, declare the critical `network.local` capability alongside `network.http` in `plugin.json`.
 - Use only supported HTTP methods.

@@ -13,23 +13,24 @@ A WASM plugin runs inside a **WebAssembly linear memory sandbox**.
 
 | Access | Status |
 |--------|--------|
-| Native filesystem paths | ❌ Blocked |
-| Operating system sockets / raw TCP | ❌ Blocked |
-| SharedPreferences / host SQLite directly | ❌ Blocked (plugins must use sandboxed `database.sql` private SQLite databases; direct host DB access is prohibited) |
-| Other plugins' private data | ❌ Blocked |
-| Unbounded full chat history | ❌ Blocked (`chat.history.read` is strictly capped at the 20 most recent messages) |
-| Unbounded or recursive AI tool loops | ❌ Blocked (`ai.context` is strictly single-turn and capped at 2,048 output tokens) |
-| Dart VM heap or native objects | ❌ Blocked |
-| Device hardware without a capability | ❌ Blocked |
-| Private IPs / loopback addresses | ❌ Blocked by default (`WebhookSsrfGuard` blocks all IANA special IPv4/IPv6 ranges including Carrier-Grade NAT, Benchmarking, ULA, 6to4, Teredo, loopback, and cloud metadata `169.254.x.x`; multi-IP DNS pre-validates every IP with fallback; requires critical `network.local` capability for LAN/loopback) |
-| Inbound Webhook Replay / Body Leaks | ❌ Blocked (max 72h replay window; request bodies and secrets strictly censored from activity logs; KV store-and-forward purged atomically) |
-| Persistent Background Sockets | ❌ Blocked (LAN server operates strictly in foreground with immediate OS lifecycle suspension, zero foreground services) |
-| `file://`, `javascript:`, `intent:` URIs | ❌ Blocked |
-| Spawning background threads or processes | ❌ Blocked |
-| Persisting data without `storage.private` | ❌ Blocked |
-| Running indefinitely (no timeout) | ❌ Blocked |
-| Consuming unlimited CPU (no fuel limit) | ❌ Blocked |
-| Consuming unlimited memory | ❌ Blocked |
+| Native filesystem paths | Blocked |
+| Operating system sockets / raw TCP | Blocked |
+| SharedPreferences / host SQLite directly | Blocked (plugins must use sandboxed `database.sql` private SQLite databases; direct host DB access is prohibited) |
+| Other plugins' private data | Blocked |
+| Unbounded full chat history | Blocked (`chat.history.read` is strictly capped at the 20 most recent messages) |
+| Unbounded or recursive AI tool loops | Blocked (`ai.context` is strictly single-turn and capped at 2,048 output tokens) |
+| Dart VM heap or native objects | Blocked |
+| Device hardware without a capability | Blocked |
+| Undeclared HTTP Egress Domains | Blocked (`SEC-4.3.4-05`: third-party plugins must explicitly declare target domains in `allowedDomains` in `plugin.json`) |
+| Private IPs / loopback addresses | Blocked by default (`WebhookSsrfGuard` blocks all IANA special IPv4/IPv6 ranges including Carrier-Grade NAT, Benchmarking, ULA, 6to4, Teredo, loopback, and cloud metadata `169.254.x.x`; multi-IP DNS pre-validates every IP with fallback; requires critical `network.local` capability for LAN/loopback) |
+| Inbound Webhook Replay / Body Leaks | Blocked (max 72h replay window; request bodies and secrets strictly censored from activity logs; KV store-and-forward purged atomically) |
+| Persistent Background Sockets | Blocked (LAN server operates strictly in foreground with immediate OS lifecycle suspension, zero foreground services) |
+| `file://`, `javascript:`, `intent:` URIs | Blocked |
+| Spawning background threads or processes | Blocked |
+| Persisting data without `storage.private` | Blocked |
+| Running indefinitely (no timeout) | Blocked |
+| Consuming unlimited CPU (no fuel limit) | Blocked |
+| Consuming unlimited memory | Blocked |
 
 ### What a plugin can do
 

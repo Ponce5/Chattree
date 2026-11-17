@@ -53,8 +53,8 @@ Native service (Notes, Network, Storage, …)
 | [errors.md](errors.md) | Error codes and troubleshooting guide |
 | [versioning.md](versioning.md) | Plugin versioning and compatibility |
 | [marketplace_publishing_guide.md](marketplace_publishing_guide.md) | Publishing to the Chattree Marketplace |
-| [examples/hello/](examples/hello/) | Minimal `/hello` example plugin |
-| [examples/notes-demo/](examples/notes-demo/) | `/notes-demo` example using Notes API |
+| [examples/hello/](examples/hello/README.md) | Minimal `/hello` example plugin |
+| [examples/notes-demo/](examples/notes-demo/README.md) | `/notes-demo` example using Notes API |
 
 > For the built-in chat commands `/note` and `/reminder`, their natural-language
 > behavior, and the Notes/RAG flow, see the [Notes and Reminders guide](../notes-reminders.md).
@@ -67,33 +67,33 @@ Native service (Notes, Network, Storage, …)
 
 | Capability | Status |
 |---|---|
-| `storage.private` | ✅ Available |
-| `network.http` | ✅ Available |
-| `network.local` | ✅ Available |
-| `notifications.send` | ✅ Available |
-| `files.pick` / `files.read` / `files.write` | ✅ Available |
-| `location.current` | ✅ Available |
-| `camera.capture` | ✅ Available |
-| `contacts.read` / `contacts.create` / `contacts.update` | ✅ Available |
-| `calendar.read` / `calendar.create` / `calendar.update` / `calendar.delete` | ✅ Available |
-| `share.text` / `share.file` | ✅ Available |
-| `open.url` / `open.app` | ✅ Available |
-| `email.read` / `email.send` | ✅ Available |
-| `clipboard.read` / `clipboard.write` | ✅ Available |
-| `network.webhook_inbound` | ✅ Available |
-| `chattree.notes.*` | ✅ Available (Phase 3G) |
-| `chattree.reminders.*` | ✅ Available (Phase 3G) |
-| `chattree.context.read` | ✅ Available (Phase 3G) |
-| `chat.history.read` | ✅ Available |
-| `ai.context` / `ai.embeddings` | ✅ Available |
-| `network.websocket` | ✅ Available (Phase 1 — WebSockets) |
-| `ui.components` / `ui.render` | ✅ Available (Phase 2 — Visual Components) |
-| `scheduler.task` / `scheduler.cron` | ✅ Available (Phase 3 — Scheduled Tasks) |
-| `database.sql` / `storage.database` | ✅ Available (Phase 4 — Relational Database) |
-| `notifications.read` | ✅ Available (Notification Hub — Real-time listener & events) |
-| `notifications.query` | ✅ Available (Notification Hub — Query active notifications) |
-| `notifications.reply` | ✅ Available (Notification Hub — Direct RemoteInput reply) |
-| `notifications.action` | ✅ Available (Notification Hub — Dismiss/cancel active alerts) |
+| `storage.private` | Available |
+| `network.http` | Available |
+| `network.local` | Available |
+| `notifications.send` | Available |
+| `files.pick` / `files.read` / `files.write` | Available |
+| `location.current` | Available |
+| `camera.capture` | Available |
+| `contacts.read` / `contacts.create` / `contacts.update` | Available |
+| `calendar.read` / `calendar.create` / `calendar.update` / `calendar.delete` | Available |
+| `share.text` / `share.file` | Available |
+| `open.url` / `open.app` | Available |
+| `email.read` / `email.send` | Available |
+| `clipboard.read` / `clipboard.write` | Available |
+| `network.webhook_inbound` | Available |
+| `chattree.notes.*` | Available (Phase 3G) |
+| `chattree.reminders.*` | Available (Phase 3G) |
+| `chattree.context.read` | Available (Phase 3G) |
+| `chat.history.read` | Available |
+| `ai.context` / `ai.embeddings` | Available |
+| `network.websocket` | Available (Phase 1 — WebSockets) |
+| `ui.components` / `ui.render` | Available (Phase 2 — Visual Components) |
+| `scheduler.task` / `scheduler.cron` | Available (Phase 3 — Scheduled Tasks) |
+| `database.sql` / `storage.database` | Available (Phase 4 — Relational Database) |
+| `notifications.read` | Available (Notification Hub — Real-time listener & events) |
+| `notifications.query` | Available (Notification Hub — Query active notifications) |
+| `notifications.reply` | Available (Notification Hub — Direct RemoteInput reply) |
+| `notifications.action` | Available (Notification Hub — Dismiss/cancel active alerts) |
 
 See [capabilities.md](capabilities.md) for full details.
 

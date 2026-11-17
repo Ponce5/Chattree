@@ -155,7 +155,9 @@ WASM plugins consume inbound webhooks by declaring `schemaVersion: 2` (or `1`), 
       "id": "alert_hook",
       "path": "/webhooks/com.example.notifier/alert_hook",
       "authType": "bearer",
-      "eventType": "alert.critical"
+      "eventType": "alert.critical",
+      "idempotencyHeader": "X-Chattree-Delivery-Id",
+      "requiredPermissions": ["network.webhook_inbound"]
     }
   ],
   "eventConsumers": [

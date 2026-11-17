@@ -241,6 +241,28 @@ export function validatePlugin(targetPath) {
           warnings.push(`Declared capability '${cap}' is not recognized in the standard Chattree capabilities catalogue.`);
         }
       }
+      if (
+        manifest.capabilities.includes("network.http") &&
+        manifest.type === "imported" &&
+        (!Array.isArray(manifest.allowedDomains) || manifest.allowedDomains.length === 0)
+      ) {
+        warnings.push(
+          "Plugin declares 'network.http' without 'allowedDomains'. Outbound HTTP requests from imported plugins are blocked by Chattree's egress firewall (SEC-4.3.4-05) unless target domains are listed in 'allowedDomains'."
+        );
+      }
+    }
+
+    if (manifest.allowedDomains !== undefined) {
+      const DOMAIN_REGEX = /^(?:\*\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i;
+      if (!Array.isArray(manifest.allowedDomains)) {
+        errors.push("'allowedDomains' must be an array of domain strings.");
+      } else {
+        for (const dom of manifest.allowedDomains) {
+          if (typeof dom !== "string" || !DOMAIN_REGEX.test(dom.trim())) {
+            errors.push(`Invalid domain '${dom}' in 'allowedDomains'. Use bare hostnames or wildcard subdomains (e.g. 'api.example.com' or '*.example.com') without scheme or path.`);
+          }
+        }
+      }
     }
 
     if (manifest.timeoutMs && (manifest.timeoutMs <= 0 || manifest.timeoutMs > 60000)) {
@@ -320,7 +342,7 @@ function main() {
   if (result.warnings.length > 0) {
     console.log(`Warnings (${result.warnings.length}):`);
     for (const w of result.warnings) {
-      console.log(`  ⚠️  ${w}`);
+      console.log(`  [WARN] ${w}`);
     }
     console.log();
   }
@@ -328,7 +350,7 @@ function main() {
   if (!result.valid) {
     console.error(`Validation FAILED with ${result.errors.length} error(s):`);
     for (const err of result.errors) {
-      console.error(`  ❌ ${err}`);
+      console.error(`  [ERROR] ${err}`);
     }
     console.log();
     process.exit(1);

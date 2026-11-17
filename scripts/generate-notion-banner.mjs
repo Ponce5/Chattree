@@ -209,5 +209,5 @@ for (let ty = 0; ty < iconTargetSize; ty++) {
 const outPath = path.resolve(__dirname, '../plugins/official/notion/banner.png');
 const pngData = encodePng(bannerWidth, bannerHeight, banner);
 fs.writeFileSync(outPath, pngData);
-console.log('✅ Generated banner.png successfully:', outPath, 'Bytes:', pngData.length);
+console.log('[OK] Generated banner.png successfully:', outPath, 'Bytes:', pngData.length);
 

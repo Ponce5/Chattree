@@ -214,7 +214,7 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
     "headers": {
       "X-Client-Version": "1.0.0"
     },
-    "pingIntervalSeconds": 30
+    "timeoutMs": 15000
   }
 }
 ```
@@ -223,9 +223,10 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
 {
   "success": true,
   "data": {
-    "connectionId": "ws_conn_9a8b7c6d",
-    "status": "connected",
-    "url": "wss://echo.websocket.events"
+    "socketId": "ws_com.example.streamer_1",
+    "connected": true,
+    "url": "wss://echo.websocket.events",
+    "protocol": null
   }
 }
 ```
@@ -236,8 +237,8 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
   "api": "websocket",
   "operation": "send",
   "payload": {
-    "connectionId": "ws_conn_9a8b7c6d",
-    "message": "{\"action\":\"subscribe\",\"topic\":\"crypto_ticker\"}",
+    "socketId": "ws_com.example.streamer_1",
+    "data": "{\"action\":\"subscribe\",\"topic\":\"crypto_ticker\"}",
     "isBinary": false
   }
 }
@@ -248,7 +249,7 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
   "success": true,
   "data": {
     "sent": true,
-    "bytes": 48
+    "socketId": "ws_com.example.streamer_1"
   }
 }
 ```
@@ -259,8 +260,8 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
   "api": "websocket",
   "operation": "receive",
   "payload": {
-    "connectionId": "ws_conn_9a8b7c6d",
-    "maxMessages": 10
+    "socketId": "ws_com.example.streamer_1",
+    "limit": 10
   }
 }
 ```
@@ -269,14 +270,16 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
 {
   "success": true,
   "data": {
+    "socketId": "ws_com.example.streamer_1",
     "messages": [
       {
-        "data": "{\"topic\":\"crypto_ticker\",\"price\":68500.50}",
         "isBinary": false,
-        "timestamp": "2026-11-05T12:00:00.000Z"
+        "data": "{\"topic\":\"crypto_ticker\",\"price\":68500.50}"
       }
     ],
-    "count": 1
+    "count": 1,
+    "remainingInQueue": 0,
+    "isOpen": true
   }
 }
 ```
@@ -287,7 +290,7 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
   "api": "websocket",
   "operation": "close",
   "payload": {
-    "connectionId": "ws_conn_9a8b7c6d",
+    "socketId": "ws_com.example.streamer_1",
     "code": 1000,
     "reason": "Normal stream termination"
   }
@@ -299,7 +302,7 @@ Demonstrates establishing a bidirectional WebSocket connection, dispatching stru
   "success": true,
   "data": {
     "closed": true,
-    "connectionId": "ws_conn_9a8b7c6d"
+    "socketId": "ws_com.example.streamer_1"
   }
 }
 ```
@@ -324,34 +327,38 @@ Demonstrates returning a rich declarative UI card containing a status badge, a p
 ```
 
 ### Direct WASM Execution Output (`ToolResult.ui`)
-The plugin writes this JSON to linear memory at offset 1024:
+The plugin writes this JSON to linear memory (or returns it via ABI v2):
 
 ```json
 {
-  "type": "card",
+  "type": "ui",
   "displayText": "Production Server Status: Operational",
   "ui": {
     "title": "Cloud Cluster EU-West",
     "subtitle": "Node health & resource allocation",
+    "badge": "HEALTHY",
+    "badgeColor": "green",
+    "icon": "analytics",
+    "hideText": true,
     "elements": [
       {
         "type": "badge",
-        "text": "HEALTHY",
-        "variant": "success"
+        "text": "OPERATIONAL",
+        "color": "green"
       },
       {
         "type": "progress",
-        "value": 72.5,
+        "value": 0.725,
         "label": "CPU & Memory Load",
-        "status": "72.5% of 64 GB"
+        "color": "blue"
       },
       {
         "type": "key_value",
         "items": [
-          { "label": "Region", "value": "eu-central-1" },
-          { "label": "Active Pods", "value": "48 / 50" },
-          { "label": "Latency", "value": "18 ms" },
-          { "label": "Uptime", "value": "99.98%" }
+          { "key": "Region", "value": "eu-central-1" },
+          { "key": "Active Pods", "value": "48 / 50" },
+          { "key": "Latency", "value": "18 ms" },
+          { "key": "Uptime", "value": "99.98%" }
         ]
       },
       {
@@ -363,20 +370,21 @@ The plugin writes this JSON to linear memory at offset 1024:
           {
             "label": "Grafana Dashboard",
             "action": "url",
-            "payload": "https://grafana.example.com/d/cluster-eu",
-            "variant": "secondary"
+            "value": "https://grafana.example.com/d/cluster-eu",
+            "style": "secondary"
           },
           {
             "label": "Copy Cluster IP",
             "action": "copy",
-            "payload": "10.240.0.1",
-            "variant": "secondary"
+            "value": "10.240.0.1",
+            "style": "secondary"
           },
           {
             "label": "Restart Pods",
             "action": "command",
-            "payload": "/monitor restart eu-west",
-            "variant": "danger"
+            "value": "/monitor restart eu-west",
+            "style": "danger",
+            "confirm": true
           }
         ]
       }
@@ -403,25 +411,34 @@ Demonstrates scheduling a recurring background job using standard 5-part Cron sy
   "primaryCommand": "digest",
   "capabilities": ["scheduler.task", "notifications.send"],
   "entrypoint": "run",
+  "tools": [
+    {
+      "id": "com.example.notifier.handle_cron",
+      "command": "digest",
+      "displayName": "Daily Digest",
+      "description": "Runs daily digest task",
+      "capabilities": ["scheduler.task", "notifications.send"]
+    }
+  ],
   "eventConsumers": [
     {
       "id": "cron_trigger_handler",
       "eventTypes": ["scheduler.trigger"],
-      "targetAction": "handle_cron"
+      "targetAction": "com.example.notifier.handle_cron"
     }
   ]
 }
 ```
 
-### Schedule Task (`scheduler.schedule_task`)
+### Schedule Task (`scheduler.schedule`)
 ```json
 {
   "api": "scheduler",
-  "operation": "schedule_task",
+  "operation": "schedule",
   "payload": {
     "taskId": "daily_morning_digest",
-    "cron": "0 8 * * *",
-    "description": "Fires every morning at 8:00 AM",
+    "targetAction": "com.example.notifier.handle_cron",
+    "cronExpression": "0 8 * * *",
     "payload": {
       "channel": "daily_summary",
       "includeWeather": true
@@ -436,22 +453,28 @@ Demonstrates scheduling a recurring background job using standard 5-part Cron sy
   "data": {
     "scheduled": true,
     "taskId": "daily_morning_digest",
-    "nextExecution": "2026-11-06T08:00:00.000Z"
+    "targetAction": "com.example.notifier.handle_cron",
+    "isPeriodic": true,
+    "createdAt": "2026-11-05T12:00:00.000Z"
   }
 }
 ```
 
 ### Event Received in Plugin via `HostEventBus` (`scheduler.trigger`)
-When the clock strikes 8:00 AM, Chattree invokes `handle_cron` with:
+When the clock strikes 8:00 AM, Chattree invokes `com.example.notifier.handle_cron` with:
 ```json
 {
-  "eventType": "scheduler.trigger",
-  "taskId": "daily_morning_digest",
-  "pluginId": "com.example.notifier",
-  "timestamp": 1793952000000,
-  "payload": {
-    "channel": "daily_summary",
-    "includeWeather": true
+  "type": "scheduler.trigger",
+  "data": {
+    "taskId": "daily_morning_digest",
+    "pluginId": "com.example.notifier",
+    "targetAction": "com.example.notifier.handle_cron",
+    "payload": {
+      "channel": "daily_summary",
+      "includeWeather": true
+    },
+    "runCount": 1,
+    "isPeriodic": true
   }
 }
 ```
@@ -490,13 +513,14 @@ Demonstrates creating tables, inserting parameterized records, querying with fil
 {
   "success": true,
   "data": {
-    "changes": 0
+    "executed": true,
+    "result": 0
   }
 }
 ```
 
 ### Step 2: Insert Records (`database.insert`)
-Automatic type normalization converts `inStock: true` to `1` and the array `tags` to a JSON string:
+Automatic type normalization converts `in_stock: true` to `1` and the array `tags` to a JSON string:
 ```json
 {
   "api": "database",
@@ -520,7 +544,9 @@ Automatic type normalization converts `inStock: true` to `1` and the array `tags
 {
   "success": true,
   "data": {
-    "insertedId": 1
+    "inserted": true,
+    "id": 1,
+    "table": "products"
   }
 }
 ```
@@ -532,7 +558,7 @@ Automatic type normalization converts `inStock: true` to `1` and the array `tags
   "operation": "query",
   "payload": {
     "sql": "SELECT id, sku, name, stock, price FROM products WHERE stock < ? ORDER BY stock ASC LIMIT 10",
-    "params": [50]
+    "args": [50]
   }
 }
 ```
@@ -550,8 +576,8 @@ Automatic type normalization converts `inStock: true` to `1` and the array `tags
         "price": 89.99
       }
     ],
-    "rowCount": 1,
-    "columns": ["id", "sku", "name", "stock", "price"]
+    "count": 1,
+    "limit": 2000
   }
 }
 ```
@@ -563,14 +589,14 @@ Executes multiple SQL statements atomically. If any statement encounters an erro
   "api": "database",
   "operation": "transaction",
   "payload": {
-    "statements": [
+    "operations": [
       {
         "sql": "UPDATE products SET stock = stock - 1 WHERE sku = ?",
-        "params": ["KB-MEC-RGB"]
+        "args": ["KB-MEC-RGB"]
       },
       {
         "sql": "INSERT INTO sales_log (sku, quantity, created_at) VALUES (?, ?, ?)",
-        "params": ["KB-MEC-RGB", 1, 1793880050000]
+        "args": ["KB-MEC-RGB", 1, 1793880050000]
       }
     ]
   }
@@ -581,11 +607,9 @@ Executes multiple SQL statements atomically. If any statement encounters an erro
 {
   "success": true,
   "data": {
-    "success": true,
-    "results": [
-      { "changes": 1 },
-      { "changes": 1, "lastInsertRowId": 1 }
-    ]
+    "transaction": true,
+    "results": [1, 1],
+    "operationCount": 2
   }
 }
 ```

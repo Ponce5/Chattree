@@ -5,7 +5,7 @@ No prior Chattree knowledge required.
 
 ---
 
-## 🚀 Fast Track: Using the Official Chattree CLI (Recommended)
+## Fast Track: Using the Official Chattree CLI (Recommended)
 
 The easiest way to create, compile, test, and package a plugin is using the official `@chattree/cli`. No global installation is required:
 
@@ -33,7 +33,7 @@ The generated `.chattree-plugin` file is ready to install in the Chattree app (*
 
 ---
 
-## 🛠 Manual Workflow (Alternative)
+## Manual Workflow (Alternative)
 
 If you prefer building without the CLI, follow the step-by-step instructions below.
 
@@ -207,15 +207,18 @@ For a single `/hello` command:
 
 ---
 
-## Step 5 — Declare capabilities
+## Step 5 — Declare capabilities and allowed domains
 
 If your plugin only processes text and returns a response, no capabilities are needed.  
 If your plugin needs to access device data (network, notes, camera, etc.),  
 list the required capabilities:
 
 ```json
-"capabilities": ["network.http", "storage.private"]
+"capabilities": ["network.http", "storage.private"],
+"allowedDomains": ["api.example.com", "*.example.com"]
 ```
+
+> **Important (`SEC-4.3.4-05`):** Whenever a third-party plugin (`"type": "imported"`) uses `"network.http"`, it **must** also declare `"allowedDomains"` in `plugin.json` listing the exact domains or subdomain wildcards (`*.domain.com`) it will contact. Requests to undeclared domains are blocked at runtime.
 
 See the full list in [capabilities.md](capabilities.md).
 
@@ -340,13 +343,13 @@ Chattree will:
 Every Chattree plugin can return **pre-formatted Markdown** directly to the user (instead of raw JSON or plain unformatted text).
 
 When your exported function or `resume()` writes formatted Markdown into the output buffer:
-- **Direct Chat Rendering:** Chattree renders the output directly in the chat bubble using Flutter's rich Markdown engine (headers `###`, blockquotes `>`, bold `**`, bullet lists, emojis like 📅, 📝, 📊, and tables).
+- **Direct Chat Rendering:** Chattree renders the output directly in the chat bubble using Flutter's rich Markdown engine (headers `###`, blockquotes `>`, bold `**`, bullet lists, and tables).
 - **Secondary LLM Bypass:** If the returned text is formatted Markdown (i.e. does not start and end with `{ ... }` or `[ ... ]`), Chattree **automatically bypasses the second LLM generation pass**.
-- **Deterministic UI & Zero Hallucination:** On mobile devices with local LLMs (1.5B–7B models), asking the AI to re-interpret tool output can cause hallucinations, corrupted characters, or weird symbols. Returning Markdown directly guarantees 100% deterministic, immediate, and beautiful visual presentation.
+- **Deterministic UI & Zero Hallucination:** On mobile devices with local LLMs (1.5B–7B models), asking the AI to re-interpret tool output can cause hallucinations, corrupted characters, or weird symbols. Returning Markdown directly guarantees 100% deterministic, immediate, and clean visual presentation.
 
 ### Example Markdown Output Structure:
 ```markdown
-### 📅 Evento agendado
+### Evento agendado
 
 > **Título:** Reunión con el equipo
 > **Inicio:** 2026-10-29 15:00
@@ -357,51 +360,91 @@ When your exported function or `resume()` writes formatted Markdown into the out
 
 ---
 
-## Declarative Interactive UI Cards (`ui.components`)
+## Declarative Interactive UI Cards (`ui.components` / `ui.render`)
 
-Beyond Markdown, plugins requesting the `ui.components` capability can return **rich interactive UI cards** directly into the conversation.
+Beyond Markdown, plugins requesting the `ui.components` or `ui.render` capability can return **rich interactive UI cards** directly into the conversation.
 
-By returning a JSON object with `"type": "card"`, your plugin can display:
-- **Status Badges:** Color-coded or monochrome visual tags (`success`, `warning`, `error`, `info`, `neutral`, `white`, `mono`, `monochrome`, `primary`) with optional icons (`note`, `alarm`, etc.).
-- **Progress Bars:** Visual progress tracking (0.0 to 1.0 or 0% to 100%).
-- **Key-Value Tables & Lists:** Structured `key_value` grids and `list` items (`title` + `subtitle` preview) up to 40 items.
+By returning a JSON object with `"type": "ui"` (or `"type": "direct"`) containing a `"ui"` object, your plugin can display:
+- **Header Metadata:** `title`, `subtitle`, optional header `badge`, `badgeColor` (`green`, `orange`, `red`, `blue`, `purple`, `gray`, `white`), and `icon` (`check`, `warning`, `error`, `info`, `shipping`, `payment`, `message`, `analytics`, `alarm`, `note`).
+- **Status Badges (`badge`):** Inline visual tags with `"text"` (max 30 chars) and `"color"` (`green`/`success`, `orange`/`warning`, `red`/`danger`/`error`, `blue`/`info`, `purple`, `gray`/`neutral`, `white`/`mono`).
+- **Progress Bars (`progress`):** Visual progress tracking with `"value"` normalized between `0.0` and `1.0` (e.g. `0.82` for 82%), optional `"label"`, and `"color"`.
+- **Key-Value Tables (`key_value`) & Lists (`list`):** Structured `key_value` grids (`items: [{ "key": "...", "value": "..." }]`) and `list` items (`items: [{ "title": "...", "subtitle": "..." }]`) up to 40 items.
 - **Hide Intro Text (`hideText`):** Optional `"hideText": true` card property to render only the visual card without duplicating a text bubble above it.
-- **Interactive Action Buttons:** Buttons with actions:
-  - `command`: Triggers another slash command (commands starting with `/` prompt the user with a confirmation modal).
-  - `url`: Opens an external link safely in the browser.
-  - `copy`: Copies values directly to the clipboard.
+- **Interactive Action Buttons (`button_row`):** Up to 8 buttons per row with `"label"`, `"action"`, `"value"`, `"style"` (`"primary"`, `"secondary"`, `"danger"`), and optional `"confirm": true`:
+  - `command`: Triggers a slash command in chat (commands starting with `/` or with `"style": "danger"` / `"confirm": true` prompt the user with a confirmation modal).
+  - `url`: Opens an external `https://` or `http://` link in the browser.
+  - `copy`: Copies `"value"` directly to the clipboard.
 
 ### Example Declarative Card Output:
 ```json
 {
-  "type": "card",
+  "type": "ui",
   "displayText": "Server status: Operational",
   "ui": {
     "title": "Database Cluster",
     "subtitle": "PostgreSQL 16 High-Availability",
+    "badge": "ONLINE",
+    "badgeColor": "green",
+    "icon": "analytics",
+    "hideText": true,
     "elements": [
-      { "type": "badge", "text": "ONLINE", "variant": "success" },
-      { "type": "progress", "value": 82, "label": "Storage Used: 82%" },
+      { "type": "badge", "text": "HEALTHY", "color": "green" },
+      { "type": "progress", "value": 0.82, "label": "Storage Used", "color": "blue" },
       {
         "type": "key_value",
         "items": [
-          { "label": "Primary Node", "value": "pg-primary-01" },
-          { "label": "Replicas", "value": "2 in sync" },
-          { "label": "Connections", "value": "142 / 200" }
+          { "key": "Primary Node", "value": "pg-primary-01" },
+          { "key": "Replicas", "value": "2 in sync" },
+          { "key": "Connections", "value": "142 / 200" }
         ]
       },
       { "type": "divider" },
       {
         "type": "button_row",
         "buttons": [
-          { "label": "View Metrics", "action": "url", "payload": "https://monitor.example.com" },
-          { "label": "Failover", "action": "command", "payload": "/cluster failover", "variant": "danger" }
+          { "label": "View Metrics", "action": "url", "value": "https://monitor.example.com", "style": "secondary" },
+          { "label": "Failover", "action": "command", "value": "/cluster failover", "style": "danger", "confirm": true }
         ]
       }
     ]
   }
 }
 ```
+
+---
+
+## AssemblyScript Production Configuration (`asconfig.json`)
+
+Chattree's mobile WebAssembly sandbox (`Wasmtime`) binds `chattree.host_call` and does not expose an external `env.abort` import. When compiling AssemblyScript plugins, configure `asconfig.json` with `"noAssert": true` and route `abort` to an internal exported handler in `src/index.ts`:
+
+```json
+{
+  "targets": {
+    "release": {
+      "outFile": "plugin.wasm",
+      "textFile": "plugin.wat",
+      "sourceMap": false,
+      "optimizeLevel": 3,
+      "shrinkLevel": 0,
+      "noAssert": true
+    }
+  },
+  "options": {
+    "bindings": "none",
+    "use": ["abort=src/index/abort"]
+  }
+}
+```
+
+And include the handler in `src/index.ts`:
+
+```typescript
+export function abort(message: usize, fileName: usize, lineNumber: u32, columnNumber: u32): void {
+  unreachable();
+}
+```
+
+*(Projects scaffolded with `@chattree/cli` include this configuration automatically.)*
 
 ---
 
@@ -415,7 +458,7 @@ Chattree registers declared tool metadata, but natural-language invocation is me
 
 - Read [plugin-manifest.md](plugin-manifest.md) for every manifest field.
 - Study [capabilities.md](capabilities.md) to learn what APIs you can access.
-- See [examples/hello/](../../examples/hello) for the complete Hello example.
-- See [examples/notes-demo/](../../examples/notes-demo) for a plugin that reads and creates Notes.
+- See [examples/hello/](examples/hello/README.md) for the complete Hello example.
+- See [examples/notes-demo/](examples/notes-demo/README.md) for a plugin that reads and creates Notes.
 - Run the validator and packager from the cloned `chattree-repo` directory; examples assume that repository is your current working directory.
 - Read [security.md](security.md) to understand the sandbox boundaries.

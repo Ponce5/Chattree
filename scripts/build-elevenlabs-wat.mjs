@@ -47,10 +47,10 @@ function registerData(name, str) {
 }
 
 // Static strings
-const s_help = `🔊 **ElevenLabs Audio Generator**\n\nGenera audios de alta calidad con IA mediante ElevenLabs con voces naturales (femeninas y masculinas).\n\n**Comandos disponibles:**\n• \`/elevenlabs config <tu_api_key>\` — Registra tu clave de API\n• \`/elevenlabs status\` — Verifica el estado de la configuración\n• \`/elevenlabs <texto>\` — Genera audio con voz predeterminada\n• \`/elevenlabs con voz de mujer que diga: "texto"\` — Selección inteligente de voz\n• \`/tts <texto>\` — Alias rápido para síntesis de voz\n\n*Obtén tu clave de API gratuita en: https://elevenlabs.io*`;
-const s_key_saved = `✅ **Clave de ElevenLabs guardada exitosamente.**\n\nYa puedes generar audios usando:\n\`/elevenlabs Tu texto aquí\` o pidiendo una voz femenina / masculina en lenguaje natural.`;
-const s_key_missing = `⚠️ **ElevenLabs no está configurado.**\n\nPor favor registra tu API Key ejecutando:\n\`/elevenlabs config <tu_api_key>\`\n\nPuedes obtener una clave gratuita en https://elevenlabs.io`;
-const s_status_ok = `✅ **ElevenLabs está configurado y listo.**\n\nPuedes sintetizar audio con \`/elevenlabs <texto>\` o pedir voz de mujer/hombre en lenguaje natural.`;
+const s_help = `**ElevenLabs Audio Generator**\n\nGenera audios de alta calidad con IA mediante ElevenLabs con voces naturales (femeninas y masculinas).\n\n**Comandos disponibles:**\n• \`/elevenlabs config <tu_api_key>\` — Registra tu clave de API\n• \`/elevenlabs status\` — Verifica el estado de la configuración\n• \`/elevenlabs <texto>\` — Genera audio con voz predeterminada\n• \`/elevenlabs con voz de mujer que diga: "texto"\` — Selección inteligente de voz\n• \`/tts <texto>\` — Alias rápido para síntesis de voz\n\n*Obtén tu clave de API gratuita en: https://elevenlabs.io*`;
+const s_key_saved = `**Clave de ElevenLabs guardada exitosamente.**\n\nYa puedes generar audios usando:\n\`/elevenlabs Tu texto aquí\` o pidiendo una voz femenina / masculina en lenguaje natural.`;
+const s_key_missing = `**ElevenLabs no está configurado.**\n\nPor favor registra tu API Key ejecutando:\n\`/elevenlabs config <tu_api_key>\`\n\nPuedes obtener una clave gratuita en https://elevenlabs.io`;
+const s_status_ok = `**ElevenLabs está configurado y listo.**\n\nPuedes sintetizar audio con \`/elevenlabs <texto>\` o pedir voz de mujer/hombre en lenguaje natural.`;
 const s_storage_get = JSON.stringify({ api: 'storage', operation: 'get', payload: { key: 'api_key' } });
 const s_storage_set_prefix = '{"api":"storage","operation":"set","payload":{"key":"api_key","value":"';
 const s_storage_set_suffix = '"}}';
@@ -67,11 +67,11 @@ const s_http_mid2 = '\\",\\"model_id\\":\\"eleven_multilingual_v2\\"}","response
 const s_files_write_prefix = '{"api":"files","operation":"write","payload":{"name":"audio_elevenlabs.mp3","encoding":"base64","content":"';
 const s_files_write_suffix = '"}}';
 
-const s_direct_bubble_male_prefix = '{"type":"direct","displayText":"🔊 **Audio generado exitosamente (Voz Masculina: George)**\\n\\nTu archivo de audio MP3 está listo para guardar o compartir.","fileHandle":"';
-const s_direct_bubble_female_prefix = '{"type":"direct","displayText":"🔊 **Audio generado exitosamente (Voz Femenina: Sarah)**\\n\\nTu archivo de audio MP3 está listo para guardar o compartir.","fileHandle":"';
+const s_direct_bubble_male_prefix = '{"type":"direct","displayText":"**Audio generado exitosamente (Voz Masculina: George)**\\n\\nTu archivo de audio MP3 está listo para guardar o compartir.","fileHandle":"';
+const s_direct_bubble_female_prefix = '{"type":"direct","displayText":"**Audio generado exitosamente (Voz Femenina: Sarah)**\\n\\nTu archivo de audio MP3 está listo para guardar o compartir.","fileHandle":"';
 const s_direct_bubble_suffix = '","fileName":"audio_elevenlabs.mp3"}';
 
-const s_error_gen = `❌ **Error al generar audio con ElevenLabs**\n\nVerifica que tu API Key sea correcta o que tengas créditos disponibles en ElevenLabs.\nPuedes actualizar tu clave con:\n\`/elevenlabs config <tu_api_key>\``;
+const s_error_gen = `**Error al generar audio con ElevenLabs**\n\nVerifica que tu API Key sea correcta o que tengas créditos disponibles en ElevenLabs.\nPuedes actualizar tu clave con:\n\`/elevenlabs config <tu_api_key>\``;
 
 const d_help = registerData('help', s_help);
 const d_key_saved = registerData('key_saved', s_key_saved);
@@ -732,11 +732,11 @@ const watPath = path.join(pluginDir, 'plugin.wat');
 const wasmPath = path.join(pluginDir, 'plugin.wasm');
 
 fs.writeFileSync(watPath, watContent, 'utf8');
-console.log('✅ Generated plugin.wat successfully.');
+console.log('[OK] Generated plugin.wat successfully.');
 
 execSync(`wat2wasm "${watPath}" -o "${wasmPath}"`, { stdio: 'inherit' });
-console.log('✅ Compiled plugin.wasm successfully.');
+console.log('[OK] Compiled plugin.wasm successfully.');
 
 const wasmBytes = fs.readFileSync(wasmPath);
 const wasmSha256 = crypto.createHash('sha256').update(wasmBytes).digest('hex');
-console.log('🔑 WASM SHA-256:', wasmSha256);
+console.log('[SHA-256] WASM SHA-256:', wasmSha256);

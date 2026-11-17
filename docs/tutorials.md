@@ -146,8 +146,9 @@ extern "C" {
     fn host_call(req_ptr: i32, req_len: i32, res_ptr: i32, res_max_len: i32) -> i32;
 }
 
-// Global static buffer for output (starts at offset 1024 convention)
-static mut OUTPUT_BUFFER: [u8; 8192] = [0; 8192];
+// Output offset convention in ABI v1 is 1024; max output 8192 bytes
+const OUTPUT_OFFSET: usize = 1024;
+const MAX_OUTPUT_LEN: usize = 8192;
 static mut RES_BUFFER: [u8; 4096] = [0; 4096];
 
 #[no_mangle]
@@ -198,13 +199,13 @@ pub extern "C" fn count(input_ptr: *const u8, input_len: usize) -> i32 {
         );
     }
 
-    // 3. Format response string
+    // 3. Format response string and write to linear memory at offset 1024
     let response = format!("You have called this command {} times!", current_val);
     let bytes = response.as_bytes();
 
     unsafe {
-        let len = bytes.len().min(OUTPUT_BUFFER.len());
-        OUTPUT_BUFFER[..len].copy_from_slice(&bytes[..len]);
+        let len = bytes.len().min(MAX_OUTPUT_LEN);
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), OUTPUT_OFFSET as *mut u8, len);
         len as i32
     }
 }
@@ -228,9 +229,9 @@ zip counter.chattree-plugin plugin.json plugin.wasm
 ## Tutorial 3: Making Outbound HTTP Calls with `network.http`
 
 When fetching data from public APIs:
-1. Declare `"capabilities": ["network.http"]` in `plugin.json`.
-2. Ensure your target URL uses `https://` (unencrypted `http://` is restricted).
-3. Do not attempt to query `localhost` or internal LAN IPs (SSRF guard blocks private addresses).
+1. Declare `"capabilities": ["network.http"]` AND `"allowedDomains": ["api.example.com"]` in `plugin.json` (`SEC-4.3.4-05` requires all external domains to be explicitly allowlisted).
+2. Ensure your target URL uses `https://` (or `http://` when required).
+3. Do not attempt to query `localhost` or internal LAN IPs unless you also declare `"network.local"`.
 4. `network.http_request` is asynchronous:
    - Call `host_call` → receives `0`.
    - Implement exported `resume(resPtr, resLen)` to receive the response.
@@ -274,29 +275,31 @@ Chattree plugins can move beyond plain text or Markdown by emitting rich declara
 Add `ui.components` to `capabilities` in `plugin.json`.
 
 ### 2. The Declarative Card Model
-Your WASM binary can write a structured JSON card directly to linear memory offset 1024 as a `ToolResult.ui`:
+Your WASM binary can return a structured JSON card directly as a `ToolResult.ui`:
 
 ```json
 {
-  "type": "card",
+  "type": "ui",
   "displayText": "Deployment #42",
   "ui": {
     "title": "Continuous Deployment",
+    "badge": "RUNNING",
+    "badgeColor": "orange",
     "elements": [
-      { "type": "badge", "text": "RUNNING", "variant": "warning" },
-      { "type": "progress", "value": 60, "label": "Deploying containers..." },
+      { "type": "badge", "text": "IN PROGRESS", "color": "orange" },
+      { "type": "progress", "value": 0.60, "label": "Deploying containers...", "color": "blue" },
       {
         "type": "key_value",
         "items": [
-          { "label": "Service", "value": "api-gateway" },
-          { "label": "Revision", "value": "v2.4.1" }
+          { "key": "Service", "value": "api-gateway" },
+          { "key": "Revision", "value": "v2.4.1" }
         ]
       },
       { "type": "divider" },
       {
         "type": "button_row",
         "buttons": [
-          { "label": "Cancel Build", "action": "command", "payload": "/build cancel 42", "variant": "danger" }
+          { "label": "Cancel Build", "action": "command", "value": "/build cancel 42", "style": "danger", "confirm": true }
         ]
       }
     ]
@@ -344,12 +347,13 @@ Use `schemaVersion: 2` and declare `scheduler.task` (or `notifications.read` for
 
 ### 2. Cron Syntax & Wall-Clock Evaluation
 Chattree evaluates 5-field Cron expressions:
-`minute (0-59) hour (0-23) day (1-31) month (1-12) weekday (0-6)`
+`minute (0-59) hour (0-23) day (*) month (*) weekday (*)`
 
-Examples:
-- `*/15 * * * *` — Every 15 minutes
-- `0 9 * * *` — Every day at 9:00 AM
-- `0 18 * * 1-5` — Weekdays at 6:00 PM
+Supported patterns:
+- `*/15 * * * *` — Every 15 minutes (`*/N * * * *` for every `N` minutes)
+- `0 * * * *` — Every hour on the hour
+- `0 0 * * *` — Every day at midnight (`00:00`)
+- `0 9 * * *` — Every day at 9:00 AM (`M H * * *` for hour `H`, minute `M`)
 
 ### 3. Anti-Battery Drain Guard
 To protect device battery and prevent runaway loops, Chattree strictly enforces a **60-second minimum interval**. Any schedule attempting to run faster than once per 60 seconds is rejected with `minimumIntervalViolation`.
@@ -395,8 +399,8 @@ Chattree uses a well-defined shared memory convention:
 Writing past the allocated linear memory space causes runtime traps (`out of bounds memory access`).
 
 ```rust
-// Static output buffer sized appropriately
-static mut OUTPUT_BUFFER: [u8; 16384] = [0; 16384]; // 16 KB
+const OUTPUT_OFFSET: usize = 1024;
+const MAX_OUTPUT_LEN: usize = 16384; // 16 KB
 
 #[no_mangle]
 pub extern "C" fn my_command(input_ptr: *const u8, input_len: usize) -> i32 {
@@ -404,9 +408,9 @@ pub extern "C" fn my_command(input_ptr: *const u8, input_len: usize) -> i32 {
     let bytes = result_string.as_bytes();
 
     unsafe {
-        // Enforce boundary check against maximum buffer size
-        let copy_len = bytes.len().min(OUTPUT_BUFFER.len());
-        OUTPUT_BUFFER[..copy_len].copy_from_slice(&bytes[..copy_len]);
+        // Enforce boundary check against maximum buffer size and write at offset 1024
+        let copy_len = bytes.len().min(MAX_OUTPUT_LEN);
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), OUTPUT_OFFSET as *mut u8, copy_len);
         copy_len as i32
     }
 }

@@ -21,8 +21,8 @@ not the plugin's own version.
 
 | `schemaVersion` | Status |
 |-----------------|--------|
-| `1` | ✅ Current standard manifest schema |
-| `2` | ✅ Supported extended schema (adds declarative `inboundWebhooks` and `eventConsumers`) |
+| `1` | Current standard manifest schema |
+| `2` | Supported extended schema (adds declarative `inboundWebhooks` and `eventConsumers`) |
 
 Chattree will refuse to install a plugin with an unknown `schemaVersion`.
 
@@ -35,7 +35,7 @@ plugin was built against.
 
 | `runtimeApiVersion` | Status | Notes |
 |--------------------|--------|-------|
-| `"1.0.0"` | ✅ Current stable | Use this for all plugins today |
+| `"1.0.0"` | Current stable | Use this for all plugins today |
 
 ### What changes between runtime API versions
 

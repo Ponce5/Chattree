@@ -8,20 +8,20 @@ API without the required capability, the call is rejected with a `permissionDeni
 
 ## Danger levels
 
-| Level | Icon | Meaning |
-|-------|------|---------|
-| `normal` | 🟢 | Low-risk. Granted automatically or with minimal friction. |
-| `sensitive` | 🟡 | Accesses data or outbound communication. Requires user consent. |
-| `critical` | 🔴 | Hardware sensors or highly personal data. Requires explicit user authorization. |
+| Level | Risk Tier | Meaning |
+|-------|-----------|---------|
+| `normal` | Low | Low-risk. Granted automatically or with minimal friction. |
+| `sensitive` | Medium | Accesses data or outbound communication. Requires user consent. |
+| `critical` | High | Hardware sensors or highly personal data. Requires explicit user authorization. |
 
 ---
 
 ## Capability catalogue
 
-### 🟢 storage.private
+### storage.private
 
 **Category:** Data  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** None (granted automatically — core sandbox capability)  
 **Host API namespace:** `storage`
 
@@ -53,10 +53,10 @@ private keyspace. No other plugin or user can read it.
 
 ---
 
-### 🟡 network.http
+### network.http
 
 **Category:** Network  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `network`
 
@@ -72,16 +72,17 @@ Allows the plugin to make outbound **HTTP/HTTPS** requests.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `url` | string | ✅ | Full HTTPS/HTTP URL |
-| `method` | string | ❌ | `GET` (default), `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS` |
-| `headers` | object | ❌ | Custom headers (hop-by-hop headers are stripped) |
-| `body` | string | ❌ | Request body (max 4 MB) |
-| `bodyEncoding` | string | ❌ | `"utf8"` (default) or `"base64"` for sending binary data |
-| `responseType` | string | ❌ | `"utf8"` or `"base64"`. If omitted, binary MIME types (audio, image, video, pdf, zip) are auto-encoded to `"base64"` |
-| `timeoutMs` | integer | ❌ | Timeout in ms (default 30000, 1000 to 60000) |
+| `url` | string | Yes | Full HTTPS/HTTP URL |
+| `method` | string | No | `GET` (default), `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS` |
+| `headers` | object | No | Custom headers (hop-by-hop headers are stripped) |
+| `body` | string | No | Request body (max 4 MB) |
+| `bodyEncoding` | string | No | `"utf8"` (default) or `"base64"` for sending binary data |
+| `responseType` | string | No | `"utf8"` or `"base64"`. If omitted, binary MIME types (audio, image, video, pdf, zip) are auto-encoded to `"base64"` |
+| `timeoutMs` | integer | No | Timeout in ms (default 30000, 1000 to 60000) |
 
 **Limitations:**
 - Only `http` and `https` schemes allowed.
+- **Egress Domain Allowlist (`allowedDomains` — SEC-4.3.4-05):** Imported and Marketplace plugins must explicitly declare every target domain or subdomain wildcard (`*.domain.com`) in `"allowedDomains"` in `plugin.json`.
 - Loopback and private LAN addresses are blocked by default (SSRF protection) unless the plugin also holds the critical `network.local` capability.
 - Max request body: 4 MB. Max response body: 8 MB.
 - Default timeout: 30 seconds (configurable up to 60s per call via `timeoutMs`).
@@ -90,6 +91,7 @@ Allows the plugin to make outbound **HTTP/HTTPS** requests.
 
 **Possible errors:**
 - `Permiso denegado` — capability not granted
+- `Destino de red bloqueado (SEC-4.3.4-05)` — domain not listed in `allowedDomains` in `plugin.json`
 - `Protocolo no permitido` — non-HTTP scheme
 - `Acceso bloqueado` — private/local IP blocked
 - `Método HTTP no permitido` — unsupported method
@@ -98,10 +100,10 @@ Allows the plugin to make outbound **HTTP/HTTPS** requests.
 
 ---
 
-### 🔴 network.local
+### network.local
 
 **Category:** Network  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** Critical user consent  
 **Host API namespace:** `network` (used together with `network.http`)
 
@@ -111,10 +113,10 @@ Allows outbound HTTP/HTTPS requests through `network.http_request` to private LA
 
 ---
 
-### 🟡 notifications.send
+### notifications.send
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `notifications`
 
@@ -136,10 +138,10 @@ Allows sending and cancelling **local device notifications**.
 
 ---
 
-### 🔴 notifications.read
+### notifications.read
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** Explicit user authorization + Android Notification Listener Access + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`, `events`
 
@@ -178,10 +180,10 @@ Allows plugins to receive real-time streaming events when notifications are post
 
 ---
 
-### 🟡 notifications.query
+### notifications.query
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
@@ -231,10 +233,10 @@ Allows plugins to inspect the status of the native notification listener service
 
 ---
 
-### 🔴 notifications.reply
+### notifications.reply
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** Explicit user authorization + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
@@ -250,8 +252,8 @@ Allows plugins to execute inline direct replies to active notifications using An
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `logicalId` | string | ✅ | Identifier of the active notification (as received in `DeviceNotificationSummary.logicalId`) |
-| `message` | string | ✅ | Text content to send (max **4,000 characters**) |
+| `logicalId` | string | Yes | Identifier of the active notification (as received in `DeviceNotificationSummary.logicalId`) |
+| `message` | string | Yes | Text content to send (max **4,000 characters**) |
 
 **Safety & Lifetime Boundaries:**
 - The native `RemoteInput` and `PendingIntent` objects reside exclusively in an Android in-memory session cache. They are never saved to disk and are invalidated immediately when the notification is dismissed.
@@ -261,10 +263,10 @@ Allows plugins to execute inline direct replies to active notifications using An
 
 ---
 
-### 🔴 notifications.action
+### notifications.action
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** Explicit user authorization + Package Whitelist (`allowedNotificationPackages`)  
 **Host API namespace:** `notifications`
 
@@ -281,16 +283,16 @@ Allows plugins to programmatically interact with active notifications: dismiss t
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `logicalId` | string | ✅ | Target notification identifier |
+| `logicalId` | string | Yes | Target notification identifier |
 
 **Input fields (`notifications.invokeAction`):**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `actionHandle` | string | ✅ | Cryptographic single-use token (`act_<uuid4>`) identifying the action |
-| `logicalId` | string | ❌ | Expected notification `logicalId` (used for validation and fallback index resolution) |
-| `packageName` | string | ❌ | Expected Android package name (validated against token binding) |
-| `actionIndex` | integer | ❌ | Expected action index within the notification |
+| `actionHandle` | string | Yes | Cryptographic single-use token (`act_<uuid4>`) identifying the action |
+| `logicalId` | string | No | Expected notification `logicalId` (used for validation and fallback index resolution) |
+| `packageName` | string | No | Expected Android package name (validated against token binding) |
+| `actionIndex` | integer | No | Expected action index within the notification |
 
 **Security & Lifetime Boundaries for Actions:**
 - **Cryptographic Handle:** `actionHandle` is an unguessable 128-bit UUID v4 token generated when the notification is parsed.
@@ -301,10 +303,10 @@ Allows plugins to programmatically interact with active notifications: dismiss t
 
 ---
 
-### 🟡 files.pick
+### files.pick
 
 **Category:** Data  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `files`
 
@@ -331,10 +333,10 @@ Returns an opaque **handle** — the plugin never receives a real filesystem pat
 
 ---
 
-### 🟡 files.read
+### files.read
 
 **Category:** Data  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `files`
 
@@ -356,10 +358,10 @@ Reads the content of a file previously selected with `files.pick`.
 
 ---
 
-### 🟡 files.write
+### files.write
 
 **Category:** Data  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `files`
 
@@ -377,10 +379,10 @@ The plugin does not control the final path — Chattree determines it.
 
 ---
 
-### 🔴 location.current
+### location.current
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** Explicit user authorization + OS permission  
 **Host API namespace:** `location`
 
@@ -402,10 +404,10 @@ Returns the **current device GPS position** (one-shot, no streaming).
 
 ---
 
-### 🔴 camera.capture
+### camera.capture
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** Explicit user authorization  
 **Host API namespace:** `camera`
 
@@ -425,10 +427,10 @@ Returns an opaque file handle. No direct hardware access.
 
 ---
 
-### 🔴 contacts.read
+### contacts.read
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** Explicit user authorization  
 **Host API namespace:** `contacts`
 
@@ -445,10 +447,10 @@ Searches or retrieves contacts from the **device address book**.
 
 ---
 
-### 🟡 contacts.create
+### contacts.create
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `contacts`
 
@@ -462,10 +464,10 @@ Creates a new contact in the device address book.
 
 ---
 
-### 🟡 contacts.update
+### contacts.update
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `contacts`
 
@@ -479,10 +481,10 @@ Updates an existing contact.
 
 ---
 
-### 🟡 calendar.read
+### calendar.read
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `calendar`
 
@@ -497,10 +499,10 @@ Reads events from the **device calendar**.
 
 ---
 
-### 🟡 calendar.create / calendar.update / calendar.delete
+### calendar.create / calendar.update / calendar.delete
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `calendar`
 
@@ -514,10 +516,10 @@ Creates, updates or deletes calendar events.
 
 ---
 
-### 🟢 share.text
+### share.text
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** None (low-risk)  
 **Host API namespace:** `share`
 
@@ -533,10 +535,10 @@ Opens the **native system share sheet** to share text or a URL.
 
 ---
 
-### 🟡 share.file
+### share.file
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `share`
 
@@ -552,10 +554,10 @@ Shares a file (via its handle) through the native share sheet.
 
 ---
 
-### 🟢 open.url
+### open.url
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** None (low-risk)  
 **Host API namespace:** `open`
 
@@ -571,10 +573,10 @@ Opens a **URL in the device's default browser**.
 
 ---
 
-### 🟡 open.app
+### open.app
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `open`
 
@@ -588,10 +590,10 @@ Opens an installed app using a **URI scheme** (e.g. `maps://`, `tel:`, `mailto:`
 
 ---
 
-### 🟡 chattree.notes.read
+### chattree.notes.read
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.notes`
 
@@ -607,10 +609,10 @@ Retrieves a specific note from **Chattree Notes** by ID or title.
 
 ---
 
-### 🟡 chattree.notes.search
+### chattree.notes.search
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.notes`
 
@@ -626,10 +628,10 @@ Searches Chattree Notes by keyword.
 
 ---
 
-### 🟡 chattree.notes.create
+### chattree.notes.create
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.notes`
 
@@ -645,10 +647,10 @@ Creates a new note in Chattree Notes (also accepts legacy capability aliases `no
 
 ---
 
-### 🟡 chattree.notes.update
+### chattree.notes.update
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.notes`
 
@@ -662,10 +664,10 @@ Updates an existing Chattree note.
 
 ---
 
-### 🟡 chattree.notes.delete
+### chattree.notes.delete
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.notes`
 
@@ -679,10 +681,10 @@ Permanently deletes a Chattree note.
 
 ---
 
-### 🟡 chattree.reminders.read
+### chattree.reminders.read
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.reminders`
 
@@ -697,10 +699,10 @@ Lists and retrieves reminders from Chattree.
 
 ---
 
-### 🟡 chattree.reminders.create
+### chattree.reminders.create
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.reminders`
 
@@ -716,10 +718,10 @@ Creates a new reminder with an optional alarm (also accepts legacy capability al
 
 ---
 
-### 🟡 chattree.reminders.update / delete / complete
+### chattree.reminders.update / delete / complete
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.reminders`
 
@@ -733,10 +735,10 @@ Updates, deletes or marks reminders as complete.
 
 ---
 
-### 🟡 chattree.context.read
+### chattree.context.read
 
 **Category:** AI  
-**Status:** ✅ Available (Phase 3G)  
+**Status:** Available (Phase 3G)  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.context`
 
@@ -751,10 +753,10 @@ This is strictly limited — it does NOT expose full chat history or all previou
 
 ---
 
-### 🟡 email.read
+### email.read
 
 **Category:** Communication & Personal Data  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `email`
 
@@ -771,10 +773,10 @@ Allows the plugin to read email accounts, inspect inbox messages, and fetch mess
 
 ---
 
-### 🟡 email.send
+### email.send
 
 **Category:** Communication  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `email`
 
@@ -788,10 +790,10 @@ Allows the plugin to dispatch outgoing emails via secure SMTP. Both `email.read`
 
 ---
 
-### 🟡 network.webhook_inbound
+### network.webhook_inbound
 
 **Category:** Network & Automation  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** Inbound Webhook Pipeline (`InboundHttpServer` / `EventRuntime`)
 
@@ -799,10 +801,10 @@ Allows the plugin to register HTTP webhook endpoints (`127.0.0.1` by default, or
 
 ---
 
-### 🟡 network.webhook_outbound
+### network.webhook_outbound
 
 **Category:** Network & Connectivity  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `network` (`WebhookEgressSender`)
 
@@ -810,10 +812,10 @@ Allows the plugin to dispatch automated outbound webhook events to external HTTP
 
 ---
 
-### 🟡 clipboard.read / 🟢 clipboard.write
+### clipboard.read / clipboard.write
 
 **Category:** Device  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent (`clipboard.read`) / Normal (`clipboard.write`)  
 **Host API namespace:** `clipboard`
 
@@ -827,10 +829,10 @@ Allows reading text from (`clipboard.read`, max 100 KB) or copying text to (`cli
 
 ---
 
-### 🟡 chat.history.read
+### chat.history.read
 
 **Category:** AI & Conversation  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `chattree.context` (`chat` / `chat.history`)
 
@@ -849,10 +851,10 @@ Allows reading a bounded window of recent messages from the active conversation 
 
 ---
 
-### 🟡 ai.context
+### ai.context
 
 **Category:** AI  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `ai` (`ai.context`)
 
@@ -862,19 +864,19 @@ Allows the plugin to request a bounded, single-turn text completion from the act
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | `{ prompt: string, systemPrompt?: string, maxTokens?: number, temperature?: number }` | `{ text: string, engine: "remote" \| "local", providerId?: string, modelId: string }` |
+| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | `{ prompt: string, systemPrompt?: string, maxTokens?: number, temperature?: number }` | `{ text: string, length: number }` |
 
 **Limitations:**
-- `prompt` max **16 000 characters**; `systemPrompt` max **4 000 characters**.
-- `maxTokens` clamped between **1 and 2 048** (default 512).
+- `prompt` max **16 000 characters**; `systemPrompt` optional.
+- `maxTokens` clamped between **16 and 2 048** (default 512).
 - Single-turn inference only; plugins cannot trigger nested tool calls.
 
 ---
 
-### 🟡 ai.embeddings
+### ai.embeddings
 
 **Category:** AI & Vector RAG  
-**Status:** ✅ Available  
+**Status:** Available  
 **Permission required:** User consent  
 **Host API namespace:** `ai` (`ai.embeddings`)
 
@@ -884,23 +886,23 @@ Allows the plugin to generate on-device vector embeddings, perform semantic sear
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `ai.embed` / `ai.embeddings` | `{ text: string }` | `{ embedding: number[], dimensions: number, modelId: string }` |
-| `ai.search` / `ai.rag_search` | `{ query: string, topK?: number, minSimilarity?: number }` | `{ results: [{ noteId, noteTitle, chunkText, similarity, chunkIndex }], count: number }` |
-| `ai.index_document` / `ai.index` | `{ id: string, title: string, content: string }` | `{ indexed: true, documentId: string, originalId: string, chunksCount: number }` |
-| `ai.remove_document` / `ai.remove` | `{ id: string }` | `{ removed: true, documentId: string }` |
+| `ai.embed` / `ai.embeddings` | `{ text: string, type?: "document" \| "query" }` | `{ embedding: number[], dimensions: number }` |
+| `ai.search` / `ai.rag_search` | `{ query: string, topK?: number, minScore?: number }` | `{ results: [...], count: number }` |
+| `ai.index_document` / `ai.index` | `{ id: string, text (or content): string, title?: string }` | `{ indexed: boolean, sourceId: string, id: string }` |
+| `ai.remove_document` / `ai.remove` | `{ id: string }` | `{ removed: boolean, sourceId: string, id: string }` |
 
 **Limitations:**
-- Requires the on-device embedding model (`RagService`) to be downloaded and initialized.
+- Requires the on-device embedding model (`RAGService`) to be downloaded and initialized.
 - Input text/content max **50 000 characters** per call.
-- `topK` clamped between **1 and 20** (default 5).
+- `topK` clamped between **1 and 20** (default 5); `minScore` clamped between `0.0` and `1.0` (default `0.30`).
 - Indexed documents are automatically namespaced as `plugin_<pluginId>_<id>` so a plugin can only overwrite or remove its own indexed documents.
 
 ---
 
-### 🟡 network.websocket
+### network.websocket
 
 **Category:** Network  
-**Status:** ✅ Available (Phase 1)  
+**Status:** Available (Phase 1)  
 **Permission required:** User consent (`network.websocket`)  
 **Host API namespace:** `websocket`
 
@@ -910,20 +912,20 @@ Allows plugins to establish and manage **bidirectional, full-duplex WebSocket co
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `websocket.connect` | `{ url: string, headers?: object, protocols?: string[], pingIntervalSeconds?: number }` | `{ connectionId: string, status: "connected" \| "connecting", url: string }` |
-| `websocket.send` | `{ connectionId: string, message: string, isBinary?: boolean }` | `{ sent: true, bytes: number }` |
-| `websocket.receive` / `websocket.poll` | `{ connectionId: string, maxMessages?: number }` | `{ messages: [{ data: string, isBinary: boolean, timestamp: string }], count: number }` |
-| `websocket.status` | `{ connectionId: string }` | `{ connectionId: string, state: "connected" \| "connecting" \| "closing" \| "closed", bufferedAmount: number, queuedMessages: number }` |
-| `websocket.close` | `{ connectionId: string, code?: number, reason?: string }` | `{ closed: true, connectionId: string }` |
+| `websocket.connect` | `{ url: string, headers?: object, protocols?: string[], timeoutMs?: number }` | `{ socketId: string, connected: true, url: string, protocol: string \| null }` |
+| `websocket.send` | `{ socketId: string, data: string \| number[], isBinary?: boolean }` | `{ sent: true, socketId: string }` |
+| `websocket.receive` / `websocket.poll` | `{ socketId: string, limit?: number }` | `{ socketId: string, messages: [{ isBinary: boolean, data: string }], count: number, remainingInQueue: number, isOpen: boolean }` |
+| `websocket.status` / `websocket.list` | `{ socketId?: string }` | `{ socketId, url, isOpen, queueLength, connectedAt }` or `{ activeSockets: [...], count: number, maxAllowed: 10 }` |
+| `websocket.close` | `{ socketId: string, code?: number, reason?: string }` | `{ closed: true, socketId: string }` |
 
 **Input fields for `websocket.connect`:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `url` | string | ✅ | `ws://` or `wss://` URI |
-| `headers` | object | ❌ | Custom handshake headers (restricted hop-by-hop headers stripped) |
-| `protocols` | string[] | ❌ | WebSocket subprotocols requested |
-| `pingIntervalSeconds` | number | ❌ | Periodic ping heartbeat interval (default 30s) |
+| `url` | string | Yes | `ws://` or `wss://` URI |
+| `headers` | object | No | Custom handshake headers |
+| `protocols` | string[] | No | WebSocket subprotocols requested |
+| `timeoutMs` | number | No | Handshake timeout in ms (default 15000) |
 
 **Limitations & Security Guarantees:**
 - **Connection limit:** Up to **10 concurrent active sockets** per plugin.
@@ -946,10 +948,10 @@ Allows plugins to establish and manage **bidirectional, full-duplex WebSocket co
 
 ---
 
-### 🟡 ui.components / ui.render
+### ui.components / ui.render
 
 **Category:** Device / UI  
-**Status:** ✅ Available (Phase 2)  
+**Status:** Available (Phase 2)  
 **Permission required:** User consent (`ui.components` or `ui.render`)  
 **Host API namespace:** `ui`
 
@@ -959,9 +961,11 @@ Allows plugins to emit rich, interactive declarative UI cards in the chat rather
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `ui.render` / `ui.show_card` | `{ card: UiCard }` | `{ rendered: true, elementCount: number }` |
+| `ui.render` / `ui.card` | `UiCard` | `{ rendered: true, pluginId: string, ui: UiCard }` |
+| `ui.alert` / `ui.toast` | `{ message: string, title?: string, level?: string }` | `{ type: "alert", title, message, level }` |
+| `ui.validate` | `UiCard` | `{ valid: true }` |
 
-> **Direct WASM Tool Result:** Plugins can also emit declarative UI directly by returning `{ "text": "Summary", "ui": { "type": "card", ... } }` in the result of any tool call.
+> **Direct WASM Tool Result:** Plugins can emit declarative UI directly by returning `{ "type": "ui", "displayText": "Summary", "ui": { ... } }` in the result of any tool call.
 
 **Card Schema (`UiCard`):**
 
@@ -969,22 +973,26 @@ Allows plugins to emit rich, interactive declarative UI cards in the chat rather
 {
   "title": "Build Status",
   "subtitle": "Production Deployment Pipeline",
+  "badge": "SUCCESS",
+  "badgeColor": "green",
+  "icon": "check",
+  "hideText": true,
   "elements": [
-    { "type": "badge", "text": "SUCCESS", "variant": "success" },
-    { "type": "progress", "value": 100, "label": "Deployment Complete" },
+    { "type": "badge", "text": "DEPLOYED", "color": "green" },
+    { "type": "progress", "value": 1.0, "label": "Deployment Complete", "color": "blue" },
     {
       "type": "key_value",
       "items": [
-        { "label": "Commit", "value": "a1b2c3d" },
-        { "label": "Environment", "value": "production" }
+        { "key": "Commit", "value": "a1b2c3d" },
+        { "key": "Environment", "value": "production" }
       ]
     },
     { "type": "divider" },
     {
       "type": "button_row",
       "buttons": [
-        { "label": "View Logs", "action": "url", "payload": "https://ci.example.com/build/123" },
-        { "label": "Rollback", "action": "command", "payload": "/deploy rollback", "variant": "danger" }
+        { "label": "View Logs", "action": "url", "value": "https://ci.example.com/build/123", "style": "secondary" },
+        { "label": "Rollback", "action": "command", "value": "/deploy rollback", "style": "danger", "confirm": true }
       ]
     }
   ]
@@ -995,63 +1003,62 @@ Allows plugins to emit rich, interactive declarative UI cards in the chat rather
 
 | Component | Properties | Description |
 |-----------|------------|-------------|
-| `text` | `content` (string), `style` (`"body"` \| `"caption"` \| `"headline"` \| `"code"`), `markdown` (boolean) | Text block with optional markdown formatting |
-| `badge` | `text` (string), `variant` (`"info"` \| `"success"` \| `"warning"` \| `"error"` \| `"neutral"` \| `"white"` \| `"mono"` \| `"monochrome"` \| `"primary"`), `icon` (string?, e.g. `"note"`, `"alarm"`) | Status badge with color-coded or monochrome styling |
-| `progress` | `value` (number 0.0 to 1.0 or 0 to 100), `label` (string?), `status` (string?) | Progress bar with optional indicator text |
-| `key_value` | `items`: `[{ label: string, value: string, copyable?: boolean }]` | Structured label-value grid (up to 40 items) |
+| `text` | `content` (string, max 4000 chars) | Text block |
+| `badge` | `text` (string, max 30 chars), `color` (`"green"` \| `"orange"` \| `"red"` \| `"blue"` \| `"purple"` \| `"gray"` \| `"white"` \| `"success"` \| `"warning"` \| `"error"` \| `"info"` \| `"neutral"` \| `"mono"`) | Status badge with color-coded or monochrome styling |
+| `progress` | `value` (number `0.0` to `1.0`), `label` (string?, max 50 chars), `color` (string?) | Progress bar with percentage indicator |
+| `key_value` | `items`: `[{ key: string, value: string }]` | Structured key-value grid (up to 40 items; `key` max 50 chars, `value` max 200 chars) |
 | `list` | `items`: `[{ title: string, subtitle?: string }]` | Compact title-and-preview list (up to 40 items; `title` max 100 chars, `subtitle` max 160 chars) |
 | `divider` | None | Subtle horizontal separator line |
-| `button_row` | `buttons`: `[{ label: string, action: "command" \| "url" \| "copy", payload: string, variant?: "primary" \| "secondary" \| "danger" \| "white" \| "mono" \| "monochrome" }]` | Interactive action row (up to 8 buttons per row) |
+| `button_row` | `buttons`: `[{ label: string, action: "command" \| "url" \| "copy", value: string, style?: "primary" \| "secondary" \| "danger", confirm?: boolean }]` | Interactive action row (up to 8 buttons per row; also accepts `command`/`url` as aliases for `value`) |
 
-> **Card-level options:** Cards also accept `"hideText": true` to suppress the plain-text intro bubble above the declarative card when the card itself carries the full visual response.
+> **Card-level options:** Cards accept `title`, `subtitle`, `badge`, `badgeColor`, `icon` (`check`, `warning`, `error`, `info`, `shipping`, `payment`, `message`, `analytics`, `alarm`, `note`), and `"hideText": true` to suppress the plain-text intro bubble above the declarative card.
 
 **Limitations & Security Guarantees:**
-- **Element density limits:** Max **60 elements** per card; max **40 key-value items** per table; max **8 buttons** per button row; max nesting depth of 3 levels.
+- **Element density limits:** Max **60 elements** per card; max **40 key-value / list items** per table; max **8 buttons** per button row.
 - **Centralized sanitization:** All UI cards are sanitized through `UiApiHandler.sanitizeUiCard` regardless of source (Host API call or direct WASM return). Invalid nodes, oversized strings, and unknown types are safely stripped.
-- **Security Confirmation Modal for sensitive actions:** If an action button has `action: "command"` and the target payload begins with `/` (e.g., `/deploy`, `/delete`, `/reboot`) or executes commands, Chattree intercepts the click and displays an explicit user confirmation dialog showing the command before execution. This prevents clickjacking or unauthorized actions from third-party plugins.
+- **Security Confirmation Modal for sensitive actions:** If an action button has `action: "command"` and the target command begins with `/` (e.g., `/deploy`, `/delete`, `/reboot`), has `style: "danger"`, or sets `confirm: true`, Chattree intercepts the click and displays an explicit user confirmation dialog showing the command before execution. This prevents clickjacking or unauthorized actions from third-party plugins.
 
 ---
 
-### 🟡 scheduler.task / scheduler.cron
+### scheduler.task / scheduler.cron
 
 **Category:** Automation / Device  
-**Status:** ✅ Available (Phase 3)  
+**Status:** Available (Phase 3)  
 **Permission required:** User consent (`scheduler.task` or `scheduler.cron`)  
 **Host API namespace:** `scheduler`
 
-Allows plugins to schedule recurring tasks and background automations using standard Cron expressions or periodic intervals, with events delivered through Chattree's central `HostEventBus`.
+Allows plugins to schedule recurring tasks and background automations using Cron expressions, periodic intervals, or one-shot timestamps, with events delivered through Chattree's central `HostEventBus`.
 
 **Operations:**
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `scheduler.schedule_task` | `{ taskId: string, cron?: string, intervalSeconds?: number, payload?: any, description?: string }` | `{ scheduled: true, taskId: string, nextExecution: string }` |
-| `scheduler.cancel_task` | `{ taskId: string }` | `{ cancelled: true, taskId: string }` |
-| `scheduler.list_tasks` | `{}` | `{ tasks: [{ taskId, cron, intervalSeconds, nextExecution, payload, createdAt }], count: number }` |
-| `scheduler.get_task` | `{ taskId: string }` | `{ task: object \| null }` |
+| `scheduler.schedule` | `{ targetAction: string, taskId?: string, cronExpression?: string, intervalMs?: number, scheduledAt?: string, payload?: object }` | `{ scheduled: true, taskId: string, targetAction: string, isPeriodic: boolean, intervalMs?: number, createdAt: string }` |
+| `scheduler.cancel` | `{ taskId: string }` | `{ cancelled: true, taskId: string }` |
+| `scheduler.list` | `{}` | `{ tasks: [...], count: number, maxAllowed: 25 }` |
+| `scheduler.status` | `{ taskId: string }` | `ScheduledTask` object |
 
 **Cron Syntax & Precision:**
 - Evaluated via exact wall-clock calculations (`calculateNextCronExecution`).
-- Standard 5-field format: `minute hour day-of-month month day-of-week`
-  - `*/15 * * * *` — Every 15 minutes
+- Supported 5-field patterns:
+  - `*/N * * * *` — Every `N` minutes (e.g. `*/15 * * * *` for every 15 minutes)
   - `0 * * * *` — Every hour on the hour
-  - `0 9 * * *` — Daily at 9:00 AM
-  - `0 0 * * 1` — Weekly on Mondays at midnight
-  - `30 14 1 * *` — 1st of every month at 2:30 PM
+  - `0 0 * * *` — Daily at midnight (`00:00`)
+  - `M H * * *` — Daily at hour `H` (`0-23`) and minute `M` (`0-59`), e.g. `0 9 * * *` for 9:00 AM
 
 **Limitations & Security Guarantees:**
-- **Anti-battery drain threshold:** Enforces a strict minimum execution interval of **60 seconds**. Tasks specifying intervals or cron schedules with frequency under 60 seconds are rejected with `minimumIntervalViolation`.
+- **Anti-battery drain threshold:** Enforces a strict minimum execution interval of **60 seconds (`60000` ms)**. Tasks specifying intervals under 60 seconds are rejected.
 - **Task quota:** Up to **25 active scheduled tasks** per plugin.
 - **Payload capacity:** Up to **128 KB (`131,072` bytes)** per task payload.
-- **Event distribution:** When a task triggers, the system publishes a `scheduler.trigger` event on `HostEventBus` containing `{ taskId, pluginId, payload, timestamp }`.
+- **Event distribution:** When a task triggers, the system publishes a `scheduler.trigger` event on `HostEventBus` containing `{ taskId, pluginId, targetAction, payload, runCount, isPeriodic }`.
 - **Automatic cleanup:** All scheduled tasks registered by a plugin are cleanly deleted from the persistent schedule store when the plugin is uninstalled or disabled.
 
 ---
 
-### 🟡 database.sql / storage.database
+### database.sql / storage.database
 
 **Category:** Data  
-**Status:** ✅ Available (Phase 4)  
+**Status:** Available (Phase 4)  
 **Permission required:** User consent (`database.sql` or `storage.database`)  
 **Host API namespace:** `database`
 
@@ -1061,20 +1068,20 @@ Provides a fully managed, private, and isolated **relational SQLite database** f
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `database.query` | `{ sql: string, params?: any[] }` | `{ rows: object[], rowCount: number, columns: string[] }` |
-| `database.execute` | `{ sql: string, params?: any[] }` | `{ changes: number, lastInsertRowId?: number }` |
-| `database.insert` | `{ table: string, values: object }` | `{ insertedId: number }` |
-| `database.update` | `{ table: string, values: object, where: string, whereArgs?: any[] }` | `{ rowsAffected: number }` |
-| `database.delete` | `{ table: string, where: string, whereArgs?: any[] }` | `{ rowsAffected: number }` |
-| `database.transaction` | `{ statements: [{ sql: string, params?: any[] }] }` | `{ success: true, results: object[] }` |
-| `database.tables` | `{}` | `{ tables: string[] }` |
+| `database.query` | `{ sql: string, args?: any[] }` | `{ rows: object[], count: number, limit: 2000 }` |
+| `database.execute` | `{ sql: string, args?: any[] }` | `{ executed: true, result: number }` |
+| `database.insert` | `{ table: string, values: object }` | `{ inserted: true, id: number, table: string }` |
+| `database.update` | `{ table: string, values: object, where?: string, whereArgs?: any[] }` | `{ updated: true, affected: number, table: string }` |
+| `database.delete` | `{ table: string, where?: string, whereArgs?: any[] }` | `{ deleted: true, affected: number, table: string }` |
+| `database.transaction` | `{ operations: [{ sql: string, args?: any[] }] }` | `{ transaction: true, results: any[], operationCount: number }` |
+| `database.tables` | `{}` | `{ tables: string[], count: number }` |
 
 **Limitations & Security Guarantees:**
-- **Dedicated private database file:** Each plugin operates on `plugin_<pluginId>.db` stored in a protected app sandbox directory. Zero cross-plugin access.
-- **Storage quota:** **200 MB (`209,715,200` bytes)** maximum database size. The quota calculates the cumulative size of the `.db` primary file, `.db-wal` write-ahead log, `.db-shm` shared memory file, and `.db-journal`. If an execution would exceed 200 MB, the operation is blocked with `quotaExceeded`.
+- **Dedicated private database file:** Each plugin operates on `plugin_<secureKey>.db` stored in a protected app sandbox directory. Zero cross-plugin access.
+- **Storage quota:** **200 MB (`209,715,200` bytes)** maximum database size. The quota calculates the cumulative size of the `.db` primary file, `.db-wal` write-ahead log, `.db-shm` shared memory file, and `.db-journal`. If an execution would exceed 200 MB, the operation is blocked.
 - **Query result cap:** Max **2,000 rows** returned per query to prevent memory exhaustion.
 - **Automatic type normalization:** Booleans are mapped to SQLite integers (`1` or `0`), and structured objects/arrays are serialized to valid JSON strings.
-- **Atomic transactions:** `database.transaction` runs multiple SQL statements within a single atomic SQLite transaction with immediate automatic rollback on error.
+- **Atomic transactions:** `database.transaction` runs multiple SQL operations within a single atomic SQLite transaction with immediate automatic rollback on error.
 - **Sandbox escape defense:** Strictly blocks unauthorized SQL statements including `ATTACH DATABASE`, `DETACH DATABASE`, `VACUUM INTO`, direct modifications to `sqlite_master`, and `PRAGMA writable_schema`.
 - **Zero-orphan uninstall:** Uninstalling a plugin automatically removes its `.db`, `.db-wal`, `.db-shm`, and `.db-journal` files, leaving zero residual data on disk.
 

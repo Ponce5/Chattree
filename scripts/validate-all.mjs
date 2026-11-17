@@ -29,12 +29,12 @@ for (const rel of targets) {
   const res = validatePlugin(full);
   if (!res.valid) {
     hasErrors = true;
-    console.error(`  ❌ FAILED: ${rel}`);
+    console.error(`  [FAIL] FAILED: ${rel}`);
     for (const err of res.errors) {
       console.error(`     - ${err}`);
     }
   } else {
-    console.log(`  ✅ PASSED (${res.manifest?.id} v${res.manifest?.version})`);
+    console.log(`  [OK] PASSED (${res.manifest?.id} v${res.manifest?.version})`);
   }
 }
 

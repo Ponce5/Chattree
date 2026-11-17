@@ -17,6 +17,9 @@
     "network.http",
     "storage.private"
   ],
+  "allowedDomains": [
+    "api.notion.com"
+  ],
   "tags": [
     "notion",
     "notes",

@@ -141,6 +141,14 @@
       },
       "description": "Whitelist of Android package identifiers permitted for notification access (e.g. ['com.whatsapp', 'com.google.android.gm'] or ['*']). Required when requesting notification capabilities."
     },
+    "allowedDomains": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      },
+      "description": "Explicit allowlist of internet domains or subdomain wildcards (e.g. ['api.github.com', '*.example.com']) authorized for network.http requests (SEC-4.3.4-05)."
+    },
     "tags": {
       "type": "array",
       "items": {

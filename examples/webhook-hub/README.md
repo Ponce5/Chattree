@@ -4,7 +4,7 @@ Plugin oficial WebAssembly diseñado para aprovechar y probar exhaustivamente el
 
 ---
 
-## 🎯 ¿De qué trata este plugin y para qué sirve?
+## ¿De qué trata este plugin y para qué sirve?
 
 Chattree incluye un servidor HTTP loopback en primer plano (`127.0.0.1:8765` por defecto, con opción LAN `0.0.0.0`) gobernado por un pipeline de seguridad de defensa en profundidad (**InboundHttpServer**, **SSRF Guard**, autenticación criptográfica, deduplicación por idempotencia en SQLite con **EventJournal** y despacho con **EventDispatcher** a módulos WASM).
 
@@ -16,7 +16,7 @@ Chattree incluye un servidor HTTP loopback en primer plano (`127.0.0.1:8765` por
 
 ---
 
-## 🏗️ Especificación Técnica y Arquitectura
+## Especificación Técnica y Arquitectura
 
 | Parámetro | Detalle |
 |---|---|
@@ -33,7 +33,7 @@ Chattree incluye un servidor HTTP loopback en primer plano (`127.0.0.1:8765` por
 
 ---
 
-## 🚀 Guía de Instalación y Activación en Chattree
+## Guía de Instalación y Activación en Chattree
 
 1. **Importar el Plugin:**
    - Abre Chattree.
@@ -53,7 +53,7 @@ Chattree incluye un servidor HTTP loopback en primer plano (`127.0.0.1:8765` por
 
 ---
 
-## 🧪 Cómo Probar el Webhook
+## Cómo Probar el Webhook
 
 ### Opción A: Probar con el Script de PowerShell (Windows)
 
@@ -94,7 +94,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8765/plugins/com.developer.webhook.hub/
 
 ---
 
-## 💬 Comandos Disponibles en Chattree Chat
+## Comandos Disponibles en Chattree Chat
 
 | Comando | Descripción |
 |---|---|
@@ -106,7 +106,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8765/plugins/com.developer.webhook.hub/
 
 ---
 
-## 🔒 Garantías de Seguridad Implementadas
+## Garantías de Seguridad Implementadas
 
 1. **SSRF Guard:** El listener opera exclusivamente en `127.0.0.1` por defecto; no expone puertos ni servicios internos.
 2. **Comparación en Tiempo Constante:** Los Bearer Tokens se validan usando hashes SHA-256 con protección contra ataques de temporización.

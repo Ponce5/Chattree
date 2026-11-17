@@ -604,14 +604,14 @@ impl ChattreeUiFormatter {
             }),
             serde_json::json!({
                 "label": "Oro acumulado",
-                "value": format!("💰 {} monedas", state.stats.gold)
+                "value": format!("{} monedas", state.stats.gold)
             }),
         ];
 
         if let Some(enemy) = &state.active_enemy {
             items.push(serde_json::json!({
                 "label": "Adversario",
-                "value": format!("⚔️ {} (HP {}/{})", enemy.name, enemy.hp, enemy.max_hp)
+                "value": format!("{} (HP {}/{})", enemy.name, enemy.hp, enemy.max_hp)
             }));
         }
 
@@ -625,25 +625,25 @@ impl ChattreeUiFormatter {
         let buttons = if state.active_enemy.is_some() {
             vec![
                 serde_json::json!({
-                    "label": "⚔️ Atacar",
+                    "label": "Atacar",
                     "action": "command",
                     "payload": "/rpg action atacar",
                     "variant": "danger"
                 }),
                 serde_json::json!({
-                    "label": "🧪 Poción",
+                    "label": "Poción",
                     "action": "command",
                     "payload": "/rpg action beber pocion",
                     "variant": "primary"
                 }),
                 serde_json::json!({
-                    "label": "🏃 Huir",
+                    "label": "Huir",
                     "action": "command",
                     "payload": "/rpg action huir",
                     "variant": "neutral"
                 }),
                 serde_json::json!({
-                    "label": "📊 Ficha",
+                    "label": "Ficha",
                     "action": "command",
                     "payload": "/rpg status",
                     "variant": "neutral"
@@ -652,25 +652,25 @@ impl ChattreeUiFormatter {
         } else {
             vec![
                 serde_json::json!({
-                    "label": "🔍 Explorar",
+                    "label": "Explorar",
                     "action": "command",
                     "payload": "/rpg action explorar",
                     "variant": "primary"
                 }),
                 serde_json::json!({
-                    "label": "🔓 Abrir Cerradura",
+                    "label": "Abrir Cerradura",
                     "action": "command",
                     "payload": "/rpg action abrir cerradura",
                     "variant": "neutral"
                 }),
                 serde_json::json!({
-                    "label": "💾 Guardar",
+                    "label": "Guardar",
                     "action": "command",
                     "payload": "/rpg save",
                     "variant": "neutral"
                 }),
                 serde_json::json!({
-                    "label": "📊 Ficha",
+                    "label": "Ficha",
                     "action": "command",
                     "payload": "/rpg status",
                     "variant": "neutral"
@@ -760,7 +760,7 @@ impl ChattreeUiFormatter {
             {}\n\
             ### INVENTARIO VERIFICADO EN MEMORIA (NO ALUCINAR ITEMS ADICIONALES):\n\
             {}\n\n\
-            > ⚠️ **INSTRUCCIÓN ESTRICTA PARA EL NARRADOR IA DE CHATTREE:**\n\
+            > **INSTRUCCIÓN ESTRICTA PARA EL NARRADOR IA DE CHATTREE:**\n\
             > 1. Los números de HP, daño, oro, dados e inventario son matemáticos y fueron calculados por el motor WASM.\n\
             > 2. NUNCA inventes pociones, oro o ítems que no figuren en la lista de arriba.\n\
             > 3. Utiliza estos hechos como base estricta para escribir una narración literaria inmersiva, emocionante, con diálogos y atmósfera épica de fantasía oscura.\n\
@@ -826,7 +826,7 @@ pub extern "C" fn rpg_entry(ptr: *const u8, len: usize) -> i32 {
         state = GameState::new("Héroe de Eldoria", class, 0x489f1a7b);
         (
             format!(
-                "⚔️ **¡Ha comenzado tu Aventura en Eldoria!**\n\n\
+                "**¡Ha comenzado tu Aventura en Eldoria!**\n\n\
                 Has elegido la senda del **{}**.\n\
                 Te encuentras ante las imponentes ruinas de Eldoria. Frente a ti, los ojos rojizos de un Goblin Explorador brillan en la penumbra listos para atacar.\n\n\
                 *Usa los botones de acción interactivos abajo o escribe acciones como `/rpg action atacar` o `/rpg action beber pocion`.*",
@@ -837,7 +837,7 @@ pub extern "C" fn rpg_entry(ptr: *const u8, len: usize) -> i32 {
     } else if action_arg == "status" || action_arg == "ficha" {
         (
             format!(
-                "📊 **Ficha del Aventurero**\n\n\
+                "**Ficha del Aventurero**\n\n\
                 - **Nombre:** {}\n\
                 - **Clase:** {}\n\
                 - **Nivel:** {} ({} / {} XP)\n\
@@ -865,23 +865,23 @@ pub extern "C" fn rpg_entry(ptr: *const u8, len: usize) -> i32 {
         )
     } else if action_arg.starts_with("save") {
         (
-            "💾 **Partida Guardada**\n\nTu progreso, estadísticas e inventario se han guardado con éxito en la base de datos relacional de Chattree.".to_string(),
+            "**Partida Guardada**\n\nTu progreso, estadísticas e inventario se han guardado con éxito en la base de datos relacional de Chattree.".to_string(),
             None
         )
     } else if action_arg.starts_with("load") {
         (
-            "📂 **Partida Cargada**\n\nSe ha restaurado tu último punto de control en las Ruinas de Eldoria.".to_string(),
+            "**Partida Cargada**\n\nSe ha restaurado tu último punto de control en las Ruinas de Eldoria.".to_string(),
             None
         )
     } else if action_arg.contains("confirmar_reinicio") || action_arg.contains("confirm_reset") {
         state = GameState::new("Aventurero Reencarnado", CharacterClass::Warrior, 0x99aa1122);
         (
-            "🔄 **Partida Reiniciada con Éxito**\n\nTodos los registros de la base de datos relacional y la memoria lineal del motor han sido purgados y restaurados al estado inicial. Una nueva senda se abre ante ti.".to_string(),
+            "**Partida Reiniciada con Éxito**\n\nTodos los registros de la base de datos relacional y la memoria lineal del motor han sido purgados y restaurados al estado inicial. Una nueva senda se abre ante ti.".to_string(),
             None
         )
     } else if action_arg.contains("reiniciar") || action_arg.contains("reset") {
         (
-            "⚠️ **¿Deseas reiniciar toda la aventura de rol?**\n\nEsta acción borrará de forma permanente tu progreso actual, tus puntos de guardado en la base de datos SQLite y tus objetos acumulados, devolviendo tu campaña al **Capítulo I (Turno 1)** con un nuevo inicio narrativo.\n\n*Para continuar, confirma con el botón rojo abajo o escribe **\"confirmar reinicio\"**.*".to_string(),
+            "**¿Deseas reiniciar toda la aventura de rol?**\n\nEsta acción borrará de forma permanente tu progreso actual, tus puntos de guardado en la base de datos SQLite y tus objetos acumulados, devolviendo tu campaña al **Capítulo I (Turno 1)** con un nuevo inicio narrativo.\n\n*Para continuar, confirma con el botón rojo abajo o escribe **\"confirmar reinicio\"**.*".to_string(),
             None
         )
     } else {

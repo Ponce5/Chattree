@@ -51,11 +51,11 @@ Chattree categorizes capabilities into three danger tiers:
 
 ### Danger Tiers
 
-| Level | Badge | Permissions Included | User Consent Mechanism |
+| Level | Risk Tier | Permissions Included | User Consent Mechanism |
 |---|---|---|---|
-| **Normal** | 🟢 | `storage.private`, `share.text`, `open.url`, `clipboard.write` | Granted automatically upon installation (core sandbox capabilities). |
-| **Sensitive** | 🟡 | `network.http`, `network.webhook_inbound`, `network.webhook_outbound`, `files.pick`, `files.read`, `files.write`, `chattree.notes.*`, `chattree.reminders.*`, `notifications.send`, `clipboard.read`, `share.file`, `open.app`, `contacts.create`, `contacts.update`, `calendar.*`, `chattree.context.read`, `chat.history.read`, `ai.context`, `ai.embeddings` | Explicit confirmation dialog presented during installation or first invocation. |
-| **Critical** | 🔴 | `location.current`, `camera.capture`, `contacts.read`, `network.local`, `email.read`, `email.send` | Explicit confirmation prompt AND operating system runtime permission prompt. |
+| **Normal** | Low | `storage.private`, `share.text`, `open.url`, `clipboard.write` | Granted automatically upon installation (core sandbox capabilities). |
+| **Sensitive** | Medium | `network.http`, `network.webhook_inbound`, `network.webhook_outbound`, `files.pick`, `files.read`, `files.write`, `chattree.notes.*`, `chattree.reminders.*`, `notifications.send`, `clipboard.read`, `share.file`, `open.app`, `contacts.create`, `contacts.update`, `calendar.*`, `chattree.context.read`, `chat.history.read`, `ai.context`, `ai.embeddings` | Explicit confirmation dialog presented during installation or first invocation. |
+| **Critical** | High | `location.current`, `camera.capture`, `contacts.read`, `network.local`, `email.read`, `email.send` | Explicit confirmation prompt AND operating system runtime permission prompt. |
 
 ### Permission Workflow
 

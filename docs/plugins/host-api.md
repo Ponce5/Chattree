@@ -50,9 +50,9 @@ Your WASM module must declare this import to use any Host API:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `api` | string | ✅ | Namespace identifier (see table below) |
-| `operation` | string | ✅ | Operation name within the namespace |
-| `payload` | any | ✅ | Operation-specific parameters |
+| `api` | string | Yes | Namespace identifier (see table below) |
+| `operation` | string | Yes | Operation name within the namespace |
+| `payload` | any | Yes | Operation-specific parameters |
 
 ---
 
@@ -76,29 +76,29 @@ Your WASM module must declare this import to use any Host API:
 
 ## Registered namespaces
 
-| Namespace | Description | Sync? | Capability Required |
-|-----------|-------------|-------|---------------------|
-| `core` | Plugin metadata and logging | ✅ Sync | None |
-| `storage` | Private key-value store | ✅ Sync | `storage.private` (auto) |
-| `network` | HTTP/HTTPS requests | ❌ Async | `network.http` (+ optional `network.local` for LAN/loopback) |
-| `files` | File pick / read / write | ❌ Async | `files.pick`/`files.read`/`files.write` |
-| `notifications` | Local alerts, Notification Hub & Listener | ❌ Async | `notifications.send`, `notifications.read`, `notifications.query`, `notifications.reply`, `notifications.action` |
-| `location` | GPS position | ❌ Async | `location.current` |
-| `camera` | Photo capture | ❌ Async | `camera.capture` |
-| `contacts` | Address book | ❌ Async | `contacts.read`/`.create`/`.update` |
-| `calendar` | Device calendar | ❌ Async | `calendar.read`/`.create`/`.update`/`.delete` |
-| `email` | Native IMAP/SMTP email & inbox | ❌ Async | `email.read`/`email.send` |
-| `clipboard` | System clipboard read/write | ❌ Async | `clipboard.read`/`clipboard.write` |
-| `share` | Share sheet | ❌ Async | `share.text`/`share.file` |
-| `open` | Launch URLs and apps | ❌ Async | `open.url`/`open.app` |
-| `chattree.notes` | Chattree Notes CRUD | ❌ Async | `chattree.notes.*` |
-| `chattree.reminders` | Chattree Reminders CRUD | ❌ Async | `chattree.reminders.*` |
-| `chattree.context` | Current message & bounded chat history | ❌ Async | `chattree.context.read` / `chat.history.read` |
-| `ai` | Single-turn LLM completion, embeddings & RAG | ❌ Async | `ai.context` / `ai.embeddings` |
-| `websocket` | Real-time bidirectional WebSockets | ❌ Async | `network.websocket` (+ optional `network.local`) |
-| `ui` | Declarative rich UI cards, badges, progress & buttons | ❌ Async (`ui.validate` is Sync) | `ui.components` / `ui.render` |
-| `scheduler` | Wall-clock Cron & periodic background tasks | ❌ Async | `scheduler.task` / `scheduler.cron` |
-| `database` | Private isolated relational SQLite & transactions | ❌ Async | `database.sql` / `storage.database` |
+| Namespace | Description | Mode | Capability Required |
+|-----------|-------------|------|---------------------|
+| `core` | Plugin metadata and logging | Sync | None |
+| `storage` | Private key-value store | Sync | `storage.private` (auto) |
+| `network` | HTTP/HTTPS requests | Async | `network.http` (+ `allowedDomains` in `plugin.json`; optional `network.local` for LAN/loopback) |
+| `files` | File pick / read / write | Async | `files.pick`/`files.read`/`files.write` |
+| `notifications` | Local alerts, Notification Hub & Listener | Async | `notifications.send`, `notifications.read`, `notifications.query`, `notifications.reply`, `notifications.action` |
+| `location` | GPS position | Async | `location.current` |
+| `camera` | Photo capture | Async | `camera.capture` |
+| `contacts` | Address book | Async | `contacts.read`/`.create`/`.update` |
+| `calendar` | Device calendar | Async | `calendar.read`/`.create`/`.update`/`.delete` |
+| `email` | Native IMAP/SMTP email & inbox | Async | `email.read`/`email.send` |
+| `clipboard` | System clipboard read/write | Async | `clipboard.read`/`clipboard.write` |
+| `share` | Share sheet | Async | `share.text`/`share.file` |
+| `open` | Launch URLs and apps | Async | `open.url`/`open.app` |
+| `chattree.notes` | Chattree Notes CRUD | Async | `chattree.notes.*` |
+| `chattree.reminders` | Chattree Reminders CRUD | Async | `chattree.reminders.*` |
+| `chattree.context` | Current message & bounded chat history | Async | `chattree.context.read` / `chat.history.read` |
+| `ai` | Single-turn LLM completion, embeddings & RAG | Async | `ai.context` / `ai.embeddings` |
+| `websocket` | Real-time bidirectional WebSockets | Async | `network.websocket` (+ optional `network.local`) |
+| `ui` | Declarative rich UI cards, badges, progress & buttons | Async (`ui.validate` is Sync) | `ui.components` / `ui.render` |
+| `scheduler` | Wall-clock Cron & periodic background tasks | Async | `scheduler.task` / `scheduler.cron` |
+| `database` | Private isolated relational SQLite & transactions | Async | `database.sql` / `storage.database` |
 
 ---
 
@@ -125,8 +125,8 @@ Your WASM module must declare this import to use any Host API:
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `core.get_manifest` | ✅ | `{}` | `{ id, version, name, description, author, runtimeApiVersion }` |
-| `core.log` | ✅ | `{ level: "info"\|"warning"\|"error", message: string }` | `{ logged: true, level }` |
+| `core.get_manifest` | Yes | `{}` | `{ id, version, name, description, author, runtimeApiVersion }` |
+| `core.log` | Yes | `{ level: "info"\|"warning"\|"error", message: string }` | `{ logged: true, level }` |
 
 `core.log` messages appear in Flutter debug logs prefixed with `[Plugin:<id>]`.
 
@@ -136,11 +136,11 @@ Your WASM module must declare this import to use any Host API:
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `storage.set` | ✅ | `{ key, value }` | `{ stored: true, key, value }` |
-| `storage.get` | ✅ | `{ key }` | `{ value: string\|null, exists: boolean }` |
-| `storage.delete` | ✅ | `{ key }` | `{ deleted: boolean, key }` |
-| `storage.has` | ✅ | `{ key }` | `{ exists: boolean, key }` |
-| `storage.keys` | ✅ | `{}` | `{ keys: string[], count: number }` |
+| `storage.set` | Yes | `{ key, value }` | `{ stored: true, key, value }` |
+| `storage.get` | Yes | `{ key }` | `{ value: string\|null, exists: boolean }` |
+| `storage.delete` | Yes | `{ key }` | `{ deleted: boolean, key }` |
+| `storage.has` | Yes | `{ key }` | `{ exists: boolean, key }` |
+| `storage.keys` | Yes | `{}` | `{ keys: string[], count: number }` |
 
 **Quotas enforced by `PluginStorageStore`:**
 - Max key length: **256 chars**
@@ -154,7 +154,9 @@ Your WASM module must declare this import to use any Host API:
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `network.http_request` | ❌ | `{ url, method?, headers?, body?, bodyEncoding?, responseType?, timeoutMs? }` | `{ statusCode, headers, body, encoding?, isBase64? }` |
+| `network.http_request` | No | `{ url, method?, headers?, body?, bodyEncoding?, responseType?, timeoutMs? }` | `{ statusCode, headers, body, encoding?, isBase64? }` |
+
+> **Domain Allowlist (`allowedDomains` — SEC-4.3.4-05):** Imported and Marketplace plugins calling `network.http_request` must explicitly declare every destination hostname or subdomain wildcard (`*.domain.com`) in `"allowedDomains"` inside `plugin.json`. Requests to undeclared hosts are blocked at runtime.
 
 ---
 
@@ -162,9 +164,9 @@ Your WASM module must declare this import to use any Host API:
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `files.pick` | ❌ | `{ allowedExtensions?, title? }` | `{ cancelled, handle, name, size, extension, mimeType }` |
-| `files.read` | ❌ | `{ handle, asText? }` | `{ handle, name, size, encoding, content }` |
-| `files.write` | ❌ | `{ name, content, encoding? }` | `{ name, size, written, handle }` |
+| `files.pick` | No | `{ allowedExtensions?, title? }` | `{ cancelled, handle, name, size, extension, mimeType }` |
+| `files.read` | No | `{ handle, asText? }` | `{ handle, name, size, encoding, content }` |
+| `files.write` | No | `{ name, content, encoding? }` | `{ name, size, written, handle }` |
 
 ---
 
@@ -206,17 +208,17 @@ The `notifications` namespace covers local notification dispatch and the full un
 
 | Operation | Sync | Capability Required | Input | Output | Description |
 |-----------|------|---------------------|-------|--------|-------------|
-| `notifications.send` | ❌ | `notifications.send` | `{ title: string, body?: string }` | `{ notificationId, sent, remainingQuota }` | Sends a local system alert (rate limited to 15/hr). |
-| `notifications.cancel` | ❌ | `notifications.send` | `{ notificationId: number }` | `{ notificationId, cancelled: boolean }` | Cancels a local notification previously posted by this plugin. |
-| `notifications.getStatus` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ status: "active" \| "disconnected" \| "permission_required" \| "reconnecting" \| "unsupported", isListenerEnabled: boolean, isSupported: boolean }` | Returns current Android Notification Listener service status. |
-| `notifications.getActive` | ❌ | `notifications.query` | `{ packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean, includeRecent?: boolean, limit?: number }` | `DeviceNotificationSummary[]` | Queries active status bar alerts (and optionally recent RAM history), filtered strictly by `allowedNotificationPackages`. |
-| `notifications.query` | ❌ | `notifications.query` | `{ packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean, includeRecent?: boolean, limit?: number }` | `DeviceNotificationSummary[]` | Alias of `notifications.getActive`. |
-| `notifications.getRecent` | ❌ | `notifications.query` | `{ limit?: number, packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean }` | `DeviceNotificationSummary[]` | Queries the ephemeral in-memory circular buffer (up to 100 recent non-ongoing notifications), filtered by `allowedNotificationPackages`. |
-| `notifications.reply` | ❌ | `notifications.reply` | `{ logicalId: string, message: string }` | `{ replied: boolean, logicalId: string }` | Sends inline quick reply via Android native `RemoteInput` (max 4,000 characters). Package scope is verified from `logicalId`. |
-| `notifications.dismiss` | ❌ | `notifications.action` | `{ logicalId: string }` | `{ dismissed: boolean, logicalId: string }` | Swipes away / cancels an active notification from the Android status bar. |
-| `notifications.invokeAction` | ❌ | `notifications.action` | `{ actionHandle: string, logicalId?: string, packageName?: string, actionIndex?: number }` | `{ invoked: boolean, actionHandle: string }` | Triggers a native action button via its single-use, cryptographically secure `ActionHandle` (or `logicalId` + `actionIndex`). |
-| `notifications.subscribe` | ❌ | `notifications.read` | `{}` | `{ subscribed: boolean, status: string, isListenerEnabled: boolean, isSupported: boolean }` | Ensures the platform event listener is initialized. |
-| `notifications.openSettings` | ❌ | `notifications.query` or `notifications.read` | `{}` | `{ opened: boolean, isSupported: boolean }` | Launches Android OS Notification Listener Access settings screen. |
+| `notifications.send` | No | `notifications.send` | `{ title: string, body?: string }` | `{ notificationId, sent, remainingQuota }` | Sends a local system alert (rate limited to 15/hr). |
+| `notifications.cancel` | No | `notifications.send` | `{ notificationId: number }` | `{ notificationId, cancelled: boolean }` | Cancels a local notification previously posted by this plugin. |
+| `notifications.getStatus` | No | `notifications.query` or `notifications.read` | `{}` | `{ status: "active" \| "disconnected" \| "permission_required" \| "reconnecting" \| "unsupported", isListenerEnabled: boolean, isSupported: boolean }` | Returns current Android Notification Listener service status. |
+| `notifications.getActive` | No | `notifications.query` | `{ packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean, includeRecent?: boolean, limit?: number }` | `DeviceNotificationSummary[]` | Queries active status bar alerts (and optionally recent RAM history), filtered strictly by `allowedNotificationPackages`. |
+| `notifications.query` | No | `notifications.query` | `{ packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean, includeRecent?: boolean, limit?: number }` | `DeviceNotificationSummary[]` | Alias of `notifications.getActive`. |
+| `notifications.getRecent` | No | `notifications.query` | `{ limit?: number, packageName?: string, category?: string, canReplyOnly?: boolean, excludeOngoing?: boolean, excludeFromMe?: boolean }` | `DeviceNotificationSummary[]` | Queries the ephemeral in-memory circular buffer (up to 100 recent non-ongoing notifications), filtered by `allowedNotificationPackages`. |
+| `notifications.reply` | No | `notifications.reply` | `{ logicalId: string, message: string }` | `{ replied: boolean, logicalId: string }` | Sends inline quick reply via Android native `RemoteInput` (max 4,000 characters). Package scope is verified from `logicalId`. |
+| `notifications.dismiss` | No | `notifications.action` | `{ logicalId: string }` | `{ dismissed: boolean, logicalId: string }` | Swipes away / cancels an active notification from the Android status bar. |
+| `notifications.invokeAction` | No | `notifications.action` | `{ actionHandle: string, logicalId?: string, packageName?: string, actionIndex?: number }` | `{ invoked: boolean, actionHandle: string }` | Triggers a native action button via its single-use, cryptographically secure `ActionHandle` (or `logicalId` + `actionIndex`). |
+| `notifications.subscribe` | No | `notifications.read` | `{}` | `{ subscribed: boolean, status: string, isListenerEnabled: boolean, isSupported: boolean }` | Ensures the platform event listener is initialized. |
+| `notifications.openSettings` | No | `notifications.query` or `notifications.read` | `{}` | `{ opened: boolean, isSupported: boolean }` | Launches Android OS Notification Listener Access settings screen. |
 
 #### Real-Time EventBus Subscriptions (`notifications.read`)
 
@@ -317,8 +319,8 @@ Device notification payloads (titles, bodies, sender names, and message text) ar
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `location.current` | ❌ | `{ accuracy? }` | `{ latitude, longitude, accuracy, timestamp, provider }` |
-| `location.permission_status` | ❌ | `{}` | `{ serviceEnabled, permission, isGranted, isDeniedForever }` |
+| `location.current` | No | `{ accuracy? }` | `{ latitude, longitude, accuracy, timestamp, provider }` |
+| `location.permission_status` | No | `{}` | `{ serviceEnabled, permission, isGranted, isDeniedForever }` |
 
 ---
 
@@ -326,7 +328,7 @@ Device notification payloads (titles, bodies, sender names, and message text) ar
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `camera.capture` | ❌ | `{ preferredCamera?, quality? }` | `{ cancelled, handle, name, size, mimeType }` |
+| `camera.capture` | No | `{ preferredCamera?, quality? }` | `{ cancelled, handle, name, size, mimeType }` |
 
 ---
 
@@ -334,10 +336,10 @@ Device notification payloads (titles, bodies, sender names, and message text) ar
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `contacts.get` | ❌ | `{ query?, limit? }` | `{ contacts: [...] }` |
-| `contacts.search` | ❌ | `{ query, limit? }` | `{ contacts: [...] }` |
-| `contacts.create` | ❌ | `{ displayName, phones?, emails? }` | `{ id, displayName, created }` |
-| `contacts.update` | ❌ | `{ id, displayName?, phones?, emails? }` | `{ id, updated }` |
+| `contacts.get` | No | `{ query?, limit? }` | `{ contacts: [...] }` |
+| `contacts.search` | No | `{ query, limit? }` | `{ contacts: [...] }` |
+| `contacts.create` | No | `{ displayName, phones?, emails? }` | `{ id, displayName, created }` |
+| `contacts.update` | No | `{ id, displayName?, phones?, emails? }` | `{ id, updated }` |
 
 ---
 
@@ -345,11 +347,11 @@ Device notification payloads (titles, bodies, sender names, and message text) ar
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `calendar.calendars` | ❌ | `{}` | `{ calendars: [...] }` |
-| `calendar.events` | ❌ | `{ calendarId, startDate, endDate }` | `{ events: [...] }` |
-| `calendar.create` | ❌ | `{ calendarId, title, startDate, endDate, description? }` | `{ eventId, created }` |
-| `calendar.update` | ❌ | `{ calendarId, eventId, ...fields }` | `{ updated }` |
-| `calendar.delete` | ❌ | `{ calendarId, eventId }` | `{ deleted }` |
+| `calendar.calendars` | No | `{}` | `{ calendars: [...] }` |
+| `calendar.events` | No | `{ calendarId, startDate, endDate }` | `{ events: [...] }` |
+| `calendar.create` | No | `{ calendarId, title, startDate, endDate, description? }` | `{ eventId, created }` |
+| `calendar.update` | No | `{ calendarId, eventId, ...fields }` | `{ updated }` |
+| `calendar.delete` | No | `{ calendarId, eventId }` | `{ deleted }` |
 
 ---
 
@@ -361,11 +363,11 @@ The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL en
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `email.config` / `email.setup` | ❌ | `{ email, password, imapHost?, imapPort? }` | `{ configured: true, email, provider, message }` |
-| `email.inbox` / `email.list` / `email.events` | ❌ | `{}` | `{ status: "success", account, unread_count, total_count, emails: [...] }` |
-| `email.read` | ❌ | `{ id }` | `{ id, from, to, subject, date, body }` |
-| `email.send` / `email.create` | ❌ | `{ to, subject, body }` | `{ sent: true, to, subject, response }` |
-| `email.disconnect` / `email.logout` | ❌ | `{}` | `{ disconnected: true, message }` |
+| `email.config` / `email.setup` | No | `{ email, password, imapHost?, imapPort? }` | `{ configured: true, email, provider, message }` |
+| `email.inbox` / `email.list` / `email.events` | No | `{}` | `{ status: "success", account, unread_count, total_count, emails: [...] }` |
+| `email.read` | No | `{ id }` | `{ id, from, to, subject, date, body }` |
+| `email.send` / `email.create` | No | `{ to, subject, body }` | `{ sent: true, to, subject, response }` |
+| `email.disconnect` / `email.logout` | No | `{}` | `{ disconnected: true, message }` |
 
 ---
 
@@ -373,9 +375,9 @@ The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL en
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `clipboard.read` / `clipboard.get` | ❌ | `{}` | `{ text: string, hasContent: boolean, length: number }` |
-| `clipboard.write` / `clipboard.set` | ❌ | `{ text: string }` | `{ copied: true, length: number }` |
-| `clipboard.has` | ❌ | `{}` | `{ hasContent: boolean }` |
+| `clipboard.read` / `clipboard.get` | No | `{}` | `{ text: string, hasContent: boolean, length: number }` |
+| `clipboard.write` / `clipboard.set` | No | `{ text: string }` | `{ copied: true, length: number }` |
+| `clipboard.has` | No | `{}` | `{ hasContent: boolean }` |
 
 ---
 
@@ -383,8 +385,8 @@ The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL en
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `share.text` | ❌ | `{ text, subject? }` | `{ shared: true, type: "text" }` |
-| `share.file` | ❌ | `{ handle, text? }` | `{ shared: true, type: "file", handle, fileName }` |
+| `share.text` | No | `{ text, subject? }` | `{ shared: true, type: "text" }` |
+| `share.file` | No | `{ handle, text? }` | `{ shared: true, type: "file", handle, fileName }` |
 
 ---
 
@@ -392,8 +394,8 @@ The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL en
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `open.url` | ❌ | `{ url }` | `{ opened: boolean, url }` |
-| `open.app` | ❌ | `{ uri }` | `{ opened: boolean, target }` |
+| `open.url` | No | `{ url }` | `{ opened: boolean, url }` |
+| `open.app` | No | `{ uri }` | `{ opened: boolean, target }` |
 
 ---
 
@@ -401,11 +403,11 @@ The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL en
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `chattree.notes.search` | ❌ | `{ query, limit? }` | `{ notes: [...], count }` |
-| `chattree.notes.get` | ❌ | `{ id }` | `{ note: { id, title, content, createdAt, updatedAt } }` |
-| `chattree.notes.create` | ❌ | `{ title, content? }` | `{ note: { id, title, content, createdAt, updatedAt } }` |
-| `chattree.notes.update` | ❌ | `{ id, title?, content? }` | `{ note: { ... } }` |
-| `chattree.notes.delete` | ❌ | `{ id }` | `{ deleted: true, id }` |
+| `chattree.notes.search` | No | `{ query, limit? }` | `{ notes: [...], count }` |
+| `chattree.notes.get` | No | `{ id }` | `{ note: { id, title, content, createdAt, updatedAt } }` |
+| `chattree.notes.create` | No | `{ title, content? }` | `{ note: { id, title, content, createdAt, updatedAt } }` |
+| `chattree.notes.update` | No | `{ id, title?, content? }` | `{ note: { ... } }` |
+| `chattree.notes.delete` | No | `{ id }` | `{ deleted: true, id }` |
 
 ---
 
@@ -413,12 +415,12 @@ The `email` namespace provides native IMAP and SMTP connectivity with TLS/SSL en
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `chattree.reminders.list` | ❌ | `{ limit? }` | `{ reminders: [...], count }` |
-| `chattree.reminders.get` | ❌ | `{ id }` | `{ reminder: { ... } }` |
-| `chattree.reminders.create` | ❌ | `{ title, scheduledAt? }` | `{ reminder: { ... } }` |
-| `chattree.reminders.update` | ❌ | `{ id, title?, scheduledAt? }` | `{ reminder: { ... } }` |
-| `chattree.reminders.delete` | ❌ | `{ id }` | `{ deleted: true, id }` |
-| `chattree.reminders.complete` | ❌ | `{ id }` | `{ completed: true, id }` |
+| `chattree.reminders.list` | No | `{ limit? }` | `{ reminders: [...], count }` |
+| `chattree.reminders.get` | No | `{ id }` | `{ reminder: { ... } }` |
+| `chattree.reminders.create` | No | `{ title, scheduledAt? }` | `{ reminder: { ... } }` |
+| `chattree.reminders.update` | No | `{ id, title?, scheduledAt? }` | `{ reminder: { ... } }` |
+| `chattree.reminders.delete` | No | `{ id }` | `{ deleted: true, id }` |
+| `chattree.reminders.complete` | No | `{ id }` | `{ completed: true, id }` |
 
 ---
 
@@ -428,8 +430,8 @@ The `chattree.context` namespace allows a plugin to inspect the conversational i
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `chattree.context.read` | ❌ | `{}` | `{ currentMessage, explicitContext, authorized, restricted, timestamp }` |
-| `chattree.context.history` / `chattree.context.messages` | ❌ | `{ limit?: number }` | `{ messages: [{ role, content, timestamp }], count, maxLimit: 20, restricted, timestamp }` |
+| `chattree.context.read` | No | `{}` | `{ currentMessage, explicitContext, authorized, restricted, timestamp }` |
+| `chattree.context.history` / `chattree.context.messages` | No | `{ limit?: number }` | `{ messages: [{ role, content, timestamp }], count, maxLimit: 20, restricted, timestamp }` |
 
 ---
 
@@ -439,11 +441,11 @@ The `ai` namespace provides bounded access to single-turn LLM completions (`ai.c
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | ❌ | `{ prompt, systemPrompt?, maxTokens?, temperature? }` | `{ text, engine: "remote"\|"local", providerId?, modelId }` |
-| `ai.embed` / `ai.embeddings` | ❌ | `{ text }` | `{ embedding: number[], dimensions, modelId }` |
-| `ai.search` / `ai.rag_search` | ❌ | `{ query, topK?, minSimilarity? }` | `{ results: [{ noteId, noteTitle, chunkText, similarity, chunkIndex }], count }` |
-| `ai.index_document` / `ai.index` | ❌ | `{ id, title, content }` | `{ indexed: true, documentId, originalId, chunksCount }` |
-| `ai.remove_document` / `ai.remove` | ❌ | `{ id }` | `{ removed: true, documentId }` |
+| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | No | `{ prompt, systemPrompt?, maxTokens?, temperature? }` | `{ text, length }` |
+| `ai.embed` / `ai.embeddings` | No | `{ text, type?: "document"\|"query" }` | `{ embedding: number[], dimensions }` |
+| `ai.search` / `ai.rag_search` | No | `{ query, topK?, minScore? }` | `{ results: [...], count }` |
+| `ai.index_document` / `ai.index` | No | `{ id, text (or content), title? }` | `{ indexed: boolean, sourceId, id }` |
+| `ai.remove_document` / `ai.remove` | No | `{ id }` | `{ removed: boolean, sourceId, id }` |
 
 #### Context Payload Specification
 
@@ -461,10 +463,10 @@ The `ai` namespace provides bounded access to single-turn LLM completions (`ai.c
   "success": true,
   "data": {
     "currentMessage": "Can you summarize /myplugin notes.md for our weekly sync?",
-    "explicitContext": "notes.md",
+    "explicitContext": {},
     "authorized": true,
     "restricted": false,
-    "timestamp": 1729278000000
+    "timestamp": "2026-10-18T18:20:00.000Z"
   }
 }
 ```
@@ -472,10 +474,10 @@ The `ai` namespace provides bounded access to single-turn LLM completions (`ai.c
 #### Field Explanations
 
 - **`currentMessage` (string):** The complete, untruncated text of the user prompt in which the plugin command was invoked. This allows tools to understand the conversational intent, natural language modifiers, and surrounding prompt context without granting access to the full historical chat tree.
-- **`explicitContext` (string):** The specific string argument passed directly after the slash command. For example, if the prompt is `Please run /calendar schedule team standup tomorrow`, `explicitContext` will contain strictly `"schedule team standup tomorrow"`, while `currentMessage` contains the entire sentence.
-- **`authorized` (boolean):** Indicates whether the active user has granted the `chattree.context.read` capability to the plugin. If the user revokes or declines this permission, `authorized` is `false`, and `currentMessage` and `explicitContext` return empty strings (`""`).
-- **`restricted` (boolean):** Evaluates to `true` if the conversation is running under restricted privacy mode (e.g., incognito chats, ephemeral trees, or system prompts containing confidential keys). In restricted mode, external plugins cannot inspect surrounding text even if authorized, preventing context leakage.
-- **`timestamp` (number):** Unix epoch timestamp in milliseconds when the message was dispatched by the user.
+- **`explicitContext` (object):** Scoped metadata map explicitly attached to the plugin's execution context (or `{}` when none).
+- **`authorized` (boolean):** Indicates whether the active user has granted the `chattree.context.read` capability to the plugin.
+- **`restricted` (boolean):** Evaluates to `true` if the conversation is running under restricted privacy mode. In restricted mode, `currentMessage` returns `""` and `explicitContext` returns `{}` even if authorized, preventing context leakage.
+- **`timestamp` (string):** ISO-8601 timestamp when the context snapshot was created.
 
 ---
 
@@ -491,50 +493,53 @@ Establishes a WebSocket connection with pre-reserved socket quota to prevent rac
   - `url` (string, required): Target `ws://` or `wss://` endpoint.
   - `headers` (object, optional): Custom headers for handshake.
   - `protocols` (string[], optional): Subprotocols requested.
-  - `pingIntervalSeconds` (number, optional, default 30): Ping keep-alive interval.
+  - `timeoutMs` (number, optional, default 15000): Connection handshake timeout in ms.
 - **Response `data`:**
-  - `connectionId` (string): Unique identifier for this connection.
-  - `status` (string): `"connected"` or `"connecting"`.
+  - `socketId` (string): Unique identifier for this socket (e.g. `"ws_<pluginId>_1"`).
+  - `connected` (boolean): `true`.
   - `url` (string): Endpoint connected to.
+  - `protocol` (string | null): Negotiated subprotocol.
 
 #### `websocket.send`
 Sends a text or binary message over the active socket.
 - **Payload:**
-  - `connectionId` (string, required): Identifier returned by `connect`.
-  - `message` (string, required): Text payload or Base64-encoded string for binary.
+  - `socketId` (string, required): Identifier returned by `connect`.
+  - `data` (string | number[], required): Text payload, byte array, or Base64-encoded string when `isBinary: true`.
   - `isBinary` (boolean, optional, default false): Set to `true` when sending binary data.
 - **Response `data`:**
   - `sent` (boolean): `true` on successful dispatch.
-  - `bytes` (number): Number of bytes transferred.
+  - `socketId` (string): The target socket ID.
 
 #### `websocket.receive` / `websocket.poll`
 Drains queued incoming messages from the in-memory socket buffer (up to 500 frames).
 - **Payload:**
-  - `connectionId` (string, required): Identifier returned by `connect`.
-  - `maxMessages` (number, optional, default 50): Maximum messages to retrieve in one call.
+  - `socketId` (string, required): Identifier returned by `connect`.
+  - `limit` (number, optional, default 500): Maximum messages to retrieve in one call (`1..500`).
 - **Response `data`:**
-  - `messages` (array): Array of objects: `[{ "data": string, "isBinary": boolean, "timestamp": string }]`.
+  - `socketId` (string): The socket queried.
+  - `messages` (array): Array of objects: `[{ "isBinary": boolean, "data": string }]`.
   - `count` (number): Number of messages drained.
+  - `remainingInQueue` (number): Messages still queued in buffer.
+  - `isOpen` (boolean): Whether the socket is still open.
 
-#### `websocket.status`
+#### `websocket.status` / `websocket.list`
 Queries current connection state and memory buffer statistics.
 - **Payload:**
-  - `connectionId` (string, required): Identifier returned by `connect`.
-- **Response `data`:**
-  - `connectionId` (string): The connection queried.
-  - `state` (string): `"connected"`, `"connecting"`, `"closing"`, or `"closed"`.
-  - `bufferedAmount` (number): Bytes queued in the native socket.
-  - `queuedMessages` (number): Number of unpolled messages in the memory queue.
+  - `socketId` (string, optional): Specific socket to inspect. If omitted, lists all active sockets for the plugin.
+- **Response `data` (with `socketId`):**
+  - `{ "socketId": string, "url": string, "isOpen": boolean, "queueLength": number, "connectedAt": string }`
+- **Response `data` (without `socketId`):**
+  - `{ "activeSockets": [...], "count": number, "maxAllowed": 10 }`
 
 #### `websocket.close`
 Closes an active socket cleanly with optional status code and reason string.
 - **Payload:**
-  - `connectionId` (string, required): Identifier returned by `connect`.
+  - `socketId` (string, required): Identifier returned by `connect`.
   - `code` (number, optional, default 1000): WebSocket close code.
   - `reason` (string, optional): Close reason string.
 - **Response `data`:**
   - `closed` (boolean): `true`.
-  - `connectionId` (string): The connection closed.
+  - `socketId` (string): The socket closed.
 
 ---
 
@@ -545,20 +550,23 @@ The `ui` namespace (`UiApiHandler`) enables plugins to emit and validate structu
 ### Operations
 
 #### `ui.render` / `ui.card` *(Async)*
-Sanitizes and renders an interactive UI card in the chat.
+Sanitizes and validates an interactive UI card payload.
 - **Payload:**
-  - `title` (string, optional): Card headline (also accepts card properties at root or nested).
-  - `subtitle` (string, optional): Secondary caption.
+  - `title` (string, optional): Card headline (max 100 chars).
+  - `subtitle` (string, optional): Secondary caption (max 200 chars).
+  - `badge` (string, optional): Header status badge text (max 30 chars).
+  - `badgeColor` (string, optional): Header badge color (`green`/`success`, `orange`/`warning`, `red`/`danger`/`error`, `blue`/`info`, `purple`, `gray`/`neutral`, `white`/`mono`/`primary`).
+  - `icon` (string, optional): Header icon (`check`, `warning`, `error`, `info`, `shipping`, `payment`, `message`, `analytics`, `alarm`, `note`).
   - `hideText` (boolean, optional): When `true`, hides the plain-text intro bubble above the rendered card.
   - `elements` (array, required): Array of UI element objects (max 60 elements).
 - **Supported Elements:**
-  - `text`: `{ "type": "text", "content": "Hello", "style": "body", "markdown": true }`
-  - `badge`: `{ "type": "badge", "text": "OK", "variant": "success", "icon": "note" }` (variants include `info`, `success`, `warning`, `error`, `neutral`, `white`, `mono`, `monochrome`, `primary`; icons include `note`/`notes`, `alarm`/`reminder`, etc.)
-  - `progress`: `{ "type": "progress", "value": 75, "label": "75%" }`
-  - `key_value`: `{ "type": "key_value", "items": [{ "label": "Status", "value": "Active" }] }` (max 40 items)
+  - `text`: `{ "type": "text", "content": "Hello" }` (max 4000 chars)
+  - `badge`: `{ "type": "badge", "text": "OK", "color": "green" }` (`text` max 30 chars; `color` supports `green`, `orange`, `red`, `blue`, `purple`, `gray`, `white`, `success`, `warning`, `error`, `info`, `neutral`, `mono`)
+  - `progress`: `{ "type": "progress", "value": 0.75, "label": "CPU Load", "color": "blue" }` (`value` is a float clamped to `0.0..1.0`)
+  - `key_value`: `{ "type": "key_value", "items": [{ "key": "Status", "value": "Active" }] }` (max 40 items; `key` max 50 chars, `value` max 200 chars)
   - `list`: `{ "type": "list", "items": [{ "title": "Note Title", "subtitle": "Preview snippet..." }] }` (max 40 items; `title` max 100 chars, `subtitle` max 160 chars)
   - `divider`: `{ "type": "divider" }`
-  - `button_row`: `{ "type": "button_row", "buttons": [{ "label": "Run", "action": "command", "payload": "/mycommand", "variant": "primary" }] }` (max 8 buttons; variants include `primary`, `secondary`, `danger`, `white`, `mono`, `monochrome`)
+  - `button_row`: `{ "type": "button_row", "buttons": [{ "label": "Run", "action": "command", "value": "/mycommand", "style": "primary", "confirm": true }] }` (max 8 buttons; `action` is `"command"` | `"url"` | `"copy"`; `value` or `command`/`url` alias holds the target; `style` is `"primary"` | `"secondary"` | `"danger"`)
 - **Response `data`:**
   - `rendered` (boolean): `true`.
   - `pluginId` (string): The plugin ID.
@@ -589,13 +597,14 @@ The `scheduler` namespace (`PluginTaskScheduler` / `SchedulerApiHandler`) regist
 Schedules a recurring or one-shot task with anti-battery drain enforcement.
 - **Payload:**
   - `targetAction` (string, required): Action or command name to dispatch when triggered (max 100 chars, `[a-zA-Z0-9_.:-]+`).
-  - `cronExpression` (string, optional): 5-field Cron expression (e.g., `0 * * * *`, `*/15 * * * *`).
+  - `taskId` (string, optional): Custom task identifier (replaces existing task with the same `taskId` if present).
+  - `cronExpression` (string, optional): Supported 5-field Cron pattern (`*/N * * * *` every N minutes, `0 * * * *` hourly, `0 0 * * *` daily at midnight, or `M H * * *` daily at hour `H` and minute `M`).
   - `intervalMs` (number, optional): Recurrent interval in milliseconds (minimum `60000` ms / 60 seconds).
   - `scheduledAt` (string, optional): ISO-8601 timestamp for a one-shot task (e.g., `2026-11-15T15:30:00Z`).
   - `payload` (object, optional): Structured JSON payload dispatched with the event (max 128 KB).
 - **Response `data`:**
   - `scheduled` (boolean): `true`.
-  - `taskId` (string): Generated unique task ID.
+  - `taskId` (string): Generated or supplied unique task ID.
   - `targetAction` (string): Registered target action.
   - `isPeriodic` (boolean): Whether the task recurs.
   - `intervalMs` (number, optional): Effective interval in ms.
@@ -632,54 +641,61 @@ The `database` namespace (`PluginDatabaseManager` / `DatabaseApiHandler`) provid
 ### Operations
 
 #### `database.query`
-Executes a SQL SELECT query returning rows and columns.
+Executes a SQL SELECT query returning rows.
 - **Payload:**
   - `sql` (string, required): SQL query string (e.g. `SELECT * FROM items WHERE status = ?`).
-  - `params` (array, optional): Positional query parameters.
+  - `args` (array, optional): Positional query parameter bindings.
 - **Response `data`:**
   - `rows` (array): Array of result row objects (up to 2,000 rows).
-  - `rowCount` (number): Number of returned rows.
-  - `columns` (string[]): Column names.
+  - `count` (number): Number of returned rows.
+  - `limit` (number): Maximum rows per query (`2000`).
 
 #### `database.execute`
 Executes a DDL or DML statement (`CREATE TABLE`, `INSERT`, `UPDATE`, `DELETE`).
 - **Payload:**
   - `sql` (string, required): SQL statement string.
-  - `params` (array, optional): Parameter bindings.
+  - `args` (array, optional): Positional parameter bindings.
 - **Response `data`:**
-  - `changes` (number): Rows modified or inserted.
-  - `lastInsertRowId` (number, optional): Auto-increment primary key ID.
+  - `executed` (boolean): `true`.
+  - `result` (number): Last inserted row ID for `INSERT`, affected row count for `UPDATE`/`DELETE`, or `0` for DDL.
+
+#### `database.insert` / `database.update` / `database.delete`
+Structured table helpers with automatic boolean (`1`/`0`) and JSON normalization:
+- `database.insert`: `{ "table": string, "values": object }` → `{ "inserted": true, "id": number, "table": string }`
+- `database.update`: `{ "table": string, "values": object, "where"?: string, "whereArgs"?: any[] }` → `{ "updated": true, "affected": number, "table": string }`
+- `database.delete`: `{ "table": string, "where"?: string, "whereArgs"?: any[] }` → `{ "deleted": true, "affected": number, "table": string }`
 
 #### `database.transaction`
 Executes an atomic batch transaction with automatic rollback if any statement fails.
 - **Payload:**
-  - `statements` (array, required): Array of `{ "sql": string, "params"?: any[] }`.
+  - `operations` (array, required): Array of `{ "sql": string, "args"?: any[] }`.
 - **Response `data`:**
-  - `success` (boolean): `true`.
-  - `results` (array): Execution result summary per statement.
+  - `transaction` (boolean): `true`.
+  - `results` (array): Execution result per operation.
+  - `operationCount` (number): Total statements executed.
 
 #### `database.tables`
 Inspects all user tables created within the plugin's private database.
 - **Payload:** `{}`
 - **Response `data`:**
   - `tables` (string[]): List of table names.
+  - `count` (number): Number of tables.
 
 ---
 
 ## Output format from your WASM function
 
-When your exported function finishes, it must:
-
-1. Write the response string to linear memory starting at **offset 1024**.
-2. Return the **byte length** of the response as `i32`.
+When your exported function finishes:
+- **Universal ABI v2 (`chattree_dispatch`):** Return the packed 64-bit descriptor `(outPtr << 32) | outLen`.
+- **Legacy ABI v1:** Write the response string to linear memory starting at **offset 1024** (or `outputOffset`) and return the **byte length** as `i32`.
 
 ### Supported output formats
 
-**Plain text** (simplest):
+**Plain text or Markdown** (simplest):
 ```
 Hello, World!
 ```
-Chattree wraps this in `ToolResult.direct(text)`.
+Chattree wraps this in `ToolResult.direct(text)` and renders Markdown directly.
 
 **Explicit JSON contract**:
 ```json
@@ -700,16 +716,18 @@ Chattree wraps this in `ToolResult.direct(text)`.
 }
 ```
 
-**Declarative UI Card output**:
+**Declarative UI Card output (`"type": "ui"` or `"type": "direct"`)**:
 ```json
 {
-  "type": "card",
+  "type": "ui",
   "displayText": "Task Summary",
   "ui": {
     "title": "System Monitor",
+    "badge": "ONLINE",
+    "badgeColor": "green",
     "elements": [
-      { "type": "badge", "text": "ONLINE", "variant": "success" },
-      { "type": "progress", "value": 45, "label": "CPU Load 45%" }
+      { "type": "badge", "text": "HEALTHY", "color": "green" },
+      { "type": "progress", "value": 0.45, "label": "CPU Load", "color": "blue" }
     ]
   }
 }

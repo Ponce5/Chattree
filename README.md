@@ -20,17 +20,17 @@
 
 ---
 
-## 🌟 Highlights
+## Highlights
 
-- **🔒 100% Private & Offline:** Complete on-device model execution via llama.cpp. Zero telemetry, zero external tracking.
-- **⚡ WebAssembly Sandbox:** Run high-performance plugins in WAT, AssemblyScript, and Rust under strict linear memory and instruction-fuel boundaries.
-- **🧠 Vector RAG & Local Notes:** On-device semantic search powered by SQLite FTS5 and mobile vector embeddings.
-- **🛠 Universal Extension Contract (ABI v2):** 21 comprehensive Host API namespaces with dynamic 64-bit memory descriptors and cooperative async suspension.
-- **🛡 Enterprise Security Hardening:** Multi-layer defense with SSRF protection, DNS rebinding guards, SQLite jailbreaking filters, and Hardware KeyStore credential storage.
+- **100% Private & Offline:** Complete on-device model execution via llama.cpp. Zero telemetry, zero external tracking.
+- **WebAssembly Sandbox:** Run high-performance plugins in WAT, AssemblyScript, and Rust under strict linear memory and instruction-fuel boundaries.
+- **Vector RAG & Local Notes:** On-device semantic search powered by SQLite FTS5 and mobile vector embeddings.
+- **Universal Extension Contract (ABI v2):** 21 comprehensive Host API namespaces with dynamic 64-bit memory descriptors and cooperative async suspension.
+- **Enterprise Security Hardening:** Multi-layer defense with SSRF protection, DNS rebinding guards, SQLite jailbreaking filters, and Hardware KeyStore credential storage.
 
 ---
 
-## 🚀 Quickstart: Build a Plugin in 60 Seconds
+## Quickstart: Build a Plugin in 60 Seconds
 
 You don't need to install any global dependencies. Create, compile, test, and bundle your first plugin directly with `npx`:
 
@@ -67,7 +67,7 @@ npx @chattree/cli package
 
 ---
 
-## 🏛 System Architecture
+## System Architecture
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -94,7 +94,7 @@ npx @chattree/cli package
 
 ---
 
-## 🔌 Host API Capabilities (21 Namespaces)
+## Host API Capabilities (21 Namespaces)
 
 Chattree grants plugins sandboxed access to device and core features through declared manifest permissions:
 
@@ -124,7 +124,7 @@ Chattree grants plugins sandboxed access to device and core features through dec
 
 ---
 
-## 📂 Repository Layout
+## Repository Layout
 
 ```text
 chattree-repo/
@@ -145,7 +145,7 @@ chattree-repo/
 
 ---
 
-## 🌐 Official Resources
+## Official Resources
 
 - **Website & Documentation:** [chattree.chat](https://chattree.chat)
 - **Technical Documentation:** [chattree.chat/en/docs](https://chattree.chat/en/docs)
@@ -156,12 +156,12 @@ chattree-repo/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome community feedback, pull requests, and plugin submissions! Please review [CONTRIBUTING.md](./CONTRIBUTING.md) and our [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) before opening issues or submitting code.
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the terms of the [MIT License](./LICENSE).

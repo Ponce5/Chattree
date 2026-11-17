@@ -30,7 +30,7 @@
   "runtime": "wasm",
   "entrypoint": "webhook_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "4e04c88cb1964c9fbea1487f2dfc76faec3e8b13c7b6adcf14e7bb655daef01d",
+  "wasmSha256": "01d04d9f09003606eab3f5474b5326dd5752a9cc44567bbb71c44ab9724d2124",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 8,
   "outputOffset": 32768,

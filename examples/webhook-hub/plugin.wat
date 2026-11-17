@@ -22,21 +22,21 @@
   ;; Export 4 memory pages (256 KB linear memory)
   (memory (export "memory") 4)
 
-  (data (i32.const 98304) "### \f0\9f\93\a1 Chattree Webhook Hub & Inbound Server\0a\0a**Estado del Webhook:**\0a\e2\80\a2 \f0\9f\9f\a2 **Listener Inbound:** Activo en `http://127.0.0.1:8765` (en primer plano)\0a\e2\80\a2 \f0\9f\93\8d **Endpoint registrado:** `/plugins/com.developer.webhook.hub/alerts`\0a\e2\80\a2 \f0\9f\94\90 **Autenticaci\c3\b3n:** `Bearer Token` (revisa o rota tu secreto en *Ajustes \e2\86\92 Plugins \e2\86\92 Webhook Hub \e2\86\92 Webhooks Entrantes*)\0a\e2\80\a2 \f0\9f\86\94 **Cabecera requerida:** `X-Chattree-Delivery-Id: <uuid>` (control de idempotencia)\0a\e2\80\a2 \f0\9f\93\a6 **Tipo de evento:** `webhook.alert`\0a\e2\80\a2 \f0\9f\93\b1 **Requisito Android:** Mant\c3\a9n Chattree abierto en la pantalla de tu m\c3\b3vil para recibir peticiones.\0a\0a**Comandos disponibles:**\0a\e2\80\a2 `/webhook status` \e2\80\94 Muestra este informe de estado y diagn\c3\b3stico\0a\e2\80\a2 `/webhook last` \e2\80\94 Muestra el contenido del \c3\baltimo webhook recibido\0a\e2\80\a2 `/webhook test` \e2\80\94 Simula la recepci\c3\b3n de una alerta local con notificaci\c3\b3n\0a\e2\80\a2 `/webhook curl` \e2\80\94 Muestra comandos `curl` y PowerShell listos para probar\0a\e2\80\a2 `/webhook clear` \e2\80\94 Limpia el registro almacenado")
-  (data (i32.const 99325) "### \f0\9f\9a\80 Comandos para probar el Webhook de Chattree\0a\0aCopia tu **Token Secreto** desde **Ajustes \e2\86\92 Plugins \e2\86\92 Webhook Hub \e2\86\92 Webhooks Entrantes**.\0a\0a#### 1. Con cURL:\0a```bash\0acurl -X POST http://127.0.0.1:8765/plugins/com.developer.webhook.hub/alerts \5c\0a  -H \22Authorization: Bearer <TU_SECRETO>\22 \5c\0a  -H \22X-Chattree-Delivery-Id: msg-$(date +%s)\22 \5c\0a  -H \22Content-Type: application/json; charset=utf-8\22 \5c\0a  -d '{\22title\22:\22Alerta Servidor\22,\22level\22:\22critico\22,\22message\22:\22Prueba exitosa\22}'\0a```\0a\0a#### 2. Con PowerShell (Windows):\0a```powershell\0a$headers = @{\0a  \22Authorization\22 = \22Bearer TU_SECRETO\22\0a  \22X-Chattree-Delivery-Id\22 = [System.Guid]::NewGuid().ToString()\0a}\0a$body = @{\0a  title = \22Alerta Servidor\22\0a  level = \22critico\22\0a  message = \22Prueba de webhook desde PowerShell\22\0a} | ConvertTo-Json\0a\0aInvoke-RestMethod -Uri \22http://127.0.0.1:8765/plugins/com.developer.webhook.hub/alerts\22 -Method POST -Headers $headers -Body $body -ContentType \22application/json; charset=utf-8\22\0a```")
-  (data (i32.const 100308) "\f0\9f\94\94 **Prueba de Webhook Ejecutada Exitosamente**\0a\0a\e2\80\a2 **Notificaci\c3\b3n local:** Disparada en el dispositivo mediante `notifications.send`.\0a\e2\80\a2 **Almacenamiento privado:** Registro de prueba guardado en `storage.private`.\0a\e2\80\a2 **Verificaci\c3\b3n:** Ejecuta `/webhook last` para ver el estado almacenado.")
-  (data (i32.const 100622) "\e2\9c\85 **[Webhook Hub] Evento Webhook Ingestado y Procesado**\0a\0a\e2\80\a2 **Evento:** `webhook.alert`\0a\e2\80\a2 **Servidor:** InboundHttpServer (127.0.0.1:8765)\0a\e2\80\a2 **Acciones completadas:**\0a  - \f0\9f\94\94 Notificaci\c3\b3n nativa enviada al dispositivo.\0a  - \f0\9f\92\be Payload guardado en `storage.private` (consulta con `/webhook last`).\0a  - \f0\9f\9b\a1\ef\b8\8f Idempotencia deduplicada en `EventJournal`.")
-  (data (i32.const 101001) "\f0\9f\a7\b9 **Registros del Webhook Limpiados Exitosamente**\0a\0aEl historial y la \c3\baltima alerta almacenada han sido restablecidos.")
-  (data (i32.const 101139) "\f0\9f\93\8b **\c3\9altimo Webhook Recibido:**\0a\0a```json\0a")
+  (data (i32.const 98304) "### Chattree Webhook Hub & Inbound Server\0a\0a**Estado del Webhook:**\0a\e2\80\a2 **Listener Inbound:** Activo en `http://127.0.0.1:8765` (en primer plano)\0a\e2\80\a2 **Endpoint registrado:** `/plugins/com.developer.webhook.hub/alerts`\0a\e2\80\a2 **Autenticaci\c3\b3n:** `Bearer Token` (revisa o rota tu secreto en *Ajustes \e2\86\92 Plugins \e2\86\92 Webhook Hub \e2\86\92 Webhooks Entrantes*)\0a\e2\80\a2 **Cabecera requerida:** `X-Chattree-Delivery-Id: <uuid>` (control de idempotencia)\0a\e2\80\a2 **Tipo de evento:** `webhook.alert`\0a\e2\80\a2 **Requisito Android:** Mant\c3\a9n Chattree abierto en la pantalla de tu m\c3\b3vil para recibir peticiones.\0a\0a**Comandos disponibles:**\0a\e2\80\a2 `/webhook status` \e2\80\94 Muestra este informe de estado y diagn\c3\b3stico\0a\e2\80\a2 `/webhook last` \e2\80\94 Muestra el contenido del \c3\baltimo webhook recibido\0a\e2\80\a2 `/webhook test` \e2\80\94 Simula la recepci\c3\b3n de una alerta local con notificaci\c3\b3n\0a\e2\80\a2 `/webhook curl` \e2\80\94 Muestra comandos `curl` y PowerShell listos para probar\0a\e2\80\a2 `/webhook clear` \e2\80\94 Limpia el registro almacenado")
+  (data (i32.const 99325) "### Comandos para probar el Webhook de Chattree\0a\0aCopia tu **Token Secreto** desde **Ajustes \e2\86\92 Plugins \e2\86\92 Webhook Hub \e2\86\92 Webhooks Entrantes**.\0a\0a#### 1. Con cURL:\0a```bash\0acurl -X POST http://127.0.0.1:8765/plugins/com.developer.webhook.hub/alerts \5c\0a  -H \22Authorization: Bearer <TU_SECRETO>\22 \5c\0a  -H \22X-Chattree-Delivery-Id: msg-$(date +%s)\22 \5c\0a  -H \22Content-Type: application/json; charset=utf-8\22 \5c\0a  -d '{\22title\22:\22Alerta Servidor\22,\22level\22:\22critico\22,\22message\22:\22Prueba exitosa\22}'\0a```\0a\0a#### 2. Con PowerShell (Windows):\0a```powershell\0a$headers = @{\0a  \22Authorization\22 = \22Bearer TU_SECRETO\22\0a  \22X-Chattree-Delivery-Id\22 = [System.Guid]::NewGuid().ToString()\0a}\0a$body = @{\0a  title = \22Alerta Servidor\22\0a  level = \22critico\22\0a  message = \22Prueba de webhook desde PowerShell\22\0a} | ConvertTo-Json\0a\0aInvoke-RestMethod -Uri \22http://127.0.0.1:8765/plugins/com.developer.webhook.hub/alerts\22 -Method POST -Headers $headers -Body $body -ContentType \22application/json; charset=utf-8\22\0a```")
+  (data (i32.const 100308) "**Prueba de Webhook Ejecutada Exitosamente**\0a\0a\e2\80\a2 **Notificaci\c3\b3n local:** Disparada en el dispositivo mediante `notifications.send`.\0a\e2\80\a2 **Almacenamiento privado:** Registro de prueba guardado en `storage.private`.\0a\e2\80\a2 **Verificaci\c3\b3n:** Ejecuta `/webhook last` para ver el estado almacenado.")
+  (data (i32.const 100622) "**[Webhook Hub] Evento Webhook Ingestado y Procesado**\0a\0a\e2\80\a2 **Evento:** `webhook.alert`\0a\e2\80\a2 **Servidor:** InboundHttpServer (127.0.0.1:8765)\0a\e2\80\a2 **Acciones completadas:**\0a  - Notificaci\c3\b3n nativa enviada al dispositivo.\0a  - Payload guardado en `storage.private` (consulta con `/webhook last`).\0a  - Idempotencia deduplicada en `EventJournal`.")
+  (data (i32.const 101001) "**Registros del Webhook Limpiados Exitosamente**\0a\0aEl historial y la \c3\baltima alerta almacenada han sido restablecidos.")
+  (data (i32.const 101139) "**\c3\9altimo Webhook Recibido:**\0a\0a```json\0a")
   (data (i32.const 101199) "\0a```")
-  (data (i32.const 101219) "\e2\84\b9\ef\b8\8f No se ha recibido ning\c3\ban evento webhook todav\c3\ada.\0a\0aEnv\c3\ada una petici\c3\b3n POST al endpoint o ejecuta `/webhook test` para simular una.")
+  (data (i32.const 101219) "No se ha recibido ning\c3\ban evento webhook todav\c3\ada.\0a\0aEnv\c3\ada una petici\c3\b3n POST al endpoint o ejecuta `/webhook test` para simular una.")
   (data (i32.const 101375) "{\22api\22:\22storage\22,\22operation\22:\22get\22,\22payload\22:{\22key\22:\22last_event\22}}")
   (data (i32.const 101457) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22last_event\22,\22value\22:\22Sin eventos recientes\22}}")
   (data (i32.const 101571) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22last_event\22,\22value\22:\22Alerta de prueba manual local generada con exito.\22}}")
   (data (i32.const 101713) "{\22api\22:\22storage\22,\22operation\22:\22set\22,\22payload\22:{\22key\22:\22last_event\22,\22value\22:\22")
   (data (i32.const 101803) "\22}}")
-  (data (i32.const 101822) "{\22api\22:\22notifications\22,\22operation\22:\22send\22,\22payload\22:{\22title\22:\22\f0\9f\9a\a8 [Webhook Hub] Alerta de Prueba\22,\22body\22:\22Esta es una notificaci\c3\b3n de prueba local para validar el webhook de Chattree.\22}}")
-  (data (i32.const 102026) "{\22api\22:\22notifications\22,\22operation\22:\22send\22,\22payload\22:{\22title\22:\22\f0\9f\9a\a8 [Webhook Hub] Alerta Recibida\22,\22body\22:\22Nuevo evento webhook.alert procesado y guardado correctamente.\22}}")
+  (data (i32.const 101822) "{\22api\22:\22notifications\22,\22operation\22:\22send\22,\22payload\22:{\22title\22:\22[Webhook Hub] Alerta de Prueba\22,\22body\22:\22Esta es una notificaci\c3\b3n de prueba local para validar el webhook de Chattree.\22}}")
+  (data (i32.const 102026) "{\22api\22:\22notifications\22,\22operation\22:\22send\22,\22payload\22:{\22title\22:\22[Webhook Hub] Alerta Recibida\22,\22body\22:\22Nuevo evento webhook.alert procesado y guardado correctamente.\22}}")
 
 
   ;; Main entrypoint
@@ -54,8 +54,8 @@
     ;; If input is empty -> return status overview!
     (if (i32.eqz (local.get $in_len))
       (then
-        (memory.copy (i32.const 32768) (i32.const 98304) (i32.const 1005))
-        (return (i32.const 1005))
+        (memory.copy (i32.const 32768) (i32.const 98304) (i32.const 970))
+        (return (i32.const 970))
       )
     )
 
@@ -113,8 +113,8 @@
         (drop (call $host_call (i32.const 65536) (local.get $req_len) (i32.const 81920) (i32.const 4096)))
 
         ;; Trigger local notification for incoming alert
-        (memory.copy (i32.const 65536) (i32.const 102026) (i32.const 171))
-        (drop (call $host_call (i32.const 65536) (i32.const 171) (i32.const 81920) (i32.const 4096)))
+        (memory.copy (i32.const 65536) (i32.const 102026) (i32.const 166))
+        (drop (call $host_call (i32.const 65536) (i32.const 166) (i32.const 81920) (i32.const 4096)))
 
         ;; Return 0 to await async notification and resume
         (return (i32.const 0))
@@ -131,8 +131,8 @@
         (drop (call $host_call (i32.const 65536) (i32.const 126) (i32.const 81920) (i32.const 4096)))
 
         ;; Trigger test notification
-        (memory.copy (i32.const 65536) (i32.const 101822) (i32.const 188))
-        (drop (call $host_call (i32.const 65536) (i32.const 188) (i32.const 81920) (i32.const 4096)))
+        (memory.copy (i32.const 65536) (i32.const 101822) (i32.const 183))
+        (drop (call $host_call (i32.const 65536) (i32.const 183) (i32.const 81920) (i32.const 4096)))
 
         (return (i32.const 0))
       )
@@ -147,14 +147,14 @@
 
         (if (i32.le_s (local.get $res_len) (i32.const 0))
           (then
-            (memory.copy (i32.const 32768) (i32.const 101219) (i32.const 140))
-            (return (i32.const 140))
+            (memory.copy (i32.const 32768) (i32.const 101219) (i32.const 133))
+            (return (i32.const 133))
           )
         )
 
         ;; Format output: Header + response data + Footer
-        (memory.copy (i32.const 32768) (i32.const 101139) (i32.const 44))
-        (local.set $out_ptr (i32.add (i32.const 32768) (i32.const 44)))
+        (memory.copy (i32.const 32768) (i32.const 101139) (i32.const 39))
+        (local.set $out_ptr (i32.add (i32.const 32768) (i32.const 39)))
 
         (memory.copy (local.get $out_ptr) (i32.const 81920) (local.get $res_len))
         (local.set $out_ptr (i32.add (local.get $out_ptr) (local.get $res_len)))
@@ -169,8 +169,8 @@
     ;; 4. Check for "curl" ('c'+'u' = 99+117)
     (if (i32.and (i32.eq (local.get $first_char) (i32.const 99)) (i32.eq (local.get $second_char) (i32.const 117)))
       (then
-        (memory.copy (i32.const 32768) (i32.const 99325) (i32.const 967))
-        (return (i32.const 967))
+        (memory.copy (i32.const 32768) (i32.const 99325) (i32.const 962))
+        (return (i32.const 962))
       )
     )
 
@@ -179,14 +179,14 @@
       (then
         (memory.copy (i32.const 65536) (i32.const 101457) (i32.const 98))
         (drop (call $host_call (i32.const 65536) (i32.const 98) (i32.const 81920) (i32.const 4096)))
-        (memory.copy (i32.const 32768) (i32.const 101001) (i32.const 122))
-        (return (i32.const 122))
+        (memory.copy (i32.const 32768) (i32.const 101001) (i32.const 117))
+        (return (i32.const 117))
       )
     )
 
     ;; Default: Return status
-    (memory.copy (i32.const 32768) (i32.const 98304) (i32.const 1005))
-    (i32.const 1005)
+    (memory.copy (i32.const 32768) (i32.const 98304) (i32.const 970))
+    (i32.const 970)
   )
 
   ;; Exported resume function called by Chattree when async host_call finishes
@@ -197,13 +197,13 @@
     (if (i32.eq (local.get $mode) (i32.const 1))
       (then
         ;; Incoming Webhook Event processed
-        (memory.copy (i32.const 32768) (i32.const 100622) (i32.const 363))
-        (return (i32.const 363))
+        (memory.copy (i32.const 32768) (i32.const 100622) (i32.const 341))
+        (return (i32.const 341))
       )
     )
 
     ;; Test mode
-    (memory.copy (i32.const 32768) (i32.const 100308) (i32.const 298))
-    (return (i32.const 298))
+    (memory.copy (i32.const 32768) (i32.const 100308) (i32.const 293))
+    (return (i32.const 293))
   )
 )
