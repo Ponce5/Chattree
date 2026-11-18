@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.gmail",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "name": "Gmail",
-  "description": "Official on-device Gmail and IMAP/SMTP integration powered by Chattree's native Email Host API. Read your inbox, inspect full messages, and send emails directly from chat.",
+  "description": "Official on-device Gmail and IMAP/SMTP integration with multilingual AI orchestration, live status Flutter UI cards, inbox reading, and SMTP sending.",
   "author": "Chattree Core Team",
   "primaryCommand": "gmail",
   "aliases": [
@@ -16,7 +16,9 @@
   "capabilities": [
     "storage.private",
     "email.read",
-    "email.send"
+    "email.send",
+    "ui.components",
+    "ai.context"
   ],
   "tags": [
     "gmail",
@@ -25,19 +27,20 @@
     "email",
     "imap",
     "smtp",
+    "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png?v=2.2.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png?v=2.2.0",
-  "changelog": "2.2.0: Fixed intentContract JSON routing, implemented send and help operations, fixed config prefix/offset bug, removed 1-2 char command collisions, expanded memory to 32 pages (2 MB) with inputOffset/outputOffset, and unified English minimalist Chattree documentation.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/icon.png?v=2.3.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/mail/banner.png?v=2.3.0",
+  "changelog": "2.3.0: Fixed critical Host API namespace mismatch (routes AI tool calls to 'email' instead of 'gmail'), fixed 'read'->'get' action normalization mismatch, restored camelCase config options and lang=<code> stripping, added live configuration & IMAP verification Flutter UI card on bare /gmail, removed all hardcoded static response text in favor of multilingual ai.complete generation, and added Flutter UI cards across all operations (config, status, inbox, read, send, disconnect).",
   "runtime": "wasm",
   "entrypoint": "mail_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "eb9fde7280ab48fcff610ed5377f955ba03f1df922d639dfa80c37643183b5b0",
+  "wasmSha256": "206173f144a9ab222546d0a62c6d5f6c37f6a0f840a6a8a372231e2819809637",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 32,
-  "timeoutMs": 25000,
-  "fuelLimit": 50000000,
+  "timeoutMs": 50000,
+  "fuelLimit": 100000000,
   "inputOffset": 0,
   "outputOffset": 65536,
   "maxPayloadSizeBytes": 262144,
@@ -46,86 +49,120 @@
       "id": "com.chattree.official.gmail.manager",
       "command": "gmail",
       "displayName": "Gmail & Inbox",
-      "description": "Official Gmail & IMAP/SMTP email integration. Output ONLY a single valid JSON object with no extra text. Supports 'inbox', 'read' (requires 'id'), 'send' (requires 'to', 'subject', 'body'), 'config' (requires 'email', 'password'), 'disconnect', and 'help'.",
+      "description": "Official Gmail & IMAP/SMTP email manager in ANY language. CRITICAL: Always include \"tool\":\"gmail\" and output ONLY ONE valid JSON object with no extra text or markdown. Supported actions: (1) \"config\" — connect an email account requiring \"email\" and \"password\" (IMPORTANT: Google App Passwords are often written as 4 space-separated 4-letter groups like \"abcd efgh ijkl mnop\"; ALWAYS capture the ENTIRE password including all 4 groups verbatim in \"password\"; optionally include \"imapHost\"/\"imapPort\"/\"smtpHost\"/\"smtpPort\" for custom servers). (2) \"status\" — check whether Gmail is configured and test live IMAP connectivity. (3) \"inbox\" — fetch and summarize recent inbox messages. (4) \"read\" — open a full email by \"id\". (5) \"send\" — send an email via SMTP requiring \"to\", \"subject\", and \"body\" (if user asks you to draft an email, write a clear \"subject\" and complete \"body\" in their language). (6) \"disconnect\" — remove saved credentials. (7) \"help\" — explain how to get a Google App Password and use Gmail commands. Never invent credentials or IDs.",
       "capabilities": [
         "storage.private",
         "email.read",
-        "email.send"
+        "email.send",
+        "ui.components",
+        "ai.context"
       ],
       "intentContract": {
         "intent": "mail_inbox",
         "validIntents": [
+          "config",
+          "status",
           "inbox",
           "read",
           "send",
-          "config",
           "disconnect",
-          "help"
+          "help",
+          "unknown"
         ],
-        "description": "Interpret the user's natural-language email request and return ONE valid JSON tool call only.",
+        "description": "ALWAYS emit \"tool\":\"gmail\". Interpret email requests in any language for config (preserving full multi-word 16-char App Passwords), status, inbox, read, send, disconnect, or help.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Action to perform: 'inbox' (list recent emails), 'read' (open a message by id), 'send' (send an email), 'config' (save email and app password), 'disconnect' (remove saved credentials), or 'help' (show usage).",
+            "description": "Operation: \"config\", \"status\", \"inbox\", \"read\", \"send\", \"disconnect\", or \"help\".",
             "required": true
-          },
-          {
-            "name": "id",
-            "key": "id",
-            "type": "string",
-            "description": "Message ID to open (required for action='read').",
-            "required": false
           },
           {
             "name": "email",
             "key": "email",
             "type": "string",
-            "description": "User email address (required for action='config').",
+            "description": "Email address (required for \"config\").",
             "required": false
           },
           {
             "name": "password",
             "key": "password",
             "type": "string",
-            "description": "App password or account password (required for action='config').",
+            "description": "Full App Password including all 4 space-separated groups if present (required for \"config\").",
+            "required": false
+          },
+          {
+            "name": "id",
+            "key": "id",
+            "type": "string",
+            "description": "Message ID string to open (required for \"read\").",
             "required": false
           },
           {
             "name": "to",
             "key": "to",
             "type": "string",
-            "description": "Recipient email address (required for action='send').",
+            "description": "Recipient email address (required for \"send\").",
             "required": false
           },
           {
             "name": "subject",
             "key": "subject",
             "type": "string",
-            "description": "Email subject line (for action='send').",
+            "description": "Email subject line (for \"send\").",
             "required": false
           },
           {
             "name": "body",
             "key": "body",
             "type": "string",
-            "description": "Email body content (for action='send').",
+            "description": "Full email message body (for \"send\").",
+            "required": false
+          },
+          {
+            "name": "imapHost",
+            "key": "imapHost",
+            "type": "string",
+            "description": "Optional custom IMAP server host (for \"config\").",
+            "required": false
+          },
+          {
+            "name": "smtpHost",
+            "key": "smtpHost",
+            "type": "string",
+            "description": "Optional custom SMTP server host (for \"config\").",
             "required": false
           }
         ],
         "examples": [
           {
+            "input": "config user@gmail.com abcd efgh ijkl mnop",
+            "output": {
+              "tool": "gmail",
+              "action": "config",
+              "email": "user@gmail.com",
+              "password": "abcd efgh ijkl mnop"
+            }
+          },
+          {
+            "input": "check if my gmail is configured",
+            "output": {
+              "tool": "gmail",
+              "action": "status"
+            }
+          },
+          {
             "input": "check my inbox",
             "output": {
-              "INTENT": "inbox",
+              "tool": "gmail",
               "action": "inbox"
             }
           },
           {
             "input": "read email 42",
             "output": {
-              "INTENT": "read",
+              "tool": "gmail",
               "action": "read",
               "id": "42"
             }
@@ -133,14 +170,29 @@
           {
             "input": "send an email to alex@example.com with subject Hello and body How are you?",
             "output": {
-              "INTENT": "send",
+              "tool": "gmail",
               "action": "send",
               "to": "alex@example.com",
               "subject": "Hello",
               "body": "How are you?"
             }
+          },
+          {
+            "input": "disconnect my email",
+            "output": {
+              "tool": "gmail",
+              "action": "disconnect"
+            }
+          },
+          {
+            "input": "help",
+            "output": {
+              "tool": "gmail",
+              "action": "help"
+            }
           }
-        ]
+        ],
+        "maxResponseTokens": 400
       }
     }
   ]
