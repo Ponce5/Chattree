@@ -415,7 +415,7 @@ By returning a JSON object with `"type": "ui"` (or `"type": "direct"`) containin
 
 ## AssemblyScript Production Configuration (`asconfig.json`)
 
-Chattree's mobile WebAssembly sandbox (`Wasmtime`) binds `chattree.host_call` and does not expose an external `env.abort` import. When compiling AssemblyScript plugins, configure `asconfig.json` with `"noAssert": true` and route `abort` to an internal exported handler in `src/index.ts`:
+Chattree's mobile WebAssembly sandbox (`Wasmtime`) binds `chattree.host_call` and also provides safe fallback stubs for `env.abort` and `env.seed` when declared by a module. However, for predictable release builds and smaller binaries in AssemblyScript plugins, configure `asconfig.json` with `"noAssert": true` and route `abort` to an internal exported handler in `src/index.ts`:
 
 ```json
 {

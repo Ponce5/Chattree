@@ -173,11 +173,11 @@ Plugins can declare an optional `intentContract` inside any tool definition. Whe
 | `wasmPath` | `string` | Yes | Path to the WASM binary inside the archive. Always `"plugin.wasm"`. |
 | `wasmSha256` | `string` | Yes | SHA-256 hex digest of `plugin.wasm` (64 hex chars). |
 | `runtimeApiVersion` | `string` | Yes | Must be `"1.0.0"`. |
-| `maxMemoryPages` | `integer` | No | WASM memory ceiling in 64 KiB pages. Runtime default: 512 pages (32 MiB); accepts up to 1024 pages (64 MiB). |
+| `maxMemoryPages` | `integer` | No | WASM memory ceiling in 64 KiB pages. Runtime default: 512 pages (32 MiB); accepts up to 1024 pages (64 MiB). Declarations of 4–32 pages receive at least a 64-page (4 MiB) floor for allocator safety on Android. |
 | `maxPayloadSizeBytes` | `integer` | No | Maximum request/response payload size in bytes (ABI v2). Default: 12 MiB (12582912 bytes); maximum: 16 MiB. |
 | `outputOffset` | `integer` | No | Static output memory offset in bytes for legacy ABI v1 plugins. Default: 1024. Increase this (e.g. 32768) to expand ABI v1 input capacity. |
 | `inputOffset` | `integer` | No | Static input memory offset in bytes for legacy ABI v1 plugins. Default: 0. |
-| `timeoutMs` | `integer` | No | Per-call timeout in milliseconds. Runtime default: 5000; current validators accept up to 60000. Keep calls short and test on device. |
+| `timeoutMs` | `integer` | No | Per-call timeout in milliseconds. Runtime default: 15000 (25000 per Host API call, or `timeoutMs` when higher); current validators accept up to 60000. Keep calls short and test on device. |
 | `fuelLimit` | `integer` | No | Instruction fuel budget. Default: 50 000 000. |
 
 **Memory sizing guide:**

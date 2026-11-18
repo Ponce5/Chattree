@@ -441,7 +441,7 @@ The `ai` namespace provides bounded access to single-turn LLM completions (`ai.c
 
 | Operation | Sync | Input | Output |
 |-----------|------|-------|--------|
-| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | No | `{ prompt, systemPrompt?, maxTokens?, temperature? }` | `{ text, length }` |
+| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | No | `{ prompt, systemPrompt?, maxTokens?, temperature?, timeoutMs? }` | `{ text, length }` |
 | `ai.embed` / `ai.embeddings` | No | `{ text, type?: "document"\|"query" }` | `{ embedding: number[], dimensions }` |
 | `ai.search` / `ai.rag_search` | No | `{ query, topK?, minScore? }` | `{ results: [...], count }` |
 | `ai.index_document` / `ai.index` | No | `{ id, text (or content), title? }` | `{ indexed: boolean, sourceId, id }` |
@@ -555,18 +555,18 @@ Sanitizes and validates an interactive UI card payload.
   - `title` (string, optional): Card headline (max 100 chars).
   - `subtitle` (string, optional): Secondary caption (max 200 chars).
   - `badge` (string, optional): Header status badge text (max 30 chars).
-  - `badgeColor` (string, optional): Header badge color (`green`/`success`, `orange`/`warning`, `red`/`danger`/`error`, `blue`/`info`, `purple`, `gray`/`neutral`, `white`/`mono`/`primary`).
+  - `badgeColor` (string, optional): Header badge color (`green`/`success`, `orange`/`warning`, `red`/`danger`/`error`, `blue`/`info`, `purple`, `gray`/`grey`/`neutral`, `white`/`mono`/`primary`).
   - `icon` (string, optional): Header icon (`check`, `warning`, `error`, `info`, `shipping`, `payment`, `message`, `analytics`, `alarm`, `note`).
   - `hideText` (boolean, optional): When `true`, hides the plain-text intro bubble above the rendered card.
   - `elements` (array, required): Array of UI element objects (max 60 elements).
 - **Supported Elements:**
   - `text`: `{ "type": "text", "content": "Hello" }` (max 4000 chars)
-  - `badge`: `{ "type": "badge", "text": "OK", "color": "green" }` (`text` max 30 chars; `color` supports `green`, `orange`, `red`, `blue`, `purple`, `gray`, `white`, `success`, `warning`, `error`, `info`, `neutral`, `mono`)
-  - `progress`: `{ "type": "progress", "value": 0.75, "label": "CPU Load", "color": "blue" }` (`value` is a float clamped to `0.0..1.0`)
-  - `key_value`: `{ "type": "key_value", "items": [{ "key": "Status", "value": "Active" }] }` (max 40 items; `key` max 50 chars, `value` max 200 chars)
+  - `badge`: `{ "type": "badge", "text": "OK", "color": "green" }` (`text` max 30 chars; `color` supports `green`, `orange`, `red`, `blue`, `purple`, `gray`, `grey`, `white`, `success`, `warning`, `error`, `info`, `neutral`, `mono`)
+  - `progress`: `{ "type": "progress", "value": 0.75, "label": "CPU Load", "color": "blue" }` (`value` is `0.0..1.0`; percentages `1..100` are automatically normalized to `0.01..1.0`)
+  - `key_value` (or `kv` alias): `{ "type": "key_value", "items": [{ "key": "Status", "value": "Active" }] }` (`label` is also accepted as an alias for `key`; max 40 items; `key` max 50 chars, `value` max 200 chars)
   - `list`: `{ "type": "list", "items": [{ "title": "Note Title", "subtitle": "Preview snippet..." }] }` (max 40 items; `title` max 100 chars, `subtitle` max 160 chars)
   - `divider`: `{ "type": "divider" }`
-  - `button_row`: `{ "type": "button_row", "buttons": [{ "label": "Run", "action": "command", "value": "/mycommand", "style": "primary", "confirm": true }] }` (max 8 buttons; `action` is `"command"` | `"url"` | `"copy"`; `value` or `command`/`url` alias holds the target; `style` is `"primary"` | `"secondary"` | `"danger"`)
+  - `button_row`: `{ "type": "button_row", "buttons": [{ "label": "Run", "action": "command", "value": "/mycommand", "style": "primary", "confirm": true }] }` (max 8 buttons; `action` is `"command"` | `"url"` | `"copy"`; `value`, `payload`, `command`, or `url` holds the target; `style` or `variant` is `"primary"` | `"secondary"` | `"danger"`)
 - **Response `data`:**
   - `rendered` (boolean): `true`.
   - `pluginId` (string): The plugin ID.
@@ -618,7 +618,7 @@ Cancels and removes an active scheduled task.
   - `cancelled` (boolean): `true`.
   - `taskId` (string): The cancelled task ID.
 
-#### `scheduler.list`
+#### `scheduler.list` *(Sync & Async)*
 Lists all active scheduled tasks for this plugin.
 - **Payload:** `{}`
 - **Response `data`:**
@@ -626,7 +626,7 @@ Lists all active scheduled tasks for this plugin.
   - `count` (number): Total tasks registered.
   - `maxAllowed` (number): Maximum allowed active tasks per plugin (`25`).
 
-#### `scheduler.status`
+#### `scheduler.status` *(Sync & Async)*
 Retrieves the current state of a single scheduled task.
 - **Payload:**
   - `taskId` (string, required): Task ID to inspect.

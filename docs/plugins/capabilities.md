@@ -864,11 +864,12 @@ Allows the plugin to request a bounded, single-turn text completion from the act
 
 | Operation | Input | Output |
 |-----------|-------|--------|
-| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | `{ prompt: string, systemPrompt?: string, maxTokens?: number, temperature?: number }` | `{ text: string, length: number }` |
+| `ai.complete` / `ai.generate` / `ai.prompt` / `ai.context` | `{ prompt: string, systemPrompt?: string, maxTokens?: number, temperature?: number, timeoutMs?: number }` | `{ text: string, length: number }` |
 
 **Limitations:**
 - `prompt` max **16 000 characters**; `systemPrompt` optional.
 - `maxTokens` clamped between **16 and 2 048** (default 512).
+- `timeoutMs` clamped between **2 000 and 45 000 ms** (default 18 000 ms) so plugins can handle retries/fallbacks cleanly before the WASM execution deadline.
 - Single-turn inference only; plugins cannot trigger nested tool calls.
 
 ---
@@ -1004,12 +1005,12 @@ Allows plugins to emit rich, interactive declarative UI cards in the chat rather
 | Component | Properties | Description |
 |-----------|------------|-------------|
 | `text` | `content` (string, max 4000 chars) | Text block |
-| `badge` | `text` (string, max 30 chars), `color` (`"green"` \| `"orange"` \| `"red"` \| `"blue"` \| `"purple"` \| `"gray"` \| `"white"` \| `"success"` \| `"warning"` \| `"error"` \| `"info"` \| `"neutral"` \| `"mono"`) | Status badge with color-coded or monochrome styling |
-| `progress` | `value` (number `0.0` to `1.0`), `label` (string?, max 50 chars), `color` (string?) | Progress bar with percentage indicator |
-| `key_value` | `items`: `[{ key: string, value: string }]` | Structured key-value grid (up to 40 items; `key` max 50 chars, `value` max 200 chars) |
+| `badge` | `text` (string, max 30 chars), `color` (`"green"` \| `"orange"` \| `"red"` \| `"blue"` \| `"purple"` \| `"gray"` \| `"grey"` \| `"white"` \| `"success"` \| `"warning"` \| `"error"` \| `"info"` \| `"neutral"` \| `"mono"`) | Status badge with color-coded or monochrome styling |
+| `progress` | `value` (number `0.0` to `1.0`, or `1..100` auto-normalized), `label` (string?, max 50 chars), `color` (string?) | Progress bar with percentage indicator |
+| `key_value` (or `kv`) | `items`: `[{ key: string, value: string }]` (also accepts `label` for `key`) | Structured key-value grid (up to 40 items; `key` max 50 chars, `value` max 200 chars) |
 | `list` | `items`: `[{ title: string, subtitle?: string }]` | Compact title-and-preview list (up to 40 items; `title` max 100 chars, `subtitle` max 160 chars) |
 | `divider` | None | Subtle horizontal separator line |
-| `button_row` | `buttons`: `[{ label: string, action: "command" \| "url" \| "copy", value: string, style?: "primary" \| "secondary" \| "danger", confirm?: boolean }]` | Interactive action row (up to 8 buttons per row; also accepts `command`/`url` as aliases for `value`) |
+| `button_row` | `buttons`: `[{ label: string, action: "command" \| "url" \| "copy", value: string, style?: "primary" \| "secondary" \| "danger", confirm?: boolean }]` | Interactive action row (up to 8 buttons per row; also accepts `payload`/`command`/`url` for `value`, and `variant` for `style`) |
 
 > **Card-level options:** Cards accept `title`, `subtitle`, `badge`, `badgeColor`, `icon` (`check`, `warning`, `error`, `info`, `shipping`, `payment`, `message`, `analytics`, `alarm`, `note`), and `"hideText": true` to suppress the plain-text intro bubble above the declarative card.
 

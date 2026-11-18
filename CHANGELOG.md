@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-17
+
+### Startup Reliability, WASM Runtime Hardening & Play Store Release (`1.1.0+9`)
+- **Android Cold-Start & Background-to-Foreground Engine Lifecycle (`MainActivity`, `NotificationCaptureService`, `main.dart`)**:
+  - Eliminated cold-start splash-screen hangs caused by blocking I/O and synchronous RAG/plugin initialization on the main startup path; deferred heavy initialization cleanly after first frame.
+  - Hardened `NotificationCaptureService` background `FlutterEngine` startup and `MainActivity` shared engine attachment, preventing Direct Boot crashes before credential-encrypted storage is unlocked.
+- **WASM Memory Safety & ABI Compatibility (`PluginRuntime`, `WasmPackageManager`, AssemblyScript & Rust SDKs)**:
+  - Fixed AssemblyScript TLSF heap/GC header corruption (`SIGILL`/`SIGSEGV` at `0x410c`) by allocating Host API scratch buffers dynamically on the WASM heap instead of colliding with static offsets (`16384`/`32768`).
+  - Guaranteed a minimum floor of **64 WASM pages (4 MiB)** for modules declaring `4..32` pages, and automatically linked `env.abort` / `env.seed` imports and `__setArgumentsLength(2)` for ABI v1 entrypoints.
+- **Timeouts, `ai.complete`, Declarative UI & Sync Scheduler (`WasmRuntime`, `AiApiHandler`, `EventDispatcher`, `UiApiHandler`, `SchedulerApiHandler`)**:
+  - Increased `PluginRuntime.defaultTimeout` to **15s**, `defaultHostApiTimeout` to **25s** (dynamically respecting plugin `timeoutMs`), and `EventDispatcher.defaultHandlerTimeout` to **65s** so event-driven plugins with LLM calls complete reliably.
+  - Added bounded per-call `timeoutMs` (`2000–45000 ms`, default **18000 ms**) and unclosed `<think>` block stripping in `ai.complete`.
+  - Added synchronous `scheduler.list` and `scheduler.status` resolution in `handleCallSync` with lazy `PluginTaskScheduler` initialization.
+  - Expanded declarative UI tolerance in `UiApiHandler` and `DeclarativeUiBubble` (`kv` alias for `key_value`, `label` alias for `key`, `payload`/`variant` aliases on buttons, `grey` badge color, and `0..100` progress normalization).
+
 ### Notes Hybrid Search, Declarative UI Enhancements & Persistence Hardening
 - **Native Notes Hybrid Search & Bounded RAG Context (`NotesService`, `NoteTool`)**:
   - Upgraded `/note` search to hybrid retrieval (`_hybridSearch`) combining accent-insensitive tokenized lexical matching with `RAGService` semantic embeddings via Reciprocal Rank Fusion (`RRF`, `k=60`).

@@ -9,7 +9,10 @@
   "authorEmail": "developer@example.com",
   "homepageUrl": "https://chattree.chat/docs/plugins/capabilities",
   "primaryCommand": "notifs",
-  "aliases": ["tracker", "replier"],
+  "aliases": [
+    "tracker",
+    "replier"
+  ],
   "type": "imported",
   "category": "productivity",
   "capabilities": [
@@ -22,12 +25,19 @@
     "storage.private",
     "ai.context"
   ],
-  "tags": ["notifications", "android", "sqlite", "quick-reply", "remote-input", "automation"],
+  "tags": [
+    "notifications",
+    "android",
+    "sqlite",
+    "quick-reply",
+    "remote-input",
+    "automation"
+  ],
   "changelog": "1.0.0: Initial release of the Notification Hub smart tracker and responder example.",
   "runtime": "wasm",
   "entrypoint": "tracker_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "9dd8ed1480ce0435851c56aa5de7113e76e1ec1085e4249759ba33731a0424f8",
+  "wasmSha256": "eb761a1af8e74adaa0a055f6fb82902a1aba98e8ac34d1de767c65e2f72fb5c2",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 16,
   "timeoutMs": 15000,

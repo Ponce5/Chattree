@@ -175,7 +175,7 @@ WASM plugins consume inbound webhooks by declaring `schemaVersion: 2` (or `1`), 
 ```
 
 ### In WebAssembly Binary:
-When an event arrives and matches the optional `filter`, Chattree invokes the tool specified in `targetAction` (`com.example.notifier.alert` -> exported `run` function), passing the serialized event envelope (`eventId`, `type`, `source`, `timestamp`, `data`). Event deliveries have a **45-second execution timeout** (`EventDispatcher.defaultHandlerTimeout`) so handlers can safely invoke `ai.complete` (`ai.context`), `chattree.notes.*`, `database.sql`, or `notifications.reply`.
+When an event arrives and matches the optional `filter`, Chattree invokes the tool specified in `targetAction` (`com.example.notifier.alert` -> exported `run` function), passing the serialized event envelope (`eventId`, `type`, `source`, `timestamp`, `data`). Event deliveries have a **65-second execution timeout** (`EventDispatcher.defaultHandlerTimeout`) so handlers can safely invoke `ai.complete` (`ai.context`), `chattree.notes.*`, `database.sql`, or `notifications.reply` within the maximum `60000 ms` plugin `timeoutMs` budget.
 
 ---
 
