@@ -190,30 +190,28 @@ S.ui_close = registerData('ui_close', ']}}');
 S.direct_p1 = registerData('direct_p1', '{"type":"direct","displayText":"');
 S.direct_p2 = registerData('direct_p2', '"}');
 
-// Compact JSON Output Templates (for natural-language AI chat responses with 0 extra LLM calls)
-S.j_ev_ok1 = registerData('j_ev_ok1', '{"ok":true,"count":');
-S.j_ev_ok2 = registerData('j_ev_ok2', ',"events":[');
-S.j_ev_item1 = registerData('j_ev_item1', '{"id":"');
-S.j_ev_item2 = registerData('j_ev_item2', '","calendarId":"');
-S.j_ev_item3 = registerData('j_ev_item3', '","title":"');
-S.j_ev_item4 = registerData('j_ev_item4', '","start":"');
-S.j_ev_item5 = registerData('j_ev_item5', '","end":"');
-S.j_ev_item6 = registerData('j_ev_item6', '","allDay":');
-S.j_ev_item7 = registerData('j_ev_item7', ',"description":"');
-S.j_ev_item8 = registerData('j_ev_item8', '"}');
-S.j_ev_end = registerData('j_ev_end', ']}');
-S.j_err1 = registerData('j_err1', '{"ok":false,"error":"');
-S.j_mod_ok1 = registerData('j_mod_ok1', '{"ok":true,"action":"');
-S.j_mod_ok2 = registerData('j_mod_ok2', '","eventId":"');
-S.j_help_r1 = registerData('j_help_r1', '{"ok":false,"reason":"');
-S.j_help_ok = registerData('j_help_ok', '{"ok":true,"action":"help","usage":"/calendar | /calendar Title | YYYY-MM-DDTHH:mm:ss | YYYY-MM-DDTHH:mm:ss"}');
+// Grounded Direct-Text Templates (verbatim device calendar data — 0% hallucination, 0 extra LLM tokens)
+S.en_ev_hdr1 = registerData('en_ev_hdr1', 'Upcoming calendar events (');
+S.en_ev_hdr2 = registerData('en_ev_hdr2', '):');
+S.en_ev_none = registerData('en_ev_none', 'No upcoming events found in your calendar.');
+S.en_ev_bullet = registerData('en_ev_bullet', '\n- ');
+S.en_ev_lp = registerData('en_ev_lp', ' (');
+S.en_ev_comma = registerData('en_ev_comma', ', ');
+S.en_ev_rp = registerData('en_ev_rp', ')');
+S.en_ev_desc = registerData('en_ev_desc', ' - ');
+S.en_err_pref = registerData('en_err_pref', 'Calendar error: ');
+S.en_upd_ok = registerData('en_upd_ok', 'Event updated (ID: ');
+S.en_del_ok = registerData('en_del_ok', 'Event deleted (ID: ');
+S.en_id_end = registerData('en_id_end', ').');
+S.en_miss_title = registerData('en_miss_title', 'Please provide an event title to schedule it.');
+S.en_miss_evid = registerData('en_miss_evid', 'Please provide both eventId and calendarId to update or delete an event.');
 
 const dataLines = dataEntries
   .map((e) => `  (data (i32.const ${e.offset}) "${e.escaped}") ;; ${e.name} (len=${e.strLen})`)
   .join('\n');
 
-const wat = `;; Chattree Official Calendar Plugin (v1.9.0)
-;; Token-Optimized English Flutter UI + Natural-Language Conversational Responses
+const wat = `;; Chattree Official Calendar Plugin (v1.9.1)
+;; Grounded Verbatim Calendar Queries + Zero-Token English Flutter UI Cards
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -1222,6 +1220,17 @@ ${dataLines}
     (call $dispatch_host (i32.sub (local.get $p) (i32.const 400000)))
   )
 
+  (func $start_events_warmup (result i32)
+    (local $len i32)
+    (if (global.get $g_user_calid)
+      (then (return (call $start_events_call)))
+    )
+    (global.set $g_state (i32.const 9))
+    (local.set $len (call $zlen (i32.const ${S.req_calendars.offset})))
+    (memory.copy (i32.const 400000) (i32.const ${S.req_calendars.offset}) (local.get $len))
+    (call $dispatch_host (local.get $len))
+  )
+
   (func $start_events_call (result i32)
     (local $p i32)
     (local $has_field i32)
@@ -1542,21 +1551,21 @@ ${dataLines}
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  ;; ── Compact JSON Renderers (Natural-Language Chat Mode, 0 extra LLM calls) ──
+  ;; ── Grounded Direct-Text Renderers (0% hallucination, 0 extra LLM tokens) ──
 
-  (func $render_events_json (result i32)
+  (func $render_events_direct (result i32)
     (local $count i32)
-    (local $il i32)
-    (local $cl i32)
     (local $tl i32)
     (local $sl i32)
     (local $el i32)
     (local $dl i32)
     (local $ad i32)
+    (local $hdr_end i32)
     (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.direct_p1.offset}))
     (if (i32.eqz (global.get $g_op_ok))
       (then
-        (call $out_z (i32.const ${S.j_err1.offset}))
+        (call $out_json_esc (i32.const ${S.en_err_pref.offset}) (i32.const ${S.en_err_pref.len}) (i32.const 32))
         (if (i32.gt_s (global.get $err_len) (i32.const 0))
           (then (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 600)))
           (else (call $out_json_esc (i32.const ${S.en_err_fallback.offset}) (i32.const ${S.en_err_fallback.len}) (i32.const 600)))
@@ -1565,87 +1574,107 @@ ${dataLines}
         (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
-    (call $out_z (i32.const ${S.j_ev_ok1.offset}))
-    (global.set $out_pos (call $copy_int_str (global.get $g_ev_count) (global.get $out_pos)))
-    (call $out_z (i32.const ${S.j_ev_ok2.offset}))
+    (if (i32.le_s (global.get $g_ev_count) (i32.const 0))
+      (then
+        (call $out_json_esc (i32.const ${S.en_ev_none.offset}) (i32.const ${S.en_ev_none.len}) (i32.const 120))
+        (call $out_z (i32.const ${S.direct_p2.offset}))
+        (return (i32.sub (global.get $out_pos) (i32.const 65536)))
+      )
+    )
+    (call $out_json_esc (i32.const ${S.en_ev_hdr1.offset}) (i32.const ${S.en_ev_hdr1.len}) (i32.const 48))
+    (local.set $hdr_end (call $copy_int_str (global.get $g_ev_count) (i32.const 281700)))
+    (call $out_json_esc (i32.const 281700) (i32.sub (local.get $hdr_end) (i32.const 281700)) (i32.const 16))
+    (call $out_json_esc (i32.const ${S.en_ev_hdr2.offset}) (i32.const ${S.en_ev_hdr2.len}) (i32.const 16))
+
     (local.set $count (i32.const 0))
     (if (call $find_array_start (i32.const 1000000) (global.get $saved_res_len) (i32.const ${S.a_events.offset}))
       (then
-        (loop $jl
-          (if (i32.and (i32.lt_s (local.get $count) (i32.const 15))
+        (loop $dl_loop
+          (if (i32.and (i32.lt_s (local.get $count) (i32.const 20))
                        (call $next_array_obj (i32.const 1000000) (global.get $saved_res_len)))
             (then
-              (local.set $il (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_id.offset}) (i32.const 278600) (i32.const 120)))
-              (local.set $cl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_calId.offset}) (i32.const 278800) (i32.const 120)))
               (local.set $tl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_title.offset}) (i32.const 279000) (i32.const 120)))
               (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_start.offset}) (i32.const 279300) (i32.const 48)))
               (local.set $el (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_end.offset}) (i32.const 279400) (i32.const 48)))
-              (local.set $dl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_desc.offset}) (i32.const 279500) (i32.const 140)))
+              (local.set $dl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_desc.offset}) (i32.const 279500) (i32.const 160)))
               (local.set $ad (call $extract_json_bool (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_allDay.offset})))
 
-              (if (i32.gt_s (local.get $count) (i32.const 0)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
-              (call $out_z (i32.const ${S.j_ev_item1.offset}))
-              (if (i32.gt_s (local.get $il) (i32.const 0)) (then (call $out_json_esc (i32.const 278600) (local.get $il) (i32.const 120))))
-              (call $out_z (i32.const ${S.j_ev_item2.offset}))
-              (if (i32.gt_s (local.get $cl) (i32.const 0)) (then (call $out_json_esc (i32.const 278800) (local.get $cl) (i32.const 120))))
-              (call $out_z (i32.const ${S.j_ev_item3.offset}))
-              (if (i32.gt_s (local.get $tl) (i32.const 0)) (then (call $out_json_esc (i32.const 279000) (local.get $tl) (i32.const 120))))
-              (call $out_z (i32.const ${S.j_ev_item4.offset}))
-              (if (i32.gt_s (local.get $sl) (i32.const 0)) (then (call $out_json_esc (i32.const 279300) (local.get $sl) (i32.const 48))))
-              (call $out_z (i32.const ${S.j_ev_item5.offset}))
-              (if (i32.gt_s (local.get $el) (i32.const 0)) (then (call $out_json_esc (i32.const 279400) (local.get $el) (i32.const 48))))
-              (call $out_z (i32.const ${S.j_ev_item6.offset}))
-              (if (i32.eq (local.get $ad) (i32.const 1))
-                (then (call $out_z (i32.const ${S.def_true.offset})))
-                (else (call $out_z (i32.const ${S.def_false.offset})))
+              (call $out_json_esc (i32.const ${S.en_ev_bullet.offset}) (i32.const ${S.en_ev_bullet.len}) (i32.const 8))
+              (if (i32.gt_s (local.get $tl) (i32.const 0))
+                (then (call $out_json_esc (i32.const 279000) (local.get $tl) (i32.const 120)))
+                (else (call $out_json_esc (i32.const ${S.def_cal.offset}) (i32.const ${S.def_cal.len}) (i32.const 32)))
               )
-              (call $out_z (i32.const ${S.j_ev_item7.offset}))
-              (if (i32.gt_s (local.get $dl) (i32.const 0)) (then (call $out_json_esc (i32.const 279500) (local.get $dl) (i32.const 140))))
-              (call $out_z (i32.const ${S.j_ev_item8.offset}))
 
+              (call $format_dt (i32.const 279300) (local.get $sl) (i32.const 279400) (local.get $el) (local.get $ad) (i32.const ${S.en_all_day.offset}) (i32.const ${S.en_all_day.len}))
+              (if (i32.or (i32.gt_s (global.get $fd_len) (i32.const 0)) (i32.gt_s (global.get $ft_len) (i32.const 0)))
+                (then
+                  (call $out_json_esc (i32.const ${S.en_ev_lp.offset}) (i32.const ${S.en_ev_lp.len}) (i32.const 8))
+                  (if (i32.gt_s (global.get $fd_len) (i32.const 0))
+                    (then (call $out_json_esc (i32.const 281500) (global.get $fd_len) (i32.const 24)))
+                  )
+                  (if (i32.and (i32.gt_s (global.get $fd_len) (i32.const 0)) (i32.gt_s (global.get $ft_len) (i32.const 0)))
+                    (then (call $out_json_esc (i32.const ${S.en_ev_comma.offset}) (i32.const ${S.en_ev_comma.len}) (i32.const 8)))
+                  )
+                  (if (i32.gt_s (global.get $ft_len) (i32.const 0))
+                    (then (call $out_json_esc (i32.const 281550) (global.get $ft_len) (i32.const 32)))
+                  )
+                  (call $out_json_esc (i32.const ${S.en_ev_rp.offset}) (i32.const ${S.en_ev_rp.len}) (i32.const 8))
+                )
+              )
+              (if (i32.gt_s (local.get $dl) (i32.const 0))
+                (then
+                  (call $out_json_esc (i32.const ${S.en_ev_desc.offset}) (i32.const ${S.en_ev_desc.len}) (i32.const 8))
+                  (call $out_json_esc (i32.const 279500) (local.get $dl) (i32.const 160))
+                )
+              )
               (local.set $count (i32.add (local.get $count) (i32.const 1)))
-              (br $jl)
+              (br $dl_loop)
             )
           )
         )
       )
     )
-    (call $out_z (i32.const ${S.j_ev_end.offset}))
+    (call $out_z (i32.const ${S.direct_p2.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  (func $render_modify_json (result i32)
+  (func $render_modify_direct (result i32)
     (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.direct_p1.offset}))
     (if (global.get $g_op_ok)
       (then
-        (call $out_z (i32.const ${S.j_mod_ok1.offset}))
-        (call $out_json_esc (i32.const 270050) (global.get $act_len) (i32.const 32))
-        (call $out_z (i32.const ${S.j_mod_ok2.offset}))
+        (if (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_delete.offset}))
+          (then (call $out_json_esc (i32.const ${S.en_del_ok.offset}) (i32.const ${S.en_del_ok.len}) (i32.const 48)))
+          (else (call $out_json_esc (i32.const ${S.en_upd_ok.offset}) (i32.const ${S.en_upd_ok.len}) (i32.const 48)))
+        )
         (call $out_json_esc (i32.const 274400) (global.get $cid_len) (i32.const 120))
-        (call $out_z (i32.const ${S.direct_p2.offset}))
+        (call $out_json_esc (i32.const ${S.en_id_end.offset}) (i32.const ${S.en_id_end.len}) (i32.const 8))
       )
       (else
-        (call $out_z (i32.const ${S.j_err1.offset}))
+        (call $out_json_esc (i32.const ${S.en_err_pref.offset}) (i32.const ${S.en_err_pref.len}) (i32.const 32))
         (if (i32.gt_s (global.get $err_len) (i32.const 0))
           (then (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 600)))
           (else (call $out_json_esc (i32.const ${S.en_err_fallback.offset}) (i32.const ${S.en_err_fallback.len}) (i32.const 600)))
         )
-        (call $out_z (i32.const ${S.direct_p2.offset}))
       )
     )
+    (call $out_z (i32.const ${S.direct_p2.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  (func $render_help_json (param $r_ptr i32) (param $r_len i32) (result i32)
+  (func $render_help_direct_reason (param $r_ptr i32) (param $r_len i32) (result i32)
     (global.set $out_pos (i32.const 65536))
-    (if (call $str_eq (local.get $r_ptr) (local.get $r_len) (i32.const ${S.r_help.offset}))
-      (then (call $out_z (i32.const ${S.j_help_ok.offset})))
+    (call $out_z (i32.const ${S.direct_p1.offset}))
+    (if (call $str_eq (local.get $r_ptr) (local.get $r_len) (i32.const ${S.r_miss_title.offset}))
+      (then (call $out_json_esc (i32.const ${S.en_miss_title.offset}) (i32.const ${S.en_miss_title.len}) (i32.const 120)))
       (else
-        (call $out_z (i32.const ${S.j_help_r1.offset}))
-        (call $out_json_esc (local.get $r_ptr) (local.get $r_len) (i32.const 48))
-        (call $out_z (i32.const ${S.direct_p2.offset}))
+        (if (call $str_eq (local.get $r_ptr) (local.get $r_len) (i32.const ${S.r_miss_evid.offset}))
+          (then (call $out_json_esc (i32.const ${S.en_miss_evid.offset}) (i32.const ${S.en_miss_evid.len}) (i32.const 160)))
+          (else (call $out_json_esc (i32.const ${S.en_help_fallback.offset}) (i32.const ${S.en_help_fallback.len}) (i32.const 600)))
+        )
       )
     )
+    (call $out_z (i32.const ${S.direct_p2.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
@@ -1666,13 +1695,13 @@ ${dataLines}
     (if (i32.or (i32.eq (global.get $g_state) (i32.const 10)) (i32.eq (global.get $g_state) (i32.const 11)))
       (then (return (call $render_create_ui)))
     )
-    (if (i32.eq (global.get $g_state) (i32.const 12))
+    (if (i32.or (i32.eq (global.get $g_state) (i32.const 9)) (i32.eq (global.get $g_state) (i32.const 12)))
       (then
-        (if (global.get $g_is_json) (then (return (call $render_events_json))))
+        (if (global.get $g_is_json) (then (return (call $render_events_direct))))
         (return (call $render_events_ui))
       )
     )
-    (call $render_modify_json)
+    (call $render_modify_direct)
   )
 
   ;; ── Entrypoint ───────────────────────────────────────────────────────
@@ -1828,19 +1857,19 @@ ${dataLines}
         ;; Route by action
         (if (i32.or (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_help.offset}))
                     (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_unknown.offset})))
-          (then (return (call $render_help_json (i32.const ${S.r_help.offset}) (i32.const ${S.r_help.len}))))
+          (then (return (call $render_help_direct_reason (i32.const ${S.r_help.offset}) (i32.const ${S.r_help.len}))))
         )
         (if (i32.or
               (i32.or (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_events.offset}))
                       (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_list.offset})))
               (i32.or (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_inbox.offset}))
                       (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_get.offset}))))
-          (then (return (call $start_events_call)))
+          (then (return (call $start_events_warmup)))
         )
         (if (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_update.offset}))
           (then
             (if (i32.or (i32.le_s (global.get $evid_len) (i32.const 0)) (i32.le_s (global.get $calid_len) (i32.const 0)))
-              (then (return (call $render_help_json (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
+              (then (return (call $render_help_direct_reason (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
             )
             (memory.copy (i32.const 274400) (i32.const 273300) (global.get $evid_len))
             (global.set $cid_len (global.get $evid_len))
@@ -1850,7 +1879,7 @@ ${dataLines}
         (if (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_delete.offset}))
           (then
             (if (i32.or (i32.le_s (global.get $evid_len) (i32.const 0)) (i32.le_s (global.get $calid_len) (i32.const 0)))
-              (then (return (call $render_help_json (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
+              (then (return (call $render_help_direct_reason (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
             )
             (memory.copy (i32.const 274400) (i32.const 273300) (global.get $evid_len))
             (global.set $cid_len (global.get $evid_len))
@@ -1864,7 +1893,7 @@ ${dataLines}
                       (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_schedule.offset}))))
           (then
             (if (i32.le_s (global.get $title_len) (i32.const 0))
-              (then (return (call $render_help_json (i32.const ${S.r_miss_title.offset}) (i32.const ${S.r_miss_title.len}))))
+              (then (return (call $render_help_direct_reason (i32.const ${S.r_miss_title.offset}) (i32.const ${S.r_miss_title.len}))))
             )
             (return (call $start_calendars_warmup))
           )
@@ -1873,20 +1902,20 @@ ${dataLines}
         (if (i32.gt_s (global.get $title_len) (i32.const 0))
           (then (return (call $start_calendars_warmup)))
         )
-        (return (call $start_events_call))
+        (return (call $start_events_warmup))
       )
     )
 
     ;; Case B: Plain Text / Bare Slash Command
     (local.set $tl (call $strip_lang_token (local.get $ts) (local.get $tl)))
     (if (i32.le_s (local.get $tl) (i32.const 0))
-      (then (return (call $start_events_call)))
+      (then (return (call $start_events_warmup)))
     )
 
     (call $to_lower (local.get $ts) (i32.const 282000) (local.get $tl))
     (if (i32.or (call $str_eq (i32.const 282000) (local.get $tl) (i32.const ${S.a_list.offset}))
                 (call $str_eq (i32.const 282000) (local.get $tl) (i32.const ${S.a_events.offset})))
-      (then (return (call $start_events_call)))
+      (then (return (call $start_events_warmup)))
     )
     (if (i32.or (call $str_eq (i32.const 282000) (local.get $tl) (i32.const ${S.a_help.offset}))
                 (i32.and (i32.eq (local.get $tl) (i32.const 1)) (i32.eq (i32.load8_u (local.get $ts)) (i32.const 63))))
@@ -2049,7 +2078,35 @@ ${dataLines}
     (local $cal_cnt i32)
     (local $ev_cnt i32)
 
-    ;; STATE 10: calendar.calendars warm-up
+    ;; STATE 9: calendar.calendars warm-up for events (aligns calendarId with create!)
+    (if (i32.eq (global.get $g_state) (i32.const 9))
+      (then
+        (local.set $ok (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})))
+        (if (i32.eq (local.get $ok) (i32.const 1))
+          (then
+            (if (i32.eqz (global.get $g_user_calid))
+              (then (drop (call $resolve_writable_calid (local.get $res_ptr) (local.get $res_len))))
+            )
+            (return (call $start_events_call))
+          )
+          (else
+            (if (call $is_perm_denied (local.get $res_ptr) (local.get $res_len))
+              (then
+                (call $save_res (local.get $res_ptr) (local.get $res_len))
+                (call $extract_err (local.get $res_ptr) (local.get $res_len))
+                (global.set $g_op_ok (i32.const 0))
+                (global.set $g_ev_count (i32.const 0))
+                (if (global.get $g_is_json) (then (return (call $render_events_direct))))
+                (return (call $render_events_ui))
+              )
+            )
+            (return (call $start_events_call))
+          )
+        )
+      )
+    )
+
+    ;; STATE 10: calendar.calendars warm-up for create
     (if (i32.eq (global.get $g_state) (i32.const 10))
       (then
         (local.set $ok (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})))
@@ -2164,7 +2221,7 @@ ${dataLines}
               )
             )
             (global.set $g_ev_count (local.get $ev_cnt))
-            (if (global.get $g_is_json) (then (return (call $render_events_json))))
+            (if (global.get $g_is_json) (then (return (call $render_events_direct))))
             (return (call $render_events_ui))
           )
           (else
@@ -2179,14 +2236,14 @@ ${dataLines}
             (call $extract_err (local.get $res_ptr) (local.get $res_len))
             (global.set $g_op_ok (i32.const 0))
             (global.set $g_ev_count (i32.const 0))
-            (if (global.get $g_is_json) (then (return (call $render_events_json))))
+            (if (global.get $g_is_json) (then (return (call $render_events_direct))))
             (return (call $render_events_ui))
           )
         )
       )
     )
 
-    ;; STATE 13/14: calendar.update / calendar.delete -> Compact JSON for natural-language AI response
+    ;; STATE 13/14: calendar.update / calendar.delete -> Grounded direct text (0 AI tokens)
     (if (i32.or (i32.eq (global.get $g_state) (i32.const 13)) (i32.eq (global.get $g_state) (i32.const 14)))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
@@ -2195,7 +2252,7 @@ ${dataLines}
           (then (global.set $g_op_ok (i32.const 1)) (global.set $err_len (i32.const 0)))
           (else (global.set $g_op_ok (i32.const 0)) (call $extract_err (local.get $res_ptr) (local.get $res_len)))
         )
-        (return (call $render_modify_json))
+        (return (call $render_modify_direct))
       )
     )
 
@@ -2278,26 +2335,38 @@ async function runTests() {
     return JSON.parse(outStr);
   }
 
-  // Test 1: Bare /calendar ("lang=es") -> 0 AI calls, English Flutter UI list card, button label "Refresh"
+  // Test 1: Bare /calendar ("lang=es") -> resolves writable calendarId via calendars, calls events, 0 AI calls, English Flutter UI list card
   {
     const calls = [];
     const out = await execPlugin('lang=es', async (req) => {
       calls.push(req);
+      if (req.api === 'calendar' && req.operation === 'calendars') {
+        return {
+          success: true,
+          data: {
+            calendars: [
+              { id: 'ro1', name: 'Holidays', isReadOnly: true, isDefault: false },
+              { id: 'cal_main', name: 'Personal', isReadOnly: false, isDefault: true },
+            ],
+          },
+        };
+      }
       if (req.api === 'calendar' && req.operation === 'events') {
+        assert(req.payload.calendarId === 'cal_main', 'Bare /calendar queries the exact same writable calendarId used by create');
         return {
           success: true,
           data: {
             count: 2,
             events: [
-              { id: '1', calendarId: 'c1', title: 'Cita m\u00e9dica', start: '2026-11-19T15:00:00', end: '2026-11-19T16:00:00', allDay: false, description: 'Cl\u00ednica Norte' },
-              { id: '2', calendarId: 'c1', title: 'Entrega final', start: '2026-11-20T00:00:00', end: '2026-11-20T23:59:59', allDay: true, description: '' },
+              { id: '1', calendarId: 'cal_main', title: 'Cita m\u00e9dica', start: '2026-11-19T15:00:00', end: '2026-11-19T16:00:00', allDay: false, description: 'Cl\u00ednica Norte' },
+              { id: '2', calendarId: 'cal_main', title: 'Entrega final', start: '2026-11-20T00:00:00', end: '2026-11-20T23:59:59', allDay: true, description: '' },
             ],
           },
         };
       }
       throw new Error('Unexpected host call (must NOT call AI): ' + JSON.stringify(req));
     });
-    assert(calls.length === 1 && calls[0].operation === 'events', 'Bare /calendar makes ONLY 1 call (0 AI tokens)');
+    assert(calls.length === 2 && calls[0].operation === 'calendars' && calls[1].operation === 'events', 'Bare /calendar calls calendars -> events (0 AI tokens)');
     assert(out.type === 'ui' && out.ui.title === 'Upcoming Events' && out.ui.badge === '2 EVENTS', 'English events card');
     assert(out.ui.badgeColor === 'green' && out.ui.icon === 'alarm' && out.ui.hideText === true, 'Expected green alarm card');
     assert(out.ui.elements[0].type === 'list' && out.ui.elements[0].items.length === 2, 'Expected 2 list items');
@@ -2309,6 +2378,9 @@ async function runTests() {
   // Test 2: Bare /calendar empty events -> 0 AI calls, English empty card
   {
     const out = await execPlugin('lang=en', async (req) => {
+      if (req.api === 'calendar' && req.operation === 'calendars') {
+        return { success: true, data: { calendars: [{ id: 'c1', isReadOnly: false, isDefault: true }] } };
+      }
       if (req.api === 'calendar' && req.operation === 'events') {
         return { success: true, data: { count: 0, events: [] } };
       }
@@ -2398,17 +2470,21 @@ async function runTests() {
     assert(out.ui.elements[2].buttons[0].label === 'Retry', 'Retry button');
   }
 
-  // Test 5: Conversational JSON events/update/delete/missing_title -> compact JSON (NO Flutter UI, 0 AI calls!)
+  // Test 5: Conversational JSON events/update/delete/missing_title -> Grounded verbatim type:"direct" text (0% hallucination, NO Flutter UI, 0 AI calls!)
   {
     const outEvents = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'events', payload: { startdate: '2026-11-26T00:00:00', enddate: '2026-11-27T23:59:59', lang: 'es' } }),
       async (req) => {
+        if (req.api === 'calendar' && req.operation === 'calendars') {
+          return { success: true, data: { calendars: [{ id: 'cal_main', isReadOnly: false, isDefault: true }] } };
+        }
         assert(req.api === 'calendar' && req.operation === 'events', 'Only calls calendar.events');
+        assert(req.payload.calendarId === 'cal_main', 'Resolves writable calendarId');
         assert(req.payload.startDate === '2026-11-26T00:00:00' && req.payload.endDate === '2026-11-27T23:59:59', 'CamelCase bounds');
-        return { success: true, data: { count: 1, events: [{ id: 'p1', calendarId: 'c1', title: 'Meeting', start: '2026-11-26T10:00:00', end: '2026-11-26T11:00:00', allDay: false, description: 'Room B' }] } };
+        return { success: true, data: { count: 1, events: [{ id: 'p1', calendarId: 'cal_main', title: 'Meeting', start: '2026-11-26T10:00:00', end: '2026-11-26T11:00:00', allDay: false, description: 'Room B' }] } };
       }
     );
-    assert(outEvents.type === undefined && outEvents.ok === true && outEvents.count === 1 && outEvents.events[0].title === 'Meeting', 'Conversational events returns compact JSON for natural-language AI');
+    assert(outEvents.type === 'direct' && outEvents.displayText.includes('Upcoming calendar events (1):') && outEvents.displayText.includes('- Meeting (2026-11-26, 10:00 - 11:00) - Room B'), 'Verbatim grounded events text');
 
     const outUpd = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'update', payload: { eventid: 'e1', calendarid: 'c1', title: 'Updated', lang: 'fr' } }),
@@ -2417,7 +2493,7 @@ async function runTests() {
         return { success: true, data: { updated: true, eventId: 'e1' } };
       }
     );
-    assert(outUpd.type === undefined && outUpd.ok === true && outUpd.action === 'update' && outUpd.eventId === 'e1', 'Update returns compact JSON');
+    assert(outUpd.type === 'direct' && outUpd.displayText === 'Event updated (ID: e1).', 'Update returns grounded direct text');
 
     const outDel = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'delete', payload: { eventid: 'ev-9', calendarid: 'cal-1', lang: 'es' } }),
@@ -2426,16 +2502,16 @@ async function runTests() {
         return { success: true, data: { deleted: true } };
       }
     );
-    assert(outDel.type === undefined && outDel.ok === true && outDel.action === 'delete' && outDel.eventId === 'ev-9', 'Delete returns compact JSON');
+    assert(outDel.type === 'direct' && outDel.displayText === 'Event deleted (ID: ev-9).', 'Delete returns grounded direct text');
 
     const outMiss = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'create', payload: { startdate: '2026-11-26T09:00:00', lang: 'en' } }),
       async () => { throw new Error('missing_title in JSON mode must make 0 host calls'); }
     );
-    assert(outMiss.ok === false && outMiss.reason === 'missing_title', 'missing_title returns compact JSON');
+    assert(outMiss.type === 'direct' && outMiss.displayText.includes('event title'), 'missing_title returns grounded direct text');
   }
 
-  // Test 6: Direct /calendar help (AI + offline English fallback) + pipe-format create + operation:"inbox" routing
+  // Test 6: Direct /calendar help (AI + offline English fallback) + pipe-format create + operation:"inbox" empty grounded text
   {
     const outHelp = await execPlugin('help lang=de', async (req) => {
       assert(req.api === 'ai' && req.payload.systemPrompt.includes('"de"'), 'Direct help passes lang');
@@ -2456,11 +2532,12 @@ async function runTests() {
     const outInbox = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'inbox', payload: { lang: 'pt' } }),
       async (req) => {
+        if (req.api === 'calendar' && req.operation === 'calendars') return { success: true, data: { calendars: [{ id: 'c1', isReadOnly: false, isDefault: true }] } };
         assert(req.api === 'calendar' && req.operation === 'events', 'operation:inbox routes to calendar.events');
         return { success: true, data: { count: 0, events: [] } };
       }
     );
-    assert(outInbox.ok === true && outInbox.count === 0, 'operation:inbox returns compact JSON');
+    assert(outInbox.type === 'direct' && outInbox.displayText === 'No upcoming events found in your calendar.', 'Empty events returns grounded direct text with 0 hallucination');
   }
 
   console.log('ALL CALENDAR WASM TESTS PASSED (6/6 suites)!');

@@ -1,19 +1,17 @@
-# Chattree Calendar Plugin (v1.9.0)
+# Chattree Calendar Plugin (v1.9.1)
 
-Official on-device Calendar integration (`com.chattree.official.calendar`) for Chattree, optimized for minimal token usage, fast execution, English Flutter UI cards for event creation and `/calendar` overviews, and natural-language responses for queries and edits.
+Official on-device Calendar integration (`com.chattree.official.calendar`) for Chattree, optimized for minimal token usage, fast execution, English Flutter UI cards for event creation and `/calendar` overviews, and strictly grounded factual text responses for queries and edits.
 
-## What Changed in v1.9.0
+## What Changed in v1.9.1
 
-1. **Major Token & Performance Optimization**:
+1. **Zero-Hallucination Grounded Responses**:
+   - Conversational `events`, `update`, and `delete` queries now return verbatim device calendar data directly (`type: "direct"` plain text) instead of passing raw JSON through a second LLM pass, preventing on-device models from fabricating events, dates, or times.
+   - Aligned `calendar.events` to resolve the same default writable `calendarId` via `calendar.calendars` used by `calendar.create`, ensuring created events always appear when listing events.
+2. **Token & Performance Optimization**:
    - Compacted `plugin.json` tool descriptions, `intentContract`, fields, and examples to reduce prompt token usage on every chat turn.
-   - Eliminated redundant `ai.complete` calls inside WASM for Flutter UI cards (`bare /calendar` and `create`) and for conversational queries/edits (`events`, `update`, `delete`, `help`), which now return compact JSON directly to Chattree's conversational AI for normal natural-language responses.
-   - Refactored `plugin.wat` and `plugin.wasm`, reducing binary size and execution overhead.
-2. **All Predefined UI Copy & Action Button Labels in English**:
-   - All card titles, badges, field labels, empty states, and fallbacks are in English (`Event Scheduled`, `Upcoming Events`, `Calendar Error`, `Title`, `Date`, `Time`, `Description`, `All day`).
+   - Zero `ai.complete` calls on UI cards and conversational event queries/edits.
+3. **All Predefined UI Copy & Action Button Labels in English**:
    - Action buttons display clean English action names (`View Events`, `Refresh`, `Retry`) instead of raw slash commands.
-3. **Balanced Flutter UI + Natural-Language Responses**:
-   - **Flutter UI Cards**: bare `/calendar` (upcoming events list) and creating an event (`Event Scheduled` with title, date, time, and description).
-   - **Natural-Language Text**: conversational event queries, updates, deletions, and help responses.
 
 ## Usage
 
