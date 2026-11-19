@@ -1,10 +1,12 @@
-# Chattree Calendar Plugin (v1.9.2)
+# Chattree Calendar Plugin (v1.9.3)
 
-Official on-device Calendar integration (`com.chattree.official.calendar`) for Chattree, using the device calendar as the single source of truth with exact date-filtered factual text responses for queries and English Flutter UI cards for `/calendar` and event creation.
+Official on-device Calendar integration (`com.chattree.official.calendar`) for Chattree, using the device calendar as the single source of truth with exact date-filtered factual text responses for queries and English Flutter UI cards showing the exact calendar name for `/calendar` and event creation.
 
-## What Changed in v1.9.2
+## What Changed in v1.9.3
 
-1. **Single Source of Truth & Exact Day/Range Filtering**:
+1. **Exact Calendar Visibility**:
+   - Displays the resolved Android/Google calendar name on both the `Upcoming Events` subtitle and as a `Calendar` row in `Event Scheduled` so users always know exactly which calendar holds their events.
+2. **Single Source of Truth & Exact Day/Range Filtering**:
    - Date-only (`YYYY-MM-DD`) and start-only `events` queries are automatically normalized to exact day bounds (`00:00:00` to `23:59:59`) so asking about a specific day (e.g., today or tomorrow) never spills into the host's default 37-day window (`-7d..+30d`).
    - Responses display the exact queried date or range (`Calendar events for YYYY-MM-DD (N):` / `No events found for YYYY-MM-DD.`) with verbatim device calendar entries (`type: "direct"` plain text, 0% hallucination, 0 extra LLM tokens).
    - Aligned `calendar.events` to resolve the same default writable `calendarId` via `calendar.calendars` used by `calendar.create`.

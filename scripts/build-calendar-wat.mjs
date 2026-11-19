@@ -67,6 +67,7 @@ S.k_calid_lc = registerData('k_calid_lc', 'calendarid');
 S.k_evId = registerData('k_evId', 'eventId');
 S.k_evid_lc = registerData('k_evid_lc', 'eventid');
 S.k_id = registerData('k_id', 'id');
+S.k_name = registerData('k_name', 'name');
 
 // Actions
 S.a_create = registerData('a_create', 'create');
@@ -245,6 +246,7 @@ ${dataLines}
   (global $dur_val (mut i32) (i32.const 0))
   (global $desc_len (mut i32) (i32.const 0))
   (global $calid_len (mut i32) (i32.const 0))
+  (global $calname_len (mut i32) (i32.const 0))
   (global $evid_len (mut i32) (i32.const 0))
 
   (global $ct_len (mut i32) (i32.const 0))
@@ -1436,6 +1438,12 @@ ${dataLines}
         (if (i32.gt_s (global.get $desc_len) (i32.const 0))
           (then
             (call $emit_kv_item (i32.const ${S.en_lbl_desc.offset}) (i32.const ${S.en_lbl_desc.len}) (i32.const 270900) (global.get $desc_len) (i32.eqz (local.get $has_kv)))
+            (local.set $has_kv (i32.const 1))
+          )
+        )
+        (if (i32.gt_s (global.get $calname_len) (i32.const 0))
+          (then
+            (call $emit_kv_item (i32.const ${S.def_cal.offset}) (i32.const ${S.def_cal.len}) (i32.const 274600) (global.get $calname_len) (i32.eqz (local.get $has_kv)))
           )
         )
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
@@ -1515,7 +1523,8 @@ ${dataLines}
     (call $emit_ui_header
       (i32.const ${S.en_events_disp.offset}) (i32.const ${S.en_events_disp.len})
       (i32.const ${S.en_events_title.offset}) (i32.const ${S.en_events_title.len})
-      (i32.const ${S.en_device_cal.offset}) (i32.const ${S.en_device_cal.len})
+      (if (result i32) (i32.gt_s (global.get $calname_len) (i32.const 0)) (then (i32.const 274600)) (else (i32.const ${S.en_device_cal.offset})))
+      (if (result i32) (i32.gt_s (global.get $calname_len) (i32.const 0)) (then (global.get $calname_len)) (else (i32.const ${S.en_device_cal.len})))
       (i32.const 281700) (i32.sub (local.get $b_end) (i32.const 281700))
       (i32.const ${S.ui_bc_alarm.offset}))
 
@@ -1804,6 +1813,7 @@ ${dataLines}
     (global.set $dur_val (i32.const 0))
     (global.set $desc_len (i32.const 0))
     (global.set $calid_len (i32.const 0))
+    (global.set $calname_len (i32.const 0))
     (global.set $evid_len (i32.const 0))
     (global.set $ct_len (i32.const 0))
     (global.set $cs_len (i32.const 0))
@@ -2105,6 +2115,7 @@ ${dataLines}
     (local $ro i32)
     (local $def i32)
     (local $id_l i32)
+    (local $nm_l i32)
     (local $cnt i32)
     (local.set $cnt (i32.const 0))
     (local.set $found_any (i32.const 0))
@@ -2125,6 +2136,8 @@ ${dataLines}
                         (then
                           (memory.copy (i32.const 273000) (i32.const 279000) (local.get $id_l))
                           (global.set $calid_len (local.get $id_l))
+                          (local.set $nm_l (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_name.offset}) (i32.const 274600) (i32.const 120)))
+                          (global.set $calname_len (if (result i32) (i32.gt_s (local.get $nm_l) (i32.const 0)) (then (local.get $nm_l)) (else (i32.const 0))))
                           (local.set $found_any (i32.const 1))
                         )
                       )
@@ -2439,7 +2452,7 @@ async function runTests() {
       throw new Error('Unexpected host call (must NOT call AI): ' + JSON.stringify(req));
     });
     assert(calls.length === 2 && calls[0].operation === 'calendars' && calls[1].operation === 'events', 'Bare /calendar calls calendars -> events (0 AI tokens)');
-    assert(out.type === 'ui' && out.ui.title === 'Upcoming Events' && out.ui.badge === '2 EVENTS', 'English events card');
+    assert(out.type === 'ui' && out.ui.title === 'Upcoming Events' && out.ui.subtitle === 'Personal' && out.ui.badge === '2 EVENTS', 'English events card with exact calendar name');
     assert(out.ui.badgeColor === 'green' && out.ui.icon === 'alarm' && out.ui.hideText === true, 'Expected green alarm card');
     assert(out.ui.elements[0].type === 'list' && out.ui.elements[0].items.length === 2, 'Expected 2 list items');
     assert(out.ui.elements[0].items[0].subtitle.includes('2026-11-19') && out.ui.elements[0].items[0].subtitle.includes('15:00 - 16:00') && out.ui.elements[0].items[0].subtitle.includes('Clínica Norte'), 'Item 0 subtitle');
@@ -2522,7 +2535,7 @@ async function runTests() {
     assert(calls[1].payload.calendarId === 'cal_main', 'Writable default calendarId resolved');
     assert(out.type === 'ui' && out.ui.title === 'Event Scheduled' && out.ui.badge === 'CREATED', 'English Event Scheduled card');
     const kv = out.ui.elements[0].items;
-    assert(kv.length === 4 && kv[0].key === 'Title' && kv[1].key === 'Date' && kv[2].key === 'Time' && kv[3].key === 'Description', '4 English KV labels');
+    assert(kv.length === 5 && kv[0].key === 'Title' && kv[1].key === 'Date' && kv[2].key === 'Time' && kv[3].key === 'Description' && kv[4].key === 'Calendar' && kv[4].value === 'Personal', '5 English KV labels including resolved Calendar name');
     assert(kv[0].value === 'Reunión "Alpha" \\ Demo' && kv[1].value === '2026-11-19' && kv[2].value === '15:30 - 16:15' && kv[3].value === 'Sala 4\nZoom', 'Event values preserved');
     assert(out.ui.elements[2].buttons[0].label === 'View Events' && out.ui.elements[2].buttons[0].value === '/calendar', 'Button label is View Events');
   }
