@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "name": "Calendar Plugin",
   "description": "Fast, token-optimized on-device calendar integration using the device calendar as the single source of truth, showing the exact calendar name on Flutter UI cards and exact date-filtered factual text responses for queries.",
   "author": "Chattree Core Team",
@@ -29,9 +29,9 @@
     "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.9.3",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.9.3",
-  "changelog": "1.9.3: Displays the exact resolved Android/Google calendar name on both the Upcoming Events subtitle and the Event Scheduled card so users always see which calendar stores their events.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.9.4",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.9.4",
+  "changelog": "1.9.4: Fixed wrong event hours (e.g. 10 AM saved as 16:00) caused by the AI copying the single 4 PM example. Added varied morning/afternoon/noon examples and an explicit rule to use the exact local hour the user said without any time zone shift.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
@@ -68,7 +68,7 @@
           "help",
           "unknown"
         ],
-        "description": "Always emit \"tool\":\"calendar\". Use 24h ISO-8601 timestamps.",
+        "description": "Always emit \"tool\":\"calendar\". Times are the user's LOCAL wall-clock time: copy the exact hour the user said (10 am = T10:00:00, 3 pm = T15:00:00, noon = T12:00:00); never shift time zones, never add Z or offsets, never reuse an example's hour.",
         "fields": [
           {
             "name": "action",
@@ -129,15 +129,35 @@
         ],
         "examples": [
           {
-            "input": "schedule dentist tomorrow at 4pm for 45 min at North Clinic",
+            "input": "add a meeting on friday at 10 in the morning",
+            "output": {
+              "tool": "calendar",
+              "action": "create",
+              "title": "Meeting",
+              "start": "2026-04-10T10:00:00",
+              "end": "2026-04-10T11:00:00"
+            }
+          },
+          {
+            "input": "schedule dentist tomorrow at 3:30pm for 45 min at North Clinic",
             "output": {
               "tool": "calendar",
               "action": "create",
               "title": "Dentist",
-              "start": "2026-04-06T16:00:00",
-              "end": "2026-04-06T16:45:00",
+              "start": "2026-04-06T15:30:00",
+              "end": "2026-04-06T16:15:00",
               "durationMinutes": 45,
               "description": "North Clinic"
+            }
+          },
+          {
+            "input": "lunch with Ana saturday at noon",
+            "output": {
+              "tool": "calendar",
+              "action": "create",
+              "title": "Lunch with Ana",
+              "start": "2026-04-11T12:00:00",
+              "end": "2026-04-11T13:00:00"
             }
           },
           {
