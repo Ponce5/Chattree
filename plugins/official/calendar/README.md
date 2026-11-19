@@ -1,8 +1,12 @@
-# Chattree Calendar Plugin (v1.9.4)
+# Chattree Calendar Plugin (v1.9.5)
 
 Official on-device Calendar integration (`com.chattree.official.calendar`) for Chattree, using the device calendar as the single source of truth with exact date-filtered factual text responses for queries and English Flutter UI cards showing the exact calendar name for `/calendar` and event creation.
 
-## What Changed in v1.9.4
+## What Changed in v1.9.5
+
+1. **Matching Event Times**: /calendar now shows the same hours as Google Calendar (works together with the Chattree app update that reads event instants in the device local time).
+
+## Previously in v1.9.4
 
 1. **Correct Event Hours**: Added varied morning/afternoon/noon examples and an explicit local wall-clock rule so the AI uses the exact hour the user said (10 AM stays 10:00, never copied from an example or time-zone shifted).
 
