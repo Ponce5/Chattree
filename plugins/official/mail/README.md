@@ -1,51 +1,38 @@
-# Chattree Gmail Plugin (v2.3.0)
+# Chattree Gmail Plugin (v2.4.0)
 
-Official on-device Gmail and IMAP/SMTP integration (`com.chattree.official.gmail`) for Chattree, featuring multilingual AI orchestration (`ai.complete` + `ai.context`), live Flutter declarative UI status/inbox/composer cards (`ui.components`), and encrypted on-device credential storage (`storage.private`).
+Official on-device Gmail and IMAP/SMTP integration (`com.chattree.official.gmail`) for Chattree, optimized for minimal token usage, fast execution, English Flutter UI cards for status and setup, and natural-language responses for inbox, reading, and sending.
 
-## What Changed in v2.3.0
+## What Changed in v2.4.0
 
-1. **Fixed `/gmail config` Host API Namespace Routing**: When invoked through Chattree's AI pipeline, tool payloads carry `"api":"gmail"`. Previously the plugin forwarded `"gmail"` to the host runtime, which only exposes the `"email"` namespace. v2.3.0 always normalizes Host API calls to `"email"` and maps AI-lowercased keys (`imaphost`, `imapport`, `smtphost`, `smtpport`) back to camelCase (`imapHost`, `imapPort`, `smtpHost`, `smtpPort`).
-2. **Full 4-Group App Password Preservation & Validation**: Supports both spaced 16-letter Google App Passwords (`/gmail config user@gmail.com abcd efgh ijkl mnop`) and direct pipe/token forms, automatically joining and stripping whitespace while never forwarding passwords to AI prompts or UI responses.
-3. **Action Normalization Fix (`read` -> `get`)**: Compatible with `ToolRegistry.normalizeArgs`, which rewrites `"action":"read"` into `"action":"get"`.
-4. **Live Configuration & IMAP Verification Card on Bare `/gmail`**: Running `/gmail` with no arguments reads `storage.private` synchronously (`chattree_email_account`, IMAP/SMTP host & port), runs a live `email.inbox` verification check when configured, and renders a color-coded Flutter UI card showing account status, IMAP/SMTP verification, unread count, or setup instructions.
-5. **100% Multilingual AI Responses (Zero Hardcoded User Messages)**: All user-facing summaries, card titles, field labels, button labels, errors, and onboarding guides are generated dynamically via `ai.complete` in the active conversation language (`lang=<code>`), with clean structured UI fallbacks if offline AI is unavailable.
+1. **Major Token & Performance Optimization**:
+   - Compacted `plugin.json` tool descriptions, `intentContract`, fields, and examples to reduce prompt token usage on every chat turn.
+   - Eliminated redundant `ai.complete` calls inside WASM for status/setup/config Flutter UI cards and for conversational `inbox`, `read`, `send`, and `disconnect` operations, which now return compact JSON directly to Chattree's conversational AI for normal natural-language responses.
+   - Direct `/gmail read <id>` formats email headers and body directly with zero AI token usage.
+   - Refactored `plugin.wat` and `plugin.wasm`, reducing binary size and execution overhead.
+2. **All Predefined UI Copy & Action Button Labels in English**:
+   - All card titles, badges, field labels, and fallbacks are in English (`Gmail Status`, `Gmail Setup`, `Gmail Connected`, `Connection Error`, `Connection Failed`).
+   - Action buttons display clean English action names (`View Inbox`, `Check Status`, `Help`, `Disconnect`, `Retry`) instead of raw slash commands.
+3. **Balanced Flutter UI + Natural-Language Responses**:
+   - **Flutter UI Cards**: bare `/gmail` / `/gmail status` (live IMAP verification card) and `/gmail config` (connection confirmation/error card).
+   - **Natural-Language Text**: inbox summaries, reading emails, sending emails, disconnecting, and help.
 
 ## Quick Setup: Google 16-Letter App Password
 
 1. Go to [myaccount.google.com/security](https://myaccount.google.com/security).
 2. Enable **2-Step Verification**.
-3. Search for **App Passwords** (`Contrasenas de aplicaciones`), create an app password (e.g., `Chattree`), and copy the 16 letters shown by Google (`abcd efgh ijkl mnop`).
-4. In Chattree, connect your account using:
+3. Create a 16-letter **App Password** (e.g. `abcd efgh ijkl mnop`).
+4. Connect your account in Chattree:
 
 ```text
 /gmail config user@gmail.com abcd efgh ijkl mnop
 ```
 
-Or check your status at any time with:
-
-```text
-/gmail
-```
-
-## Supported Commands & Natural Language
-
-- `/gmail` — Inspect configuration in private storage, run live IMAP verification, and render a Flutter UI status card.
-- `/gmail config <email> <app_password>` — Verify and save IMAP/SMTP credentials (works with 4 space-separated 4-letter groups).
-- `/gmail status` — Explicit connection and IMAP/SMTP verification check.
-- `/gmail inbox` — Fetch recent messages, unread counts, and render an interactive Flutter inbox card.
-- `/gmail read <id>` — Open and read the full body of a specific message by ID.
-- `/gmail send <to> | <subject> | <body>` — Send an email via SMTP (or simply ask naturally in any language, e.g. *"Send an email to ana@example.com..."*).
-- `/gmail disconnect` — Remove stored credentials from secure device storage.
-- `/gmail help` — AI-generated multilingual guide tailored to your language.
+Check your live status anytime with `/gmail`.
 
 ## Capabilities & Security
 
-- `storage.private` — Reads configured account metadata (`chattree_email_account`, IMAP/SMTP host and port) to render instant status cards.
-- `email.read` — Authenticates and reads recent inbox messages via IMAP.
-- `email.send` — Sends emails via authenticated SMTP.
-- `ui.components` — Renders declarative Flutter cards for status, connection results, inbox lists, message reader, send confirmations, and errors.
-- `ai.context` — Generates localized explanations, summaries, and UI copy in the user's language (`ai.complete`).
-- **Credential Protection**: Passwords are stored exclusively via `FlutterSecureStorage` on the host runtime and are stripped before any AI prompt or UI output.
+- `storage.private`, `email.read`, `email.send`, `ui.components`, `ai.context`
+- Credentials are stored on-device via `FlutterSecureStorage`, and passwords are never sent to AI prompts or UI outputs.
 
 ## Build & Package (Maintainers)
 

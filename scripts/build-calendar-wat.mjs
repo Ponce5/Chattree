@@ -95,39 +95,39 @@ S.k_allDay = registerData('k_allDay', 'allDay');
 S.k_text = registerData('k_text', 'text');
 S.k_count = registerData('k_count', 'count');
 
-// AI response JSON keys
-S.ai_k_intro = registerData('ai_k_intro', 'intro');
-S.ai_k_ct = registerData('ai_k_ct', 'card_title');
-S.ai_k_cs = registerData('ai_k_cs', 'card_subtitle');
-S.ai_k_badge = registerData('ai_k_badge', 'badge');
-S.ai_k_lt = registerData('ai_k_lt', 'lbl_title');
-S.ai_k_ld = registerData('ai_k_ld', 'lbl_date');
-S.ai_k_ltm = registerData('ai_k_ltm', 'lbl_time');
-S.ai_k_lds = registerData('ai_k_lds', 'lbl_desc');
-S.ai_k_ls = registerData('ai_k_ls', 'lbl_status');
-S.ai_k_vs = registerData('ai_k_vs', 'val_status');
-S.ai_k_le = registerData('ai_k_le', 'lbl_id');
-S.ai_k_empty = registerData('ai_k_empty', 'empty_text');
-S.ai_k_allday = registerData('ai_k_allday', 'all_day');
-S.ai_k_btn = registerData('ai_k_btn', 'btn_view');
-S.ai_k_btn_ref = registerData('ai_k_btn_ref', 'btn_refresh');
-S.ai_k_err = registerData('ai_k_err', 'err_text');
-
 // Substrings for permission error detection
 S.sub_denied1 = registerData('sub_denied1', 'denegado');
 S.sub_denied2 = registerData('sub_denied2', 'denied');
 
-// Default neutral tokens (used only when ai.complete is unavailable)
+// English UI & predefined strings
 S.def_en = registerData('def_en', 'en');
 S.def_cal = registerData('def_cal', 'Calendar');
-S.def_ok = registerData('def_ok', 'OK');
-S.def_err = registerData('def_err', 'ERR');
-S.def_cmd_cal = registerData('def_cmd_cal', '/calendar');
-S.def_allday = registerData('def_allday', '24h');
 S.def_sep_dash = registerData('def_sep_dash', ' - ');
 S.def_sep_dot = registerData('def_sep_dot', ' \u2022 ');
 S.def_true = registerData('def_true', 'true');
 S.def_false = registerData('def_false', 'false');
+
+S.en_sched_disp = registerData('en_sched_disp', 'Event scheduled.');
+S.en_sched_title = registerData('en_sched_title', 'Event Scheduled');
+S.en_cal_err = registerData('en_cal_err', 'Calendar Error');
+S.en_events_disp = registerData('en_events_disp', 'Upcoming calendar events.');
+S.en_events_title = registerData('en_events_title', 'Upcoming Events');
+S.en_device_cal = registerData('en_device_cal', 'Device Calendar');
+S.en_created_badge = registerData('en_created_badge', 'CREATED');
+S.en_error_badge = registerData('en_error_badge', 'ERROR');
+S.en_empty_badge = registerData('en_empty_badge', 'EMPTY');
+S.en_events_badge = registerData('en_events_badge', 'EVENTS');
+S.en_lbl_title = registerData('en_lbl_title', 'Title');
+S.en_lbl_date = registerData('en_lbl_date', 'Date');
+S.en_lbl_time = registerData('en_lbl_time', 'Time');
+S.en_lbl_desc = registerData('en_lbl_desc', 'Description');
+S.en_all_day = registerData('en_all_day', 'All day');
+S.en_empty_msg = registerData('en_empty_msg', 'No upcoming events scheduled.');
+S.en_err_fallback = registerData('en_err_fallback', 'Unable to complete calendar operation. Check calendar permissions and try again.');
+S.en_help_fallback = registerData('en_help_fallback', 'Use /calendar to view upcoming events, or ask naturally to schedule, update, or delete events (or /calendar Title | YYYY-MM-DDTHH:mm:ss | YYYY-MM-DDTHH:mm:ss).');
+S.en_btn_view = registerData('en_btn_view', 'View Events');
+S.en_btn_refresh = registerData('en_btn_refresh', 'Refresh');
+S.en_btn_retry = registerData('en_btn_retry', 'Retry');
 
 // Reasons for help / missing args
 S.r_help = registerData('r_help', 'help');
@@ -152,74 +152,26 @@ S.jf_durMin = registerData('jf_durMin', '"durationMinutes":');
 S.jf_q = registerData('jf_q', '"');
 S.jf_comma = registerData('jf_comma', ',');
 
-// AI Host API templates
-S.ai_req_p1 = registerData(
-  'ai_req_p1',
-  '{"api":"ai","operation":"complete","payload":{"systemPrompt":"You are Chattree Calendar assistant. Write natural, accurate text strictly in language code \\"'
+// Compact AI template (used ONLY for direct /calendar help)
+S.ai_help_p1 = registerData(
+  'ai_help_p1',
+  '{"api":"ai","operation":"complete","payload":{"systemPrompt":"Reply concisely in language \\"'
 );
-S.ai_req_p2 = registerData(
-  'ai_req_p2',
-  '\\". When JSON is requested, output ONLY one valid flat JSON object with the exact requested keys and plain-text values (no markdown *, #, backticks, or emojis). Never invent details not in DATA.","prompt":"'
+S.ai_help_p2 = registerData(
+  'ai_help_p2',
+  '\\". Plain text only.","prompt":"Explain briefly how to use Chattree Calendar (/calendar to list events, natural language to schedule/update/delete, or /calendar Title | YYYY-MM-DDTHH:mm:ss | YYYY-MM-DDTHH:mm:ss). Reason: '
 );
-S.ai_req_p3 = registerData('ai_req_p3', '","maxTokens":360,"temperature":0.2,"timeoutMs":18000}}');
+S.ai_help_p3 = registerData('ai_help_p3', '","maxTokens":180,"temperature":0.2,"timeoutMs":15000}}');
 
-S.ai_sys_help_p1 = registerData(
-  'ai_sys_help_p1',
-  '{"api":"ai","operation":"complete","payload":{"systemPrompt":"You are Chattree Calendar assistant. Reply strictly in language code \\"'
-);
-S.ai_sys_help_p2 = registerData(
-  'ai_sys_help_p2',
-  '\\". Never output hardcoded templates; speak naturally and concisely.","prompt":"'
-);
-
-// AI Prompt fragments
-S.p_lang = registerData('p_lang', 'lang=');
-S.p_nl = registerData('p_nl', '\n');
-S.p_create_hdr = registerData('p_create_hdr', 'DATA:\nop=calendar_create\nsuccess=');
-S.p_title = registerData('p_title', '\ntitle=');
-S.p_start = registerData('p_start', '\nstart=');
-S.p_end = registerData('p_end', '\nend=');
-S.p_desc = registerData('p_desc', '\ndescription=');
-S.p_err = registerData('p_err', '\nerror=');
-S.p_create_ask = registerData(
-  'p_create_ask',
-  '\nReturn ONLY JSON with keys: intro (1 friendly sentence confirming or explaining error), card_title, card_subtitle, badge (1-2 uppercase words), lbl_title, lbl_date, lbl_time, lbl_desc, btn_view (short button to open calendar), err_text (clear localized error if failed).'
-);
-
-S.p_events_hdr = registerData('p_events_hdr', 'DATA:\nop=calendar_events\nsuccess=');
-S.p_count = registerData('p_count', '\ncount=');
-S.p_preview = registerData('p_preview', '\nevents=');
-S.p_events_ask = registerData(
-  'p_events_ask',
-  '\nReturn ONLY JSON with keys: intro (1 short summary sentence in user language), card_title, card_subtitle, badge (1-2 uppercase words), empty_text (friendly empty-calendar text), all_day (short label like All day / Todo el dia), btn_refresh (short refresh button label), err_text (localized error if failed).'
-);
-
-S.p_mod_hdr = registerData('p_mod_hdr', 'DATA:\nop=');
-S.p_evid = registerData('p_evid', '\neventId=');
-S.p_success = registerData('p_success', '\nsuccess=');
-S.p_mod_ask = registerData(
-  'p_mod_ask',
-  '\nReturn ONLY JSON with keys: intro (1 sentence), card_title, card_subtitle, badge, lbl_status, val_status, lbl_id, btn_view, err_text.'
-);
-
-S.p_help_ask1 = registerData(
-  'p_help_ask1',
-  'Reason: '
-);
-S.p_help_ask2 = registerData(
-  'p_help_ask2',
-  '. Explain concisely to the user how to use the Chattree Calendar plugin in their language: (1) Natural language with /calendar, e.g. scheduling with title, date, time, duration and notes/description; (2) Viewing upcoming events with /calendar alone or /calendar events; (3) Updating or deleting by eventId and calendarId; (4) Pipe format /calendar Title | YYYY-MM-DDTHH:mm:ss | YYYY-MM-DDTHH:mm:ss. If Reason is missing_title or missing_event_id, clearly say what information was missing and show a quick example.'
-);
-
-// UI Card JSON Output Templates
+// UI Card JSON Output Templates (hideText:true keeps cards crisp without duplicate text)
 S.ui_p1 = registerData('ui_p1', '{"type":"ui","displayText":"');
 S.ui_p2 = registerData('ui_p2', '","ui":{"title":"');
 S.ui_sub = registerData('ui_sub', '","subtitle":"');
 S.ui_badge = registerData('ui_badge', '","badge":"');
-S.ui_bc_green = registerData('ui_bc_green', '","badgeColor":"green","icon":"check","hideText":false,"elements":[');
-S.ui_bc_alarm = registerData('ui_bc_alarm', '","badgeColor":"green","icon":"alarm","hideText":false,"elements":[');
-S.ui_bc_blue = registerData('ui_bc_blue', '","badgeColor":"blue","icon":"info","hideText":false,"elements":[');
-S.ui_bc_red = registerData('ui_bc_red', '","badgeColor":"red","icon":"error","hideText":false,"elements":[');
+S.ui_bc_green = registerData('ui_bc_green', '","badgeColor":"green","icon":"check","hideText":true,"elements":[');
+S.ui_bc_alarm = registerData('ui_bc_alarm', '","badgeColor":"green","icon":"alarm","hideText":true,"elements":[');
+S.ui_bc_blue = registerData('ui_bc_blue', '","badgeColor":"blue","icon":"info","hideText":true,"elements":[');
+S.ui_bc_red = registerData('ui_bc_red', '","badgeColor":"red","icon":"error","hideText":true,"elements":[');
 S.ui_kv_start = registerData('ui_kv_start', '{"type":"key_value","items":[');
 S.ui_kv_item1 = registerData('ui_kv_item1', '{"key":"');
 S.ui_kv_item2 = registerData('ui_kv_item2', '","value":"');
@@ -238,12 +190,30 @@ S.ui_close = registerData('ui_close', ']}}');
 S.direct_p1 = registerData('direct_p1', '{"type":"direct","displayText":"');
 S.direct_p2 = registerData('direct_p2', '"}');
 
+// Compact JSON Output Templates (for natural-language AI chat responses with 0 extra LLM calls)
+S.j_ev_ok1 = registerData('j_ev_ok1', '{"ok":true,"count":');
+S.j_ev_ok2 = registerData('j_ev_ok2', ',"events":[');
+S.j_ev_item1 = registerData('j_ev_item1', '{"id":"');
+S.j_ev_item2 = registerData('j_ev_item2', '","calendarId":"');
+S.j_ev_item3 = registerData('j_ev_item3', '","title":"');
+S.j_ev_item4 = registerData('j_ev_item4', '","start":"');
+S.j_ev_item5 = registerData('j_ev_item5', '","end":"');
+S.j_ev_item6 = registerData('j_ev_item6', '","allDay":');
+S.j_ev_item7 = registerData('j_ev_item7', ',"description":"');
+S.j_ev_item8 = registerData('j_ev_item8', '"}');
+S.j_ev_end = registerData('j_ev_end', ']}');
+S.j_err1 = registerData('j_err1', '{"ok":false,"error":"');
+S.j_mod_ok1 = registerData('j_mod_ok1', '{"ok":true,"action":"');
+S.j_mod_ok2 = registerData('j_mod_ok2', '","eventId":"');
+S.j_help_r1 = registerData('j_help_r1', '{"ok":false,"reason":"');
+S.j_help_ok = registerData('j_help_ok', '{"ok":true,"action":"help","usage":"/calendar | /calendar Title | YYYY-MM-DDTHH:mm:ss | YYYY-MM-DDTHH:mm:ss"}');
+
 const dataLines = dataEntries
   .map((e) => `  (data (i32.const ${e.offset}) "${e.escaped}") ;; ${e.name} (len=${e.strLen})`)
   .join('\n');
 
-const wat = `;; Chattree Official Calendar Plugin (v1.8.0)
-;; Multilingual AI + Flutter Declarative UI Cards + Reliable First-Run Calendar Operations
+const wat = `;; Chattree Official Calendar Plugin (v1.9.0)
+;; Token-Optimized English Flutter UI + Natural-Language Conversational Responses
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -261,6 +231,7 @@ ${dataLines}
   (global $g_op_ok (mut i32) (i32.const 0))
   (global $g_ev_count (mut i32) (i32.const 0))
   (global $g_user_calid (mut i32) (i32.const 0))
+  (global $g_is_json (mut i32) (i32.const 0))
 
   (global $lang_len (mut i32) (i32.const 0))
   (global $act_len (mut i32) (i32.const 0))
@@ -276,28 +247,11 @@ ${dataLines}
   (global $cs_len (mut i32) (i32.const 0))
   (global $ce_len (mut i32) (i32.const 0))
   (global $cid_len (mut i32) (i32.const 0))
-  (global $reason_len (mut i32) (i32.const 0))
   (global $err_len (mut i32) (i32.const 0))
   (global $fd_len (mut i32) (i32.const 0))
   (global $ft_len (mut i32) (i32.const 0))
   (global $saved_res_len (mut i32) (i32.const 0))
-
   (global $ai_text_len (mut i32) (i32.const 0))
-  (global $ai_intro_len (mut i32) (i32.const 0))
-  (global $ai_ct_len (mut i32) (i32.const 0))
-  (global $ai_cs_len (mut i32) (i32.const 0))
-  (global $ai_badge_len (mut i32) (i32.const 0))
-  (global $ai_lt_len (mut i32) (i32.const 0))
-  (global $ai_ld_len (mut i32) (i32.const 0))
-  (global $ai_ltm_len (mut i32) (i32.const 0))
-  (global $ai_lds_len (mut i32) (i32.const 0))
-  (global $ai_ls_len (mut i32) (i32.const 0))
-  (global $ai_vs_len (mut i32) (i32.const 0))
-  (global $ai_le_len (mut i32) (i32.const 0))
-  (global $ai_empty_len (mut i32) (i32.const 0))
-  (global $ai_allday_len (mut i32) (i32.const 0))
-  (global $ai_btn_len (mut i32) (i32.const 0))
-  (global $ai_err_len (mut i32) (i32.const 0))
 
   ;; Array walker globals
   (global $arr_cursor (mut i32) (i32.const 0))
@@ -1057,8 +1011,8 @@ ${dataLines}
                 (global.set $ft_len (local.get $ad_len))
               )
               (else
-                (memory.copy (i32.const 281550) (i32.const ${S.def_allday.offset}) (i32.const ${S.def_allday.len}))
-                (global.set $ft_len (i32.const ${S.def_allday.len}))
+                (memory.copy (i32.const 281550) (i32.const ${S.en_all_day.offset}) (i32.const ${S.en_all_day.len}))
+                (global.set $ft_len (i32.const ${S.en_all_day.len}))
               )
             )
             (return)
@@ -1363,204 +1317,20 @@ ${dataLines}
     (call $dispatch_host (i32.sub (local.get $p) (i32.const 400000)))
   )
 
-  ;; ── AI Prompt Dispatchers ────────────────────────────────────────────
-
-  (func $call_ai_create (result i32)
-    (local $p i32)
-    (global.set $g_state (i32.const 21))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p1.offset}) (i32.const 400000)))
-    (local.set $p (call $copy_json_esc (i32.const 270000) (global.get $lang_len) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p2.offset}) (local.get $p)))
-
-    ;; Prompt body inside JSON string (use $copy_json_esc on dynamic values & $p_* via $copy_json_esc)
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_create_hdr.offset}) (i32.const ${S.p_create_hdr.len}) (local.get $p)))
-    (if (global.get $g_op_ok)
-      (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-      (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_title.offset}) (i32.const ${S.p_title.len}) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const 273600) (global.get $ct_len) (local.get $p)))
-    (call $format_dt (i32.const 274200) (global.get $cs_len) (i32.const 274300) (global.get $ce_len) (i32.const 0) (i32.const 0) (i32.const 0))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_start.offset}) (i32.const ${S.p_start.len}) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const 281500) (global.get $fd_len) (local.get $p)))
-    (if (i32.gt_s (global.get $ft_len) (i32.const 0))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_end.offset}) (i32.const ${S.p_end.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 281550) (global.get $ft_len) (local.get $p)))
-      )
-    )
-    (if (i32.gt_s (global.get $desc_len) (i32.const 0))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_desc.offset}) (i32.const ${S.p_desc.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 270900) (call $utf8_clamp (i32.const 270900) (global.get $desc_len) (i32.const 300)) (local.get $p)))
-      )
-    )
-    (if (i32.gt_s (global.get $err_len) (i32.const 0))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 280400) (call $utf8_clamp (i32.const 280400) (global.get $err_len) (i32.const 400)) (local.get $p)))
-      )
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_create_ask.offset}) (i32.const ${S.p_create_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
-    (call $dispatch_host (i32.sub (local.get $p) (i32.const 400000)))
-  )
-
-  (func $call_ai_events (result i32)
-    (local $p i32)
-    (local $shown i32)
-    (local $tl i32)
-    (local $sl i32)
-    (global.set $g_state (i32.const 22))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p1.offset}) (i32.const 400000)))
-    (local.set $p (call $copy_json_esc (i32.const 270000) (global.get $lang_len) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p2.offset}) (local.get $p)))
-
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_events_hdr.offset}) (i32.const ${S.p_events_hdr.len}) (local.get $p)))
-    (if (global.get $g_op_ok)
-      (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-      (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_count.offset}) (i32.const ${S.p_count.len}) (local.get $p)))
-    (local.set $p (call $copy_int_str (global.get $g_ev_count) (local.get $p)))
-
-    ;; Append compact preview of up to 8 events from $SAVED_RES (1000000)
-    (if (i32.and (global.get $g_op_ok) (i32.gt_s (global.get $g_ev_count) (i32.const 0)))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_preview.offset}) (i32.const ${S.p_preview.len}) (local.get $p)))
-        (if (call $find_array_start (i32.const 1000000) (global.get $saved_res_len) (i32.const ${S.a_events.offset}))
-          (then
-            (local.set $shown (i32.const 0))
-            (loop $prev_l
-              (if (i32.and (i32.lt_s (local.get $shown) (i32.const 8))
-                           (call $next_array_obj (i32.const 1000000) (global.get $saved_res_len)))
-                (then
-                  (local.set $tl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_title.offset}) (i32.const 279000) (i32.const 80)))
-                  (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_start.offset}) (i32.const 279300) (i32.const 32)))
-                  (if (i32.gt_s (local.get $shown) (i32.const 0))
-                    (then (local.set $p (call $copy_zstr (i32.const ${S.jf_comma.offset}) (local.get $p))))
-                  )
-                  (if (i32.gt_s (local.get $tl) (i32.const 0))
-                    (then (local.set $p (call $copy_json_esc (i32.const 279000) (local.get $tl) (local.get $p))))
-                  )
-                  (if (i32.gt_s (local.get $sl) (i32.const 0))
-                    (then
-                      (i32.store8 (local.get $p) (i32.const 64)) ;; '@'
-                      (local.set $p (i32.add (local.get $p) (i32.const 1)))
-                      (local.set $p (call $copy_json_esc (i32.const 279300) (call $utf8_clamp (i32.const 279300) (local.get $sl) (i32.const 16)) (local.get $p)))
-                    )
-                  )
-                  (local.set $shown (i32.add (local.get $shown) (i32.const 1)))
-                  (br $prev_l)
-                )
-              )
-            )
-          )
-        )
-      )
-    )
-    (if (i32.gt_s (global.get $err_len) (i32.const 0))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 280400) (call $utf8_clamp (i32.const 280400) (global.get $err_len) (i32.const 400)) (local.get $p)))
-      )
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_events_ask.offset}) (i32.const ${S.p_events_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
-    (call $dispatch_host (i32.sub (local.get $p) (i32.const 400000)))
-  )
-
-  (func $call_ai_modify (param $state_id i32) (result i32)
-    (local $p i32)
-    (global.set $g_state (local.get $state_id))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p1.offset}) (i32.const 400000)))
-    (local.set $p (call $copy_json_esc (i32.const 270000) (global.get $lang_len) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p2.offset}) (local.get $p)))
-
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_mod_hdr.offset}) (i32.const ${S.p_mod_hdr.len}) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const 270050) (global.get $act_len) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_evid.offset}) (i32.const ${S.p_evid.len}) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const 274400) (global.get $cid_len) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_success.offset}) (i32.const ${S.p_success.len}) (local.get $p)))
-    (if (global.get $g_op_ok)
-      (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-      (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-    )
-    (if (i32.gt_s (global.get $err_len) (i32.const 0))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 280400) (call $utf8_clamp (i32.const 280400) (global.get $err_len) (i32.const 400)) (local.get $p)))
-      )
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_mod_ask.offset}) (i32.const ${S.p_mod_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
-    (call $dispatch_host (i32.sub (local.get $p) (i32.const 400000)))
-  )
+  ;; ── Compact AI Help Dispatcher (direct /calendar help ONLY) ──────────
 
   (func $call_ai_help (param $r_ptr i32) (param $r_len i32) (result i32)
     (local $p i32)
     (global.set $g_state (i32.const 25))
-    (memory.copy (i32.const 274700) (local.get $r_ptr) (local.get $r_len))
-    (global.set $reason_len (local.get $r_len))
-
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_sys_help_p1.offset}) (i32.const 400000)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_help_p1.offset}) (i32.const 400000)))
     (local.set $p (call $copy_json_esc (i32.const 270000) (global.get $lang_len) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_sys_help_p2.offset}) (local.get $p)))
-
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_help_ask1.offset}) (i32.const ${S.p_help_ask1.len}) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_help_p2.offset}) (local.get $p)))
     (local.set $p (call $copy_json_esc (local.get $r_ptr) (local.get $r_len) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_help_ask2.offset}) (i32.const ${S.p_help_ask2.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_help_p3.offset}) (local.get $p)))
     (call $dispatch_host (i32.sub (local.get $p) (i32.const 400000)))
   )
 
-  ;; ── AI Field Extractor & Flutter Card Renderers ──────────────────────
-
-  (func $parse_ai_fields (param $res_ptr i32) (param $res_len i32)
-    (local $tlen i32)
-    (global.set $ai_text_len (i32.const 0))
-    (global.set $ai_intro_len (i32.const 0))
-    (global.set $ai_ct_len (i32.const 0))
-    (global.set $ai_cs_len (i32.const 0))
-    (global.set $ai_badge_len (i32.const 0))
-    (global.set $ai_lt_len (i32.const 0))
-    (global.set $ai_ld_len (i32.const 0))
-    (global.set $ai_ltm_len (i32.const 0))
-    (global.set $ai_lds_len (i32.const 0))
-    (global.set $ai_ls_len (i32.const 0))
-    (global.set $ai_vs_len (i32.const 0))
-    (global.set $ai_le_len (i32.const 0))
-    (global.set $ai_empty_len (i32.const 0))
-    (global.set $ai_allday_len (i32.const 0))
-    (global.set $ai_btn_len (i32.const 0))
-    (global.set $ai_err_len (i32.const 0))
-
-    (if (i32.ne (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})) (i32.const 1))
-      (then (return))
-    )
-    (local.set $tlen (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_text.offset}) (i32.const 320000) (i32.const 16000)))
-    (if (i32.le_s (local.get $tlen) (i32.const 0)) (then (return)))
-    (global.set $ai_text_len (local.get $tlen))
-
-    (global.set $ai_intro_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_intro.offset}) (i32.const 337000) (i32.const 1000)))
-    (global.set $ai_ct_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_ct.offset}) (i32.const 338100) (i32.const 180)))
-    (global.set $ai_cs_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_cs.offset}) (i32.const 338400) (i32.const 280)))
-    (global.set $ai_badge_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_badge.offset}) (i32.const 338800) (i32.const 48)))
-    (global.set $ai_lt_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_lt.offset}) (i32.const 339000) (i32.const 48)))
-    (global.set $ai_ld_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_ld.offset}) (i32.const 339100) (i32.const 48)))
-    (global.set $ai_ltm_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_ltm.offset}) (i32.const 339200) (i32.const 48)))
-    (global.set $ai_lds_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_lds.offset}) (i32.const 339300) (i32.const 48)))
-    (global.set $ai_ls_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_ls.offset}) (i32.const 339400) (i32.const 48)))
-    (global.set $ai_vs_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_vs.offset}) (i32.const 339500) (i32.const 120)))
-    (global.set $ai_le_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_le.offset}) (i32.const 339700) (i32.const 48)))
-    (global.set $ai_empty_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_empty.offset}) (i32.const 339800) (i32.const 480)))
-    (global.set $ai_allday_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_allday.offset}) (i32.const 340400) (i32.const 48)))
-    (global.set $ai_btn_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_btn.offset}) (i32.const 340500) (i32.const 48)))
-    (if (i32.le_s (global.get $ai_btn_len) (i32.const 0))
-      (then (global.set $ai_btn_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_btn_ref.offset}) (i32.const 340500) (i32.const 48))))
-    )
-    (global.set $ai_err_len (call $extract_json_str (i32.const 320000) (local.get $tlen) (i32.const ${S.ai_k_err.offset}) (i32.const 340600) (i32.const 900)))
-  )
+  ;; ── Zero-Token English Flutter UI Card Renderers ─────────────────────
 
   (func $emit_kv_item (param $k_ptr i32) (param $k_len i32) (param $v_ptr i32) (param $v_len i32) (param $first i32)
     (if (i32.eqz (local.get $first)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
@@ -1571,146 +1341,92 @@ ${dataLines}
     (call $out_z (i32.const ${S.ui_kv_item3.offset}))
   )
 
-  ;; Emit header part of Flutter UI card
-  (func $emit_ui_header (param $intro_ptr i32) (param $intro_len i32) (param $sub_ptr i32) (param $sub_len i32) (param $badge_fb_ptr i32) (param $badge_fb_len i32) (param $style_z i32)
+  (func $emit_ui_header (param $disp_p i32) (param $disp_l i32) (param $title_p i32) (param $title_l i32) (param $sub_p i32) (param $sub_l i32) (param $badge_p i32) (param $badge_l i32) (param $style_z i32)
     (global.set $out_pos (i32.const 65536))
     (call $out_z (i32.const ${S.ui_p1.offset}))
-    (if (i32.gt_s (local.get $intro_len) (i32.const 0))
-      (then (call $out_json_esc (local.get $intro_ptr) (local.get $intro_len) (i32.const 900)))
-    )
+    (call $out_json_esc (local.get $disp_p) (local.get $disp_l) (i32.const 300))
     (call $out_z (i32.const ${S.ui_p2.offset}))
-    (if (i32.gt_s (global.get $ai_ct_len) (i32.const 0))
-      (then (call $out_json_esc (i32.const 338100) (global.get $ai_ct_len) (i32.const 95)))
-      (else (call $out_json_esc (i32.const ${S.def_cal.offset}) (i32.const ${S.def_cal.len}) (i32.const 95)))
-    )
-    (if (i32.gt_s (local.get $sub_len) (i32.const 0))
+    (call $out_json_esc (local.get $title_p) (local.get $title_l) (i32.const 95))
+    (if (i32.gt_s (local.get $sub_l) (i32.const 0))
       (then
         (call $out_z (i32.const ${S.ui_sub.offset}))
-        (call $out_json_esc (local.get $sub_ptr) (local.get $sub_len) (i32.const 180))
+        (call $out_json_esc (local.get $sub_p) (local.get $sub_l) (i32.const 180))
       )
     )
     (call $out_z (i32.const ${S.ui_badge.offset}))
-    (if (i32.gt_s (global.get $ai_badge_len) (i32.const 0))
-      (then (call $out_json_esc (i32.const 338800) (global.get $ai_badge_len) (i32.const 28)))
-      (else (call $out_json_esc (local.get $badge_fb_ptr) (local.get $badge_fb_len) (i32.const 28)))
-    )
+    (call $out_json_esc (local.get $badge_p) (local.get $badge_l) (i32.const 28))
     (call $out_z (local.get $style_z))
   )
 
-  (func $emit_ui_btn_footer
+  (func $emit_ui_btn_footer (param $lbl_p i32) (param $lbl_l i32)
     (call $out_z (i32.const ${S.ui_div.offset}))
     (call $out_z (i32.const ${S.ui_btn_p1.offset}))
-    (if (i32.gt_s (global.get $ai_btn_len) (i32.const 0))
-      (then (call $out_json_esc (i32.const 340500) (global.get $ai_btn_len) (i32.const 38)))
-      (else (call $out_json_esc (i32.const ${S.def_cmd_cal.offset}) (i32.const ${S.def_cmd_cal.len}) (i32.const 38)))
-    )
+    (call $out_json_esc (local.get $lbl_p) (local.get $lbl_l) (i32.const 38))
     (call $out_z (i32.const ${S.ui_btn_p2.offset}))
     (call $out_z (i32.const ${S.ui_close.offset}))
   )
 
-  ;; Render Create Card (state 21)
+  ;; Render Event Creation Card (0 AI tokens)
   (func $render_create_ui (result i32)
     (local $has_kv i32)
-    (local $sub_p i32)
-    (local $sub_l i32)
-    (local $intro_p i32)
-    (local $intro_l i32)
-
-    (local.set $sub_p (i32.const 338400))
-    (local.set $sub_l (global.get $ai_cs_len))
-    (if (i32.le_s (local.get $sub_l) (i32.const 0))
-      (then
-        (local.set $sub_p (i32.const 273600))
-        (local.set $sub_l (global.get $ct_len))
-      )
-    )
-
     (if (global.get $g_op_ok)
       (then
-        (local.set $intro_p (i32.const 337000))
-        (local.set $intro_l (global.get $ai_intro_len))
-        (if (i32.le_s (local.get $intro_l) (i32.const 0))
-          (then
-            (local.set $intro_p (i32.const 273600))
-            (local.set $intro_l (global.get $ct_len))
-          )
-        )
         (call $emit_ui_header
-          (local.get $intro_p) (local.get $intro_l)
-          (local.get $sub_p) (local.get $sub_l)
-          (i32.const ${S.def_ok.offset}) (i32.const ${S.def_ok.len})
+          (i32.const ${S.en_sched_disp.offset}) (i32.const ${S.en_sched_disp.len})
+          (i32.const ${S.en_sched_title.offset}) (i32.const ${S.en_sched_title.len})
+          (i32.const 273600) (global.get $ct_len)
+          (i32.const ${S.en_created_badge.offset}) (i32.const ${S.en_created_badge.len})
           (i32.const ${S.ui_bc_green.offset}))
-
         (call $format_dt (i32.const 274200) (global.get $cs_len) (i32.const 274300) (global.get $ce_len) (i32.const 0) (i32.const 0) (i32.const 0))
         (call $out_z (i32.const ${S.ui_kv_start.offset}))
         (local.set $has_kv (i32.const 0))
         (if (i32.gt_s (global.get $ct_len) (i32.const 0))
           (then
-            (call $emit_kv_item
-              (if (result i32) (i32.gt_s (global.get $ai_lt_len) (i32.const 0)) (then (i32.const 339000)) (else (i32.const ${S.k_title.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_lt_len) (i32.const 0)) (then (global.get $ai_lt_len)) (else (i32.const ${S.k_title.len})))
-              (i32.const 273600) (global.get $ct_len) (i32.const 1))
+            (call $emit_kv_item (i32.const ${S.en_lbl_title.offset}) (i32.const ${S.en_lbl_title.len}) (i32.const 273600) (global.get $ct_len) (i32.const 1))
             (local.set $has_kv (i32.const 1))
           )
         )
         (if (i32.gt_s (global.get $fd_len) (i32.const 0))
           (then
-            (call $emit_kv_item
-              (if (result i32) (i32.gt_s (global.get $ai_ld_len) (i32.const 0)) (then (i32.const 339100)) (else (i32.const ${S.p_start.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_ld_len) (i32.const 0)) (then (global.get $ai_ld_len)) (else (i32.const 5)))
-              (i32.const 281500) (global.get $fd_len) (i32.eqz (local.get $has_kv)))
+            (call $emit_kv_item (i32.const ${S.en_lbl_date.offset}) (i32.const ${S.en_lbl_date.len}) (i32.const 281500) (global.get $fd_len) (i32.eqz (local.get $has_kv)))
             (local.set $has_kv (i32.const 1))
           )
         )
         (if (i32.gt_s (global.get $ft_len) (i32.const 0))
           (then
-            (call $emit_kv_item
-              (if (result i32) (i32.gt_s (global.get $ai_ltm_len) (i32.const 0)) (then (i32.const 339200)) (else (i32.const ${S.k_end.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_ltm_len) (i32.const 0)) (then (global.get $ai_ltm_len)) (else (i32.const 3)))
-              (i32.const 281550) (global.get $ft_len) (i32.eqz (local.get $has_kv)))
+            (call $emit_kv_item (i32.const ${S.en_lbl_time.offset}) (i32.const ${S.en_lbl_time.len}) (i32.const 281550) (global.get $ft_len) (i32.eqz (local.get $has_kv)))
             (local.set $has_kv (i32.const 1))
           )
         )
         (if (i32.gt_s (global.get $desc_len) (i32.const 0))
           (then
-            (call $emit_kv_item
-              (if (result i32) (i32.gt_s (global.get $ai_lds_len) (i32.const 0)) (then (i32.const 339300)) (else (i32.const ${S.k_desc.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_lds_len) (i32.const 0)) (then (global.get $ai_lds_len)) (else (i32.const ${S.k_desc.len})))
-              (i32.const 270900) (global.get $desc_len) (i32.eqz (local.get $has_kv)))
+            (call $emit_kv_item (i32.const ${S.en_lbl_desc.offset}) (i32.const ${S.en_lbl_desc.len}) (i32.const 270900) (global.get $desc_len) (i32.eqz (local.get $has_kv)))
           )
         )
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
+        (call $emit_ui_btn_footer (i32.const ${S.en_btn_view.offset}) (i32.const ${S.en_btn_view.len}))
       )
       (else
-        (local.set $intro_p (i32.const 337000))
-        (local.set $intro_l (global.get $ai_intro_len))
-        (if (i32.le_s (local.get $intro_l) (i32.const 0))
-          (then
-            (local.set $intro_p (i32.const 280400))
-            (local.set $intro_l (global.get $err_len))
-          )
-        )
         (call $emit_ui_header
-          (local.get $intro_p) (local.get $intro_l)
-          (local.get $sub_p) (local.get $sub_l)
-          (i32.const ${S.def_err.offset}) (i32.const ${S.def_err.len})
+          (i32.const ${S.en_cal_err.offset}) (i32.const ${S.en_cal_err.len})
+          (i32.const ${S.en_cal_err.offset}) (i32.const ${S.en_cal_err.len})
+          (i32.const 273600) (global.get $ct_len)
+          (i32.const ${S.en_error_badge.offset}) (i32.const ${S.en_error_badge.len})
           (i32.const ${S.ui_bc_red.offset}))
         (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 340600) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 900)))
+        (if (i32.gt_s (global.get $err_len) (i32.const 0))
+          (then (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 900)))
+          (else (call $out_json_esc (i32.const ${S.en_err_fallback.offset}) (i32.const ${S.en_err_fallback.len}) (i32.const 900)))
         )
         (call $out_z (i32.const ${S.ui_text_end.offset}))
+        (call $emit_ui_btn_footer (i32.const ${S.en_btn_retry.offset}) (i32.const ${S.en_btn_retry.len}))
       )
     )
-    (call $emit_ui_btn_footer)
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  ;; Render Events List Card (state 22)
+  ;; Render Upcoming Events Card for bare /calendar (0 AI tokens)
   (func $render_events_ui (result i32)
-    (local $intro_p i32)
-    (local $intro_l i32)
     (local $count i32)
     (local $tl i32)
     (local $sl i32)
@@ -1718,57 +1434,54 @@ ${dataLines}
     (local $dl i32)
     (local $ad i32)
     (local $sub_p i32)
-
-    (local.set $intro_p (i32.const 337000))
-    (local.set $intro_l (global.get $ai_intro_len))
+    (local $b_end i32)
 
     (if (i32.eqz (global.get $g_op_ok))
       (then
-        (if (i32.le_s (local.get $intro_l) (i32.const 0))
-          (then (local.set $intro_p (i32.const 280400)) (local.set $intro_l (global.get $err_len)))
-        )
         (call $emit_ui_header
-          (local.get $intro_p) (local.get $intro_l)
-          (i32.const 338400) (global.get $ai_cs_len)
-          (i32.const ${S.def_err.offset}) (i32.const ${S.def_err.len})
+          (i32.const ${S.en_cal_err.offset}) (i32.const ${S.en_cal_err.len})
+          (i32.const ${S.en_cal_err.offset}) (i32.const ${S.en_cal_err.len})
+          (i32.const ${S.en_device_cal.offset}) (i32.const ${S.en_device_cal.len})
+          (i32.const ${S.en_error_badge.offset}) (i32.const ${S.en_error_badge.len})
           (i32.const ${S.ui_bc_red.offset}))
         (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 340600) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 900)))
+        (if (i32.gt_s (global.get $err_len) (i32.const 0))
+          (then (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 900)))
+          (else (call $out_json_esc (i32.const ${S.en_err_fallback.offset}) (i32.const ${S.en_err_fallback.len}) (i32.const 900)))
         )
         (call $out_z (i32.const ${S.ui_text_end.offset}))
-        (call $emit_ui_btn_footer)
+        (call $emit_ui_btn_footer (i32.const ${S.en_btn_retry.offset}) (i32.const ${S.en_btn_retry.len}))
         (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
 
     (if (i32.le_s (global.get $g_ev_count) (i32.const 0))
       (then
-        (if (i32.le_s (local.get $intro_l) (i32.const 0))
-          (then (local.set $intro_p (i32.const 339800)) (local.set $intro_l (global.get $ai_empty_len)))
-        )
         (call $emit_ui_header
-          (local.get $intro_p) (local.get $intro_l)
-          (i32.const 338400) (global.get $ai_cs_len)
-          (i32.const ${S.def_ok.offset}) (i32.const ${S.def_ok.len})
+          (i32.const ${S.en_empty_msg.offset}) (i32.const ${S.en_empty_msg.len})
+          (i32.const ${S.en_events_title.offset}) (i32.const ${S.en_events_title.len})
+          (i32.const ${S.en_device_cal.offset}) (i32.const ${S.en_device_cal.len})
+          (i32.const ${S.en_empty_badge.offset}) (i32.const ${S.en_empty_badge.len})
           (i32.const ${S.ui_bc_blue.offset}))
         (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_empty_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 339800) (global.get $ai_empty_len) (i32.const 480)))
-          (else (call $out_json_esc (i32.const ${S.def_cal.offset}) (i32.const ${S.def_cal.len}) (i32.const 480)))
-        )
+        (call $out_json_esc (i32.const ${S.en_empty_msg.offset}) (i32.const ${S.en_empty_msg.len}) (i32.const 480))
         (call $out_z (i32.const ${S.ui_text_end.offset}))
-        (call $emit_ui_btn_footer)
+        (call $emit_ui_btn_footer (i32.const ${S.en_btn_refresh.offset}) (i32.const ${S.en_btn_refresh.len}))
         (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
 
-    ;; Events list > 0
+    ;; Build badge "<N> EVENTS" into 281700
+    (local.set $b_end (call $copy_int_str (global.get $g_ev_count) (i32.const 281700)))
+    (i32.store8 (local.get $b_end) (i32.const 32))
+    (local.set $b_end (i32.add (local.get $b_end) (i32.const 1)))
+    (local.set $b_end (call $copy_mem (i32.const ${S.en_events_badge.offset}) (local.get $b_end) (i32.const ${S.en_events_badge.len})))
+
     (call $emit_ui_header
-      (local.get $intro_p) (local.get $intro_l)
-      (i32.const 338400) (global.get $ai_cs_len)
-      (i32.const ${S.def_ok.offset}) (i32.const ${S.def_ok.len})
+      (i32.const ${S.en_events_disp.offset}) (i32.const ${S.en_events_disp.len})
+      (i32.const ${S.en_events_title.offset}) (i32.const ${S.en_events_title.len})
+      (i32.const ${S.en_device_cal.offset}) (i32.const ${S.en_device_cal.len})
+      (i32.const 281700) (i32.sub (local.get $b_end) (i32.const 281700))
       (i32.const ${S.ui_bc_alarm.offset}))
 
     (call $out_z (i32.const ${S.ui_list_start.offset}))
@@ -1776,7 +1489,7 @@ ${dataLines}
     (if (call $find_array_start (i32.const 1000000) (global.get $saved_res_len) (i32.const ${S.a_events.offset}))
       (then
         (loop $ev_loop
-          (if (i32.and (i32.lt_s (local.get $count) (i32.const 25))
+          (if (i32.and (i32.lt_s (local.get $count) (i32.const 20))
                        (call $next_array_obj (i32.const 1000000) (global.get $saved_res_len)))
             (then
               (local.set $tl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_title.offset}) (i32.const 279000) (i32.const 120)))
@@ -1785,9 +1498,7 @@ ${dataLines}
               (local.set $dl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_desc.offset}) (i32.const 279500) (i32.const 200)))
               (local.set $ad (call $extract_json_bool (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_allDay.offset})))
 
-              (if (i32.gt_s (local.get $count) (i32.const 0))
-                (then (call $out_z (i32.const ${S.jf_comma.offset})))
-              )
+              (if (i32.gt_s (local.get $count) (i32.const 0)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
               (call $out_z (i32.const ${S.ui_list_item1.offset}))
               (if (i32.gt_s (local.get $tl) (i32.const 0))
                 (then (call $out_json_esc (i32.const 279000) (local.get $tl) (i32.const 95)))
@@ -1795,8 +1506,7 @@ ${dataLines}
               )
               (call $out_z (i32.const ${S.ui_list_item2.offset}))
 
-              ;; Assemble subtitle into 274800: date • time • desc
-              (call $format_dt (i32.const 279300) (local.get $sl) (i32.const 279400) (local.get $el) (local.get $ad) (i32.const 340400) (global.get $ai_allday_len))
+              (call $format_dt (i32.const 279300) (local.get $sl) (i32.const 279400) (local.get $el) (local.get $ad) (i32.const ${S.en_all_day.offset}) (i32.const ${S.en_all_day.len}))
               (local.set $sub_p (i32.const 274800))
               (if (i32.gt_s (global.get $fd_len) (i32.const 0))
                 (then (local.set $sub_p (call $copy_mem (i32.const 281500) (local.get $sub_p) (global.get $fd_len))))
@@ -1828,96 +1538,141 @@ ${dataLines}
       )
     )
     (call $out_z (i32.const ${S.ui_arr_end.offset}))
-    (call $emit_ui_btn_footer)
+    (call $emit_ui_btn_footer (i32.const ${S.en_btn_refresh.offset}) (i32.const ${S.en_btn_refresh.len}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  ;; Render Update/Delete Card (state 23/24)
-  (func $render_modify_ui (result i32)
-    (local $intro_p i32)
-    (local $intro_l i32)
-    (local $has_kv i32)
-    (local.set $intro_p (i32.const 337000))
-    (local.set $intro_l (global.get $ai_intro_len))
+  ;; ── Compact JSON Renderers (Natural-Language Chat Mode, 0 extra LLM calls) ──
 
-    (if (global.get $g_op_ok)
+  (func $render_events_json (result i32)
+    (local $count i32)
+    (local $il i32)
+    (local $cl i32)
+    (local $tl i32)
+    (local $sl i32)
+    (local $el i32)
+    (local $dl i32)
+    (local $ad i32)
+    (global.set $out_pos (i32.const 65536))
+    (if (i32.eqz (global.get $g_op_ok))
       (then
-        (call $emit_ui_header
-          (local.get $intro_p) (local.get $intro_l)
-          (i32.const 338400) (global.get $ai_cs_len)
-          (i32.const ${S.def_ok.offset}) (i32.const ${S.def_ok.len})
-          (i32.const ${S.ui_bc_green.offset}))
-        (call $out_z (i32.const ${S.ui_kv_start.offset}))
-        (local.set $has_kv (i32.const 0))
-        (if (i32.gt_s (global.get $ai_vs_len) (i32.const 0))
-          (then
-            (call $emit_kv_item
-              (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (i32.const 339400)) (else (i32.const 270050)))
-              (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (global.get $ai_ls_len)) (else (global.get $act_len)))
-              (i32.const 339500) (global.get $ai_vs_len) (i32.const 1))
-            (local.set $has_kv (i32.const 1))
-          )
+        (call $out_z (i32.const ${S.j_err1.offset}))
+        (if (i32.gt_s (global.get $err_len) (i32.const 0))
+          (then (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 600)))
+          (else (call $out_json_esc (i32.const ${S.en_err_fallback.offset}) (i32.const ${S.en_err_fallback.len}) (i32.const 600)))
         )
-        (if (i32.gt_s (global.get $cid_len) (i32.const 0))
-          (then
-            (call $emit_kv_item
-              (if (result i32) (i32.gt_s (global.get $ai_le_len) (i32.const 0)) (then (i32.const 339700)) (else (i32.const ${S.k_evId.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_le_len) (i32.const 0)) (then (global.get $ai_le_len)) (else (i32.const ${S.k_evId.len})))
-              (i32.const 274400) (global.get $cid_len) (i32.eqz (local.get $has_kv)))
-          )
-        )
-        (call $out_z (i32.const ${S.ui_arr_end.offset}))
-      )
-      (else
-        (if (i32.le_s (local.get $intro_l) (i32.const 0))
-          (then (local.set $intro_p (i32.const 280400)) (local.set $intro_l (global.get $err_len)))
-        )
-        (call $emit_ui_header
-          (local.get $intro_p) (local.get $intro_l)
-          (i32.const 338400) (global.get $ai_cs_len)
-          (i32.const ${S.def_err.offset}) (i32.const ${S.def_err.len})
-          (i32.const ${S.ui_bc_red.offset}))
-        (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 340600) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 900)))
-        )
-        (call $out_z (i32.const ${S.ui_text_end.offset}))
+        (call $out_z (i32.const ${S.direct_p2.offset}))
+        (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
-    (call $emit_ui_btn_footer)
+    (call $out_z (i32.const ${S.j_ev_ok1.offset}))
+    (global.set $out_pos (call $copy_int_str (global.get $g_ev_count) (global.get $out_pos)))
+    (call $out_z (i32.const ${S.j_ev_ok2.offset}))
+    (local.set $count (i32.const 0))
+    (if (call $find_array_start (i32.const 1000000) (global.get $saved_res_len) (i32.const ${S.a_events.offset}))
+      (then
+        (loop $jl
+          (if (i32.and (i32.lt_s (local.get $count) (i32.const 15))
+                       (call $next_array_obj (i32.const 1000000) (global.get $saved_res_len)))
+            (then
+              (local.set $il (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_id.offset}) (i32.const 278600) (i32.const 120)))
+              (local.set $cl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_calId.offset}) (i32.const 278800) (i32.const 120)))
+              (local.set $tl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_title.offset}) (i32.const 279000) (i32.const 120)))
+              (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_start.offset}) (i32.const 279300) (i32.const 48)))
+              (local.set $el (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_end.offset}) (i32.const 279400) (i32.const 48)))
+              (local.set $dl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_desc.offset}) (i32.const 279500) (i32.const 140)))
+              (local.set $ad (call $extract_json_bool (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_allDay.offset})))
+
+              (if (i32.gt_s (local.get $count) (i32.const 0)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
+              (call $out_z (i32.const ${S.j_ev_item1.offset}))
+              (if (i32.gt_s (local.get $il) (i32.const 0)) (then (call $out_json_esc (i32.const 278600) (local.get $il) (i32.const 120))))
+              (call $out_z (i32.const ${S.j_ev_item2.offset}))
+              (if (i32.gt_s (local.get $cl) (i32.const 0)) (then (call $out_json_esc (i32.const 278800) (local.get $cl) (i32.const 120))))
+              (call $out_z (i32.const ${S.j_ev_item3.offset}))
+              (if (i32.gt_s (local.get $tl) (i32.const 0)) (then (call $out_json_esc (i32.const 279000) (local.get $tl) (i32.const 120))))
+              (call $out_z (i32.const ${S.j_ev_item4.offset}))
+              (if (i32.gt_s (local.get $sl) (i32.const 0)) (then (call $out_json_esc (i32.const 279300) (local.get $sl) (i32.const 48))))
+              (call $out_z (i32.const ${S.j_ev_item5.offset}))
+              (if (i32.gt_s (local.get $el) (i32.const 0)) (then (call $out_json_esc (i32.const 279400) (local.get $el) (i32.const 48))))
+              (call $out_z (i32.const ${S.j_ev_item6.offset}))
+              (if (i32.eq (local.get $ad) (i32.const 1))
+                (then (call $out_z (i32.const ${S.def_true.offset})))
+                (else (call $out_z (i32.const ${S.def_false.offset})))
+              )
+              (call $out_z (i32.const ${S.j_ev_item7.offset}))
+              (if (i32.gt_s (local.get $dl) (i32.const 0)) (then (call $out_json_esc (i32.const 279500) (local.get $dl) (i32.const 140))))
+              (call $out_z (i32.const ${S.j_ev_item8.offset}))
+
+              (local.set $count (i32.add (local.get $count) (i32.const 1)))
+              (br $jl)
+            )
+          )
+        )
+      )
+    )
+    (call $out_z (i32.const ${S.j_ev_end.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  ;; Render Direct AI Help / Missing Params (state 25)
+  (func $render_modify_json (result i32)
+    (global.set $out_pos (i32.const 65536))
+    (if (global.get $g_op_ok)
+      (then
+        (call $out_z (i32.const ${S.j_mod_ok1.offset}))
+        (call $out_json_esc (i32.const 270050) (global.get $act_len) (i32.const 32))
+        (call $out_z (i32.const ${S.j_mod_ok2.offset}))
+        (call $out_json_esc (i32.const 274400) (global.get $cid_len) (i32.const 120))
+        (call $out_z (i32.const ${S.direct_p2.offset}))
+      )
+      (else
+        (call $out_z (i32.const ${S.j_err1.offset}))
+        (if (i32.gt_s (global.get $err_len) (i32.const 0))
+          (then (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 600)))
+          (else (call $out_json_esc (i32.const ${S.en_err_fallback.offset}) (i32.const ${S.en_err_fallback.len}) (i32.const 600)))
+        )
+        (call $out_z (i32.const ${S.direct_p2.offset}))
+      )
+    )
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  (func $render_help_json (param $r_ptr i32) (param $r_len i32) (result i32)
+    (global.set $out_pos (i32.const 65536))
+    (if (call $str_eq (local.get $r_ptr) (local.get $r_len) (i32.const ${S.r_help.offset}))
+      (then (call $out_z (i32.const ${S.j_help_ok.offset})))
+      (else
+        (call $out_z (i32.const ${S.j_help_r1.offset}))
+        (call $out_json_esc (local.get $r_ptr) (local.get $r_len) (i32.const 48))
+        (call $out_z (i32.const ${S.direct_p2.offset}))
+      )
+    )
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  ;; Render Direct AI Help (state 25, plain-text /calendar help ONLY)
   (func $render_help_direct (result i32)
     (global.set $out_pos (i32.const 65536))
     (call $out_z (i32.const ${S.direct_p1.offset}))
     (if (i32.gt_s (global.get $ai_text_len) (i32.const 0))
       (then (call $out_json_esc (i32.const 320000) (global.get $ai_text_len) (i32.const 12000)))
-      (else
-        (if (i32.gt_s (global.get $err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 280400) (global.get $err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const ${S.def_cmd_cal.offset}) (i32.const ${S.def_cmd_cal.len}) (i32.const 64)))
-        )
-      )
+      (else (call $out_json_esc (i32.const ${S.en_help_fallback.offset}) (i32.const ${S.en_help_fallback.len}) (i32.const 600)))
     )
     (call $out_z (i32.const ${S.direct_p2.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
   (func $render_fallback_for_state (result i32)
-    (if (i32.eq (global.get $g_state) (i32.const 21)) (then (return (call $render_create_ui))))
-    (if (i32.eq (global.get $g_state) (i32.const 22)) (then (return (call $render_events_ui))))
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 23)) (i32.eq (global.get $g_state) (i32.const 24)))
-      (then (return (call $render_modify_ui)))
-    )
     (if (i32.eq (global.get $g_state) (i32.const 25)) (then (return (call $render_help_direct))))
     (if (i32.or (i32.eq (global.get $g_state) (i32.const 10)) (i32.eq (global.get $g_state) (i32.const 11)))
       (then (return (call $render_create_ui)))
     )
-    (if (i32.eq (global.get $g_state) (i32.const 12)) (then (return (call $render_events_ui))))
-    (call $render_modify_ui)
+    (if (i32.eq (global.get $g_state) (i32.const 12))
+      (then
+        (if (global.get $g_is_json) (then (return (call $render_events_json))))
+        (return (call $render_events_ui))
+      )
+    )
+    (call $render_modify_json)
   )
 
   ;; ── Entrypoint ───────────────────────────────────────────────────────
@@ -1940,6 +1695,7 @@ ${dataLines}
     (global.set $g_op_ok (i32.const 0))
     (global.set $g_ev_count (i32.const 0))
     (global.set $g_user_calid (i32.const 0))
+    (global.set $g_is_json (i32.const 0))
     (global.set $act_len (i32.const 0))
     (global.set $title_len (i32.const 0))
     (global.set $start_len (i32.const 0))
@@ -1954,6 +1710,7 @@ ${dataLines}
     (global.set $cid_len (i32.const 0))
     (global.set $err_len (i32.const 0))
     (global.set $saved_res_len (i32.const 0))
+    (global.set $ai_text_len (i32.const 0))
     (call $set_default_lang)
 
     ;; Trim whitespace
@@ -1978,10 +1735,11 @@ ${dataLines}
       )
     )
 
-    ;; Case A: JSON Input
+    ;; Case A: JSON Input (conversational AI)
     (if (i32.and (i32.gt_s (local.get $tl) (i32.const 0))
                  (i32.eq (i32.load8_u (local.get $ts)) (i32.const 123))) ;; '{'
       (then
+        (global.set $g_is_json (i32.const 1))
         (local.set $ll (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const ${S.k_lang.offset}) (i32.const 270000) (i32.const 24)))
         (if (i32.gt_s (local.get $ll) (i32.const 0)) (then (global.set $lang_len (local.get $ll))))
 
@@ -2070,7 +1828,7 @@ ${dataLines}
         ;; Route by action
         (if (i32.or (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_help.offset}))
                     (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_unknown.offset})))
-          (then (return (call $call_ai_help (i32.const ${S.r_help.offset}) (i32.const ${S.r_help.len}))))
+          (then (return (call $render_help_json (i32.const ${S.r_help.offset}) (i32.const ${S.r_help.len}))))
         )
         (if (i32.or
               (i32.or (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_events.offset}))
@@ -2082,7 +1840,7 @@ ${dataLines}
         (if (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_update.offset}))
           (then
             (if (i32.or (i32.le_s (global.get $evid_len) (i32.const 0)) (i32.le_s (global.get $calid_len) (i32.const 0)))
-              (then (return (call $call_ai_help (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
+              (then (return (call $render_help_json (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
             )
             (memory.copy (i32.const 274400) (i32.const 273300) (global.get $evid_len))
             (global.set $cid_len (global.get $evid_len))
@@ -2092,7 +1850,7 @@ ${dataLines}
         (if (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_delete.offset}))
           (then
             (if (i32.or (i32.le_s (global.get $evid_len) (i32.const 0)) (i32.le_s (global.get $calid_len) (i32.const 0)))
-              (then (return (call $call_ai_help (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
+              (then (return (call $render_help_json (i32.const ${S.r_miss_evid.offset}) (i32.const ${S.r_miss_evid.len}))))
             )
             (memory.copy (i32.const 274400) (i32.const 273300) (global.get $evid_len))
             (global.set $cid_len (global.get $evid_len))
@@ -2106,7 +1864,7 @@ ${dataLines}
                       (call $str_eq (i32.const 270050) (global.get $act_len) (i32.const ${S.a_schedule.offset}))))
           (then
             (if (i32.le_s (global.get $title_len) (i32.const 0))
-              (then (return (call $call_ai_help (i32.const ${S.r_miss_title.offset}) (i32.const ${S.r_miss_title.len}))))
+              (then (return (call $render_help_json (i32.const ${S.r_miss_title.offset}) (i32.const ${S.r_miss_title.len}))))
             )
             (return (call $start_calendars_warmup))
           )
@@ -2318,7 +2076,7 @@ ${dataLines}
                 (global.set $g_op_ok (i32.const 0))
                 (memory.copy (i32.const 273600) (i32.const 270150) (global.get $title_len))
                 (global.set $ct_len (global.get $title_len))
-                (return (call $call_ai_create))
+                (return (call $render_create_ui))
               )
             )
             (if (i32.eqz (global.get $g_retry))
@@ -2334,7 +2092,7 @@ ${dataLines}
       )
     )
 
-    ;; STATE 11: calendar.create response
+    ;; STATE 11: calendar.create response -> Instant English Flutter UI card (0 AI tokens)
     (if (i32.eq (global.get $g_state) (i32.const 11))
       (then
         (local.set $ok (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})))
@@ -2356,7 +2114,7 @@ ${dataLines}
             (if (i32.le_s (global.get $ce_len) (i32.const 0))
               (then (memory.copy (i32.const 274300) (i32.const 270800) (global.get $end_len)) (global.set $ce_len (global.get $end_len)))
             )
-            (return (call $call_ai_create))
+            (return (call $render_create_ui))
           )
           (else
             ;; Retry once on non-permission error
@@ -2377,13 +2135,13 @@ ${dataLines}
             (global.set $cs_len (global.get $start_len))
             (memory.copy (i32.const 274300) (i32.const 270800) (global.get $end_len))
             (global.set $ce_len (global.get $end_len))
-            (return (call $call_ai_create))
+            (return (call $render_create_ui))
           )
         )
       )
     )
 
-    ;; STATE 12: calendar.events response
+    ;; STATE 12: calendar.events response -> Flutter UI for bare /calendar, compact JSON for conversational AI
     (if (i32.eq (global.get $g_state) (i32.const 12))
       (then
         (local.set $ok (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})))
@@ -2406,7 +2164,8 @@ ${dataLines}
               )
             )
             (global.set $g_ev_count (local.get $ev_cnt))
-            (return (call $call_ai_events))
+            (if (global.get $g_is_json) (then (return (call $render_events_json))))
+            (return (call $render_events_ui))
           )
           (else
             (if (i32.and (i32.eqz (global.get $g_retry))
@@ -2420,14 +2179,15 @@ ${dataLines}
             (call $extract_err (local.get $res_ptr) (local.get $res_len))
             (global.set $g_op_ok (i32.const 0))
             (global.set $g_ev_count (i32.const 0))
-            (return (call $call_ai_events))
+            (if (global.get $g_is_json) (then (return (call $render_events_json))))
+            (return (call $render_events_ui))
           )
         )
       )
     )
 
-    ;; STATE 13: calendar.update response
-    (if (i32.eq (global.get $g_state) (i32.const 13))
+    ;; STATE 13/14: calendar.update / calendar.delete -> Compact JSON for natural-language AI response
+    (if (i32.or (i32.eq (global.get $g_state) (i32.const 13)) (i32.eq (global.get $g_state) (i32.const 14)))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
         (local.set $ok (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})))
@@ -2435,29 +2195,17 @@ ${dataLines}
           (then (global.set $g_op_ok (i32.const 1)) (global.set $err_len (i32.const 0)))
           (else (global.set $g_op_ok (i32.const 0)) (call $extract_err (local.get $res_ptr) (local.get $res_len)))
         )
-        (return (call $call_ai_modify (i32.const 23)))
+        (return (call $render_modify_json))
       )
     )
 
-    ;; STATE 14: calendar.delete response
-    (if (i32.eq (global.get $g_state) (i32.const 14))
+    ;; STATE 25: ai.complete finished (direct /calendar help ONLY)
+    (global.set $ai_text_len (i32.const 0))
+    (if (i32.eq (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})) (i32.const 1))
       (then
-        (call $save_res (local.get $res_ptr) (local.get $res_len))
-        (local.set $ok (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})))
-        (if (i32.eq (local.get $ok) (i32.const 1))
-          (then (global.set $g_op_ok (i32.const 1)) (global.set $err_len (i32.const 0)))
-          (else (global.set $g_op_ok (i32.const 0)) (call $extract_err (local.get $res_ptr) (local.get $res_len)))
-        )
-        (return (call $call_ai_modify (i32.const 24)))
+        (local.set $ok (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_text.offset}) (i32.const 320000) (i32.const 12000)))
+        (if (i32.gt_s (local.get $ok) (i32.const 0)) (then (global.set $ai_text_len (local.get $ok))))
       )
-    )
-
-    ;; STATES 21..25: ai.complete finished
-    (call $parse_ai_fields (local.get $res_ptr) (local.get $res_len))
-    (if (i32.eq (global.get $g_state) (i32.const 21)) (then (return (call $render_create_ui))))
-    (if (i32.eq (global.get $g_state) (i32.const 22)) (then (return (call $render_events_ui))))
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 23)) (i32.eq (global.get $g_state) (i32.const 24)))
-      (then (return (call $render_modify_ui)))
     )
     (call $render_help_direct)
   )
@@ -2530,7 +2278,7 @@ async function runTests() {
     return JSON.parse(outStr);
   }
 
-  // Test 1: Bare /calendar ("lang=es") -> calls calendar.events + ai.complete, emits UI list card
+  // Test 1: Bare /calendar ("lang=es") -> 0 AI calls, English Flutter UI list card, button label "Refresh"
   {
     const calls = [];
     const out = await execPlugin('lang=es', async (req) => {
@@ -2547,57 +2295,31 @@ async function runTests() {
           },
         };
       }
-      if (req.api === 'ai' && req.operation === 'complete') {
-        assert(req.payload.systemPrompt.includes('"es"'), 'AI prompt must receive lang es');
-        return {
-          success: true,
-          data: {
-            text: JSON.stringify({
-              intro: 'Tienes 2 eventos próximos en tu calendario.',
-              card_title: 'Tu Calendario',
-              card_subtitle: '2 eventos próximos',
-              badge: '2 EVENTOS',
-              empty_text: 'No hay eventos.',
-              all_day: 'Todo el día',
-              btn_refresh: 'Actualizar',
-            }),
-          },
-        };
-      }
-      throw new Error('Unexpected host call: ' + JSON.stringify(req));
+      throw new Error('Unexpected host call (must NOT call AI): ' + JSON.stringify(req));
     });
-    assert(calls.length === 2 && calls[0].operation === 'events' && calls[1].api === 'ai', 'Bare /calendar call order');
-    assert(out.type === 'ui', 'Expected type ui');
-    assert(out.displayText === 'Tienes 2 eventos próximos en tu calendario.', 'AI intro mismatch');
-    assert(out.ui.badgeColor === 'green' && out.ui.icon === 'alarm', 'Expected green alarm card');
+    assert(calls.length === 1 && calls[0].operation === 'events', 'Bare /calendar makes ONLY 1 call (0 AI tokens)');
+    assert(out.type === 'ui' && out.ui.title === 'Upcoming Events' && out.ui.badge === '2 EVENTS', 'English events card');
+    assert(out.ui.badgeColor === 'green' && out.ui.icon === 'alarm' && out.ui.hideText === true, 'Expected green alarm card');
     assert(out.ui.elements[0].type === 'list' && out.ui.elements[0].items.length === 2, 'Expected 2 list items');
-    assert(out.ui.elements[0].items[0].title === 'Cita médica', 'Item 0 title');
     assert(out.ui.elements[0].items[0].subtitle.includes('2026-11-19') && out.ui.elements[0].items[0].subtitle.includes('15:00 - 16:00') && out.ui.elements[0].items[0].subtitle.includes('Clínica Norte'), 'Item 0 subtitle');
-    assert(out.ui.elements[0].items[1].subtitle.includes('Todo el día'), 'All-day label from AI');
-    assert(out.ui.elements[2].buttons[0].value === '/calendar' && out.ui.elements[2].buttons[0].label === 'Actualizar', 'Refresh button');
+    assert(out.ui.elements[0].items[1].subtitle.includes('All day'), 'English All day label');
+    assert(out.ui.elements[2].buttons[0].label === 'Refresh' && out.ui.elements[2].buttons[0].value === '/calendar', 'Button label is English action, not command');
   }
 
-  // Test 2: Bare /calendar empty events
+  // Test 2: Bare /calendar empty events -> 0 AI calls, English empty card
   {
     const out = await execPlugin('lang=en', async (req) => {
       if (req.api === 'calendar' && req.operation === 'events') {
         return { success: true, data: { count: 0, events: [] } };
       }
-      if (req.api === 'ai' && req.operation === 'complete') {
-        return {
-          success: true,
-          data: {
-            text: '```json\n{"intro":"Your calendar is clear.","card_title":"Calendar","card_subtitle":"Upcoming schedule","badge":"CLEAR","empty_text":"No upcoming events found.","all_day":"All day","btn_refresh":"Refresh"}\n```',
-          },
-        };
-      }
       throw new Error('Unexpected call');
     });
-    assert(out.type === 'ui' && out.ui.badgeColor === 'blue' && out.ui.icon === 'info', 'Empty calendar blue info card');
-    assert(out.ui.elements[0].type === 'text' && out.ui.elements[0].content === 'No upcoming events found.', 'AI empty text');
+    assert(out.type === 'ui' && out.ui.badgeColor === 'blue' && out.ui.badge === 'EMPTY', 'Empty calendar blue info card');
+    assert(out.ui.elements[0].content === 'No upcoming events scheduled.', 'English empty text');
+    assert(out.ui.elements[2].buttons[0].label === 'Refresh', 'Refresh button');
   }
 
-  // Test 3: First-message create via marketplace_plugin.dart lowercased JSON + first-attempt retry + description preserved
+  // Test 3: First-message create via lowercased JSON + retry -> 0 AI calls, English Flutter UI card
   {
     const calls = [];
     let createAttempt = 0;
@@ -2633,11 +2355,9 @@ async function runTests() {
       if (req.api === 'calendar' && req.operation === 'create') {
         createAttempt++;
         if (createAttempt === 1) {
-          // Simulate Android CalendarProvider transient glitch on first run right after OS permission
-          return { success: false, error: 'Error al guardar evento en calendario: transient sync' };
+          return { success: false, error: 'Transient sync error' };
         }
-        assert(req.payload.startDate === '2026-11-19T15:30:00', 'CamelCase startDate restored');
-        assert(req.payload.endDate === '2026-11-19T16:15:00', 'CamelCase endDate restored');
+        assert(req.payload.startDate === '2026-11-19T15:30:00' && req.payload.endDate === '2026-11-19T16:15:00', 'CamelCase dates restored');
         assert(req.payload.durationMinutes === 45 && typeof req.payload.durationMinutes === 'number', 'Integer durationMinutes');
         assert(req.payload.description === 'Sala 4\nZoom', 'Description passed');
         return {
@@ -2652,157 +2372,95 @@ async function runTests() {
           },
         };
       }
-      if (req.api === 'ai' && req.operation === 'complete') {
-        assert(req.payload.prompt.includes('Sala 4'), 'AI prompt includes retained description');
-        return {
-          success: true,
-          data: {
-            text: JSON.stringify({
-              intro: 'Listo, agregué tu evento al calendario.',
-              card_title: 'Evento Agendado',
-              card_subtitle: 'Guardado en el dispositivo',
-              badge: 'AGREGADO',
-              lbl_title: 'Título',
-              lbl_date: 'Fecha',
-              lbl_time: 'Horario',
-              lbl_desc: 'Descripción',
-              btn_view: 'Ver Calendario',
-            }),
-          },
-        };
-      }
-      throw new Error('Unexpected call: ' + JSON.stringify(req));
+      throw new Error('Unexpected call (must NOT call AI): ' + JSON.stringify(req));
     });
-    assert(calls.length === 4, 'Expected calendars -> create (fail) -> create (retry ok) -> ai.complete');
+    assert(calls.length === 3, 'Expected calendars -> create (fail) -> create (retry ok), 0 AI calls');
     assert(calls[1].payload.calendarId === 'cal_main', 'Writable default calendarId resolved');
-    assert(out.type === 'ui' && out.ui.icon === 'check' && out.ui.badgeColor === 'green', 'Expected green check card');
+    assert(out.type === 'ui' && out.ui.title === 'Event Scheduled' && out.ui.badge === 'CREATED', 'English Event Scheduled card');
     const kv = out.ui.elements[0].items;
-    assert(kv.length === 4, 'Expected 4 KV rows (title, date, time, description)');
-    assert(kv[0].value === 'Reunión "Alpha" \\ Demo', 'Special chars preserved in title');
-    assert(kv[1].value === '2026-11-19' && kv[2].value === '15:30 - 16:15', 'Date and time range formatted');
-    assert(kv[3].key === 'Descripción' && kv[3].value === 'Sala 4\nZoom', 'Description displayed in Flutter card');
+    assert(kv.length === 4 && kv[0].key === 'Title' && kv[1].key === 'Date' && kv[2].key === 'Time' && kv[3].key === 'Description', '4 English KV labels');
+    assert(kv[0].value === 'Reunión "Alpha" \\ Demo' && kv[1].value === '2026-11-19' && kv[2].value === '15:30 - 16:15' && kv[3].value === 'Sala 4\nZoom', 'Event values preserved');
+    assert(out.ui.elements[2].buttons[0].label === 'View Events' && out.ui.elements[2].buttons[0].value === '/calendar', 'Button label is View Events');
   }
 
-  // Test 4: No false-positive created card when Host API returns permission/create error
+  // Test 4: Permission error on create -> 0 AI calls, red English error card with "Retry"
   {
     const out = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'create', payload: { title: 'Test', lang: 'es' } }),
       async (req) => {
         if (req.api === 'calendar' && req.operation === 'calendars') {
-          return { success: false, error: 'Permiso denegado: calendar.create requerido' };
-        }
-        if (req.api === 'ai' && req.operation === 'complete') {
-          return {
-            success: true,
-            data: {
-              text: JSON.stringify({
-                intro: 'No se pudo agregar porque falta el permiso de calendario.',
-                card_title: 'Error de Calendario',
-                card_subtitle: 'Permiso requerido',
-                badge: 'ERROR',
-                err_text: 'Otorga el permiso de calendario en tu dispositivo e inténtalo de nuevo.',
-                btn_view: 'Reintentar',
-              }),
-            },
-          };
+          return { success: false, error: 'Permission denied: calendar.create required' };
         }
         throw new Error('Unexpected call on permission denied: ' + JSON.stringify(req));
       }
     );
-    assert(out.type === 'ui' && out.ui.icon === 'error' && out.ui.badgeColor === 'red', 'Error card on failure, no false positive');
+    assert(out.type === 'ui' && out.ui.icon === 'error' && out.ui.badgeColor === 'red' && out.ui.title === 'Calendar Error', 'Red English error card');
+    assert(out.ui.elements[2].buttons[0].label === 'Retry', 'Retry button');
   }
 
-  // Test 5: Update & Delete & Help & AI failure fallback
+  // Test 5: Conversational JSON events/update/delete/missing_title -> compact JSON (NO Flutter UI, 0 AI calls!)
   {
+    const outEvents = await execPlugin(
+      JSON.stringify({ api: 'calendar', operation: 'events', payload: { startdate: '2026-11-26T00:00:00', enddate: '2026-11-27T23:59:59', lang: 'es' } }),
+      async (req) => {
+        assert(req.api === 'calendar' && req.operation === 'events', 'Only calls calendar.events');
+        assert(req.payload.startDate === '2026-11-26T00:00:00' && req.payload.endDate === '2026-11-27T23:59:59', 'CamelCase bounds');
+        return { success: true, data: { count: 1, events: [{ id: 'p1', calendarId: 'c1', title: 'Meeting', start: '2026-11-26T10:00:00', end: '2026-11-26T11:00:00', allDay: false, description: 'Room B' }] } };
+      }
+    );
+    assert(outEvents.type === undefined && outEvents.ok === true && outEvents.count === 1 && outEvents.events[0].title === 'Meeting', 'Conversational events returns compact JSON for natural-language AI');
+
     const outUpd = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'update', payload: { eventid: 'e1', calendarid: 'c1', title: 'Updated', lang: 'fr' } }),
       async (req) => {
-        if (req.api === 'calendar' && req.operation === 'update') {
-          assert(req.payload.eventId === 'e1' && req.payload.calendarId === 'c1', 'Update camelCase IDs');
-          return { success: true, data: { updated: true, eventId: 'e1' } };
-        }
-        if (req.api === 'ai') {
-          return { success: true, data: { text: JSON.stringify({ intro: 'Événement mis à jour.', card_title: 'Mis à jour', card_subtitle: 'Calendrier', badge: 'OK', lbl_status: 'Statut', val_status: 'Modifié', lbl_id: 'ID', btn_view: 'Voir' }) } };
-        }
-        throw new Error('Unexpected update call');
+        assert(req.api === 'calendar' && req.operation === 'update' && req.payload.eventId === 'e1' && req.payload.calendarId === 'c1', 'Update camelCase IDs');
+        return { success: true, data: { updated: true, eventId: 'e1' } };
       }
     );
-    assert(outUpd.type === 'ui' && outUpd.ui.icon === 'check', 'Update UI card');
+    assert(outUpd.type === undefined && outUpd.ok === true && outUpd.action === 'update' && outUpd.eventId === 'e1', 'Update returns compact JSON');
 
+    const outDel = await execPlugin(
+      JSON.stringify({ api: 'calendar', operation: 'delete', payload: { eventid: 'ev-9', calendarid: 'cal-1', lang: 'es' } }),
+      async (req) => {
+        assert(req.api === 'calendar' && req.operation === 'delete' && req.payload.eventId === 'ev-9' && req.payload.calendarId === 'cal-1', 'Delete camelCase IDs');
+        return { success: true, data: { deleted: true } };
+      }
+    );
+    assert(outDel.type === undefined && outDel.ok === true && outDel.action === 'delete' && outDel.eventId === 'ev-9', 'Delete returns compact JSON');
+
+    const outMiss = await execPlugin(
+      JSON.stringify({ api: 'calendar', operation: 'create', payload: { startdate: '2026-11-26T09:00:00', lang: 'en' } }),
+      async () => { throw new Error('missing_title in JSON mode must make 0 host calls'); }
+    );
+    assert(outMiss.ok === false && outMiss.reason === 'missing_title', 'missing_title returns compact JSON');
+  }
+
+  // Test 6: Direct /calendar help (AI + offline English fallback) + pipe-format create + operation:"inbox" routing
+  {
     const outHelp = await execPlugin('help lang=de', async (req) => {
-      assert(req.api === 'ai' && req.payload.systemPrompt.includes('"de"'), 'Help passes de lang');
+      assert(req.api === 'ai' && req.payload.systemPrompt.includes('"de"'), 'Direct help passes lang');
       return { success: true, data: { text: 'So nutzt du den Kalender in Chattree...' } };
     });
     assert(outHelp.type === 'direct' && outHelp.displayText.includes('Kalender'), 'Help direct AI text');
 
-    // AI offline fallback for create
-    const outFallback = await execPlugin('Dentista | 2026-11-25T10:00:00 | 2026-11-25T11:00:00 | Revisión lang=es', async (req) => {
+    const outHelpFb = await execPlugin('help lang=en', async () => ({ success: false, error: 'Offline' }));
+    assert(outHelpFb.type === 'direct' && outHelpFb.displayText.includes('Use /calendar'), 'English offline help fallback');
+
+    const outPipe = await execPlugin('Dentist | 2026-11-25T10:00:00 | 2026-11-25T11:00:00 | Checkup lang=es', async (req) => {
       if (req.operation === 'calendars') return { success: true, data: { calendars: [{ id: 'c1', isReadOnly: false, isDefault: true }] } };
-      if (req.operation === 'create') return { success: true, data: { created: true, title: 'Dentista', start: '2026-11-25T10:00:00', end: '2026-11-25T11:00:00' } };
-      return { success: false, error: 'No AI model loaded' };
+      if (req.operation === 'create') return { success: true, data: { created: true, title: 'Dentist', start: '2026-11-25T10:00:00', end: '2026-11-25T11:00:00' } };
+      throw new Error('Unexpected pipe call');
     });
-    assert(outFallback.type === 'ui' && outFallback.ui.icon === 'check' && outFallback.ui.elements[0].items.length === 4, 'AI fallback renders clean UI card');
-  }
+    assert(outPipe.type === 'ui' && outPipe.ui.title === 'Event Scheduled' && outPipe.ui.elements[0].items.length === 4, 'Pipe create renders instant Flutter UI card');
 
-  // Test 6: Delete + missing_title + events startdate/enddate + operation:"inbox" routing
-  {
-    const outDel = await execPlugin(
-      JSON.stringify({ api: 'calendar', operation: 'delete', payload: { eventid: 'ev-9', calendarid: 'cal-1', lang: 'es' } }),
-      async (req) => {
-        if (req.api === 'calendar' && req.operation === 'delete') {
-          assert(req.payload.eventId === 'ev-9' && req.payload.calendarId === 'cal-1', 'Delete camelCase IDs');
-          return { success: true, data: { deleted: true } };
-        }
-        if (req.api === 'ai' && req.operation === 'complete') {
-          return { success: true, data: { text: JSON.stringify({ intro: 'Evento eliminado.', card_title: 'Evento eliminado', card_subtitle: 'Calendario', badge: 'ELIMINADO', lbl_status: 'Estado', val_status: 'Eliminado', lbl_id: 'ID', btn_view: 'Ver eventos' }) } };
-        }
-        throw new Error('Unexpected delete call: ' + JSON.stringify(req));
-      }
-    );
-    assert(outDel.type === 'ui' && outDel.ui.icon === 'check' && outDel.ui.badge === 'ELIMINADO', 'Delete UI card');
-
-    const missCalls = [];
-    const outMiss = await execPlugin(
-      JSON.stringify({ api: 'calendar', operation: 'create', payload: { startdate: '2026-11-26T09:00:00', lang: 'en' } }),
-      async (req) => {
-        missCalls.push(req);
-        assert(req.api === 'ai' && req.operation === 'complete', 'missing_title only calls ai.complete');
-        assert(req.payload.prompt.includes('missing_title'), 'Passes missing_title reason to AI');
-        return { success: true, data: { text: 'Please tell me the event title so I can schedule it.' } };
-      }
-    );
-    assert(missCalls.length === 1 && outMiss.type === 'direct' && outMiss.displayText.includes('title'), 'missing_title returns direct AI explanation');
-
-    const outEvents = await execPlugin(
-      JSON.stringify({ api: 'calendar', operation: 'events', payload: { startdate: '2026-11-26T00:00:00', enddate: '2026-11-27T23:59:59', lang: 'es' } }),
-      async (req) => {
-        if (req.api === 'calendar' && req.operation === 'events') {
-          assert(req.payload.startDate === '2026-11-26T00:00:00' && req.payload.endDate === '2026-11-27T23:59:59', 'Lowercased startdate/enddate remapped to camelCase');
-          return { success: true, data: { count: 0, events: [] } };
-        }
-        if (req.api === 'ai' && req.operation === 'complete') {
-          return { success: true, data: { text: JSON.stringify({ intro: 'Sin eventos.', card_title: 'Agenda', card_subtitle: '0 eventos', badge: '0', empty_msg: 'No hay eventos en ese rango.', btn_view: 'Actualizar' }) } };
-        }
-        throw new Error('Unexpected events call: ' + JSON.stringify(req));
-      }
-    );
-    assert(outEvents.type === 'ui' && outEvents.ui.badge === '0', 'Events startdate/enddate UI card');
-
-    const inboxOps = [];
     const outInbox = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'inbox', payload: { lang: 'pt' } }),
       async (req) => {
-        inboxOps.push(req.api + '.' + req.operation);
-        if (req.api === 'calendar' && req.operation === 'events') {
-          return { success: true, data: { count: 1, events: [{ id: 'p1', calendarId: 'c1', title: 'Reunião', start: '2026-11-28T10:00:00', end: '2026-11-28T11:00:00', allDay: false, description: '' }] } };
-        }
-        if (req.api === 'ai' && req.operation === 'complete') {
-          return { success: true, data: { text: JSON.stringify({ intro: 'Aqui estão os teus eventos.', card_title: 'Calendário', card_subtitle: '1 evento', badge: '1', btn_view: 'Atualizar' }) } };
-        }
-        throw new Error('Unexpected inbox routing call: ' + JSON.stringify(req));
+        assert(req.api === 'calendar' && req.operation === 'events', 'operation:inbox routes to calendar.events');
+        return { success: true, data: { count: 0, events: [] } };
       }
     );
-    assert(inboxOps[0] === 'calendar.events' && outInbox.type === 'ui' && outInbox.ui.elements[0].items.length === 1, 'operation:inbox routes to calendar.events');
+    assert(outInbox.ok === true && outInbox.count === 0, 'operation:inbox returns compact JSON');
   }
 
   console.log('ALL CALENDAR WASM TESTS PASSED (6/6 suites)!');

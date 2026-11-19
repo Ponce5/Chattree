@@ -119,36 +119,9 @@ S.k_date = registerData('k_date', 'date');
 S.k_unread = registerData('k_unread', 'unread');
 S.k_snippet = registerData('k_snippet', 'snippet');
 
-// AI JSON output keys
-S.ak_intro = registerData('ak_intro', 'intro');
-S.ak_ct = registerData('ak_ct', 'card_title');
-S.ak_cs = registerData('ak_cs', 'card_subtitle');
-S.ak_badge = registerData('ak_badge', 'badge');
-S.ak_guide = registerData('ak_guide', 'guide');
-S.ak_ls = registerData('ak_ls', 'lbl_status');
-S.ak_vs = registerData('ak_vs', 'val_status');
-S.ak_la = registerData('ak_la', 'lbl_account');
-S.ak_li = registerData('ak_li', 'lbl_imap');
-S.ak_lsmtp = registerData('ak_lsmtp', 'lbl_smtp');
-S.ak_lu = registerData('ak_lu', 'lbl_unread');
-S.ak_lp = registerData('ak_lp', 'lbl_provider');
-S.ak_lc = registerData('ak_lc', 'lbl_cmd');
-S.ak_lf = registerData('ak_lf', 'lbl_from');
-S.ak_lt = registerData('ak_lt', 'lbl_to');
-S.ak_lsub = registerData('ak_lsub', 'lbl_subject');
-S.ak_ld = registerData('ak_ld', 'lbl_date');
-S.ak_empty = registerData('ak_empty', 'empty_text');
-S.ak_utag = registerData('ak_utag', 'unread_tag');
-S.ak_b1 = registerData('ak_b1', 'btn_1');
-S.ak_b2 = registerData('ak_b2', 'btn_2');
-S.ak_b3 = registerData('ak_b3', 'btn_3');
-S.ak_err = registerData('ak_err', 'err_text');
-
-// Defaults & tokens
+// English UI & predefined strings (zero raw commands on button labels!)
 S.def_en = registerData('def_en', 'en');
 S.def_gmail = registerData('def_gmail', 'Gmail');
-S.def_ok = registerData('def_ok', 'OK');
-S.def_err = registerData('def_err', 'ERR');
 S.def_true = registerData('def_true', 'true');
 S.def_false = registerData('def_false', 'false');
 S.def_imap_def = registerData('def_imap_def', 'imap.gmail.com');
@@ -159,11 +132,49 @@ S.def_cmd_gmail = registerData('def_cmd_gmail', '/gmail');
 S.def_cmd_inbox = registerData('def_cmd_inbox', '/gmail inbox');
 S.def_cmd_help = registerData('def_cmd_help', '/gmail help');
 S.def_cmd_disc = registerData('def_cmd_disc', '/gmail disconnect');
-S.def_dot = registerData('def_dot', ' \u2022 ');
 S.def_colon = registerData('def_colon', ':');
-S.def_lbr = registerData('def_lbr', '[');
-S.def_rbr = registerData('def_rbr', '] ');
-S.def_star = registerData('def_star', '\u25cf ');
+S.def_nl = registerData('def_nl', '\n');
+
+// English UI Card labels & button action labels
+S.en_btn_inbox = registerData('en_btn_inbox', 'View Inbox');
+S.en_btn_status = registerData('en_btn_status', 'Check Status');
+S.en_btn_help = registerData('en_btn_help', 'Help');
+S.en_btn_disc = registerData('en_btn_disc', 'Disconnect');
+S.en_btn_retry = registerData('en_btn_retry', 'Retry');
+
+S.en_setup_title = registerData('en_setup_title', 'Gmail Setup');
+S.en_setup_sub = registerData('en_setup_sub', 'Account not connected');
+S.en_setup_badge = registerData('en_setup_badge', 'NOT CONFIGURED');
+S.en_setup_guide = registerData('en_setup_guide', 'Enable 2-Step Verification at myaccount.google.com/security, generate a 16-letter App Password, and run: /gmail config user@gmail.com abcd efgh ijkl mnop');
+S.en_status_title = registerData('en_status_title', 'Gmail Status');
+S.en_conn_badge = registerData('en_conn_badge', 'CONNECTED');
+S.en_verified_val = registerData('en_verified_val', 'Verified (IMAP & SMTP)');
+S.en_err_title = registerData('en_err_title', 'Connection Error');
+S.en_auth_badge = registerData('en_auth_badge', 'AUTH FAILED');
+S.en_auth_fb = registerData('en_auth_fb', 'Saved credentials failed IMAP verification. Generate a new 16-letter Google App Password and run /gmail config.');
+S.en_cfg_ok_title = registerData('en_cfg_ok_title', 'Gmail Connected');
+S.en_cfg_fail_title = registerData('en_cfg_fail_title', 'Connection Failed');
+S.en_err_badge = registerData('en_err_badge', 'ERROR');
+S.en_lbl_status = registerData('en_lbl_status', 'Status');
+S.en_lbl_account = registerData('en_lbl_account', 'Account');
+S.en_lbl_provider = registerData('en_lbl_provider', 'Provider');
+S.en_lbl_imap = registerData('en_lbl_imap', 'IMAP');
+S.en_lbl_smtp = registerData('en_lbl_smtp', 'SMTP');
+S.en_lbl_unread = registerData('en_lbl_unread', 'Unread');
+S.en_lbl_cmd = registerData('en_lbl_cmd', 'Command');
+S.en_val_uncfg = registerData('en_val_uncfg', 'Not configured');
+S.en_val_verified = registerData('en_val_verified', 'Verified');
+S.en_err_generic = registerData('en_err_generic', 'Gmail operation failed. Check your connection and credentials.');
+S.en_help_fb = registerData('en_help_fb', 'Gmail commands: /gmail (check status), /gmail config <email> <16-letter App Password>, /gmail inbox, /gmail read <id>, /gmail send <to> | <subject> | <body>, /gmail disconnect.');
+S.en_inb_empty = registerData('en_inb_empty', 'Your inbox is empty.');
+S.en_inb_hdr = registerData('en_inb_hdr', 'Recent emails:\n');
+S.en_sent_ok = registerData('en_sent_ok', 'Email sent successfully.');
+S.en_disc_ok = registerData('en_disc_ok', 'Gmail account disconnected.');
+S.en_hdr_from = registerData('en_hdr_from', 'From: ');
+S.en_hdr_to = registerData('en_hdr_to', '\nTo: ');
+S.en_hdr_subj = registerData('en_hdr_subj', '\nSubject: ');
+S.en_hdr_date = registerData('en_hdr_date', '\nDate: ');
+S.en_hdr_body = registerData('en_hdr_body', '\n\n');
 
 // Reasons for help / missing args
 S.r_help = registerData('r_help', 'help');
@@ -189,109 +200,31 @@ S.jf_smtpp = registerData('jf_smtpp', '"smtpPort":"');
 S.jf_subj = registerData('jf_subj', '"subject":"');
 S.jf_body = registerData('jf_body', '"body":"');
 
-// AI Request JSON fragments
-S.ai_req_p1 = registerData(
-  'ai_req_p1',
-  '{"api":"ai","operation":"complete","payload":{"systemPrompt":"You are Chattree Gmail assistant. Write natural, accurate text strictly in language code \\"'
-);
-S.ai_req_p2 = registerData(
-  'ai_req_p2',
-  '\\". When JSON is requested, output ONLY one valid flat JSON object with the exact requested keys and plain-text values (no markdown *, #, backticks, or emojis). Never invent data or credentials not in DATA.","prompt":"'
-);
-S.ai_req_p3 = registerData('ai_req_p3', '","maxTokens":420,"temperature":0.2,"timeoutMs":18000}}');
+// Ultra-compact AI templates (ONLY used for direct slash/button natural-text commands)
+S.ai_txt_p1 = registerData('ai_txt_p1', '{"api":"ai","operation":"complete","payload":{"systemPrompt":"Reply concisely in language \\"');
+S.ai_txt_p2 = registerData('ai_txt_p2', '\\". Natural plain text only.","prompt":"');
+S.ai_txt_p3 = registerData('ai_txt_p3', '","maxTokens":220,"temperature":0.2,"timeoutMs":15000}}');
 
-S.ai_sys_help_p1 = registerData(
-  'ai_sys_help_p1',
-  '{"api":"ai","operation":"complete","payload":{"systemPrompt":"You are Chattree Gmail assistant. Reply strictly in language code \\"'
-);
-S.ai_sys_help_p2 = registerData(
-  'ai_sys_help_p2',
-  '\\". Never use hardcoded fixed text; explain clearly and naturally in the user language.","prompt":"'
-);
+S.p_inb_ask = registerData('p_inb_ask', 'Summarize these inbox emails concisely (include [id] so user can read any): ');
+S.p_sd_ask = registerData('p_sd_ask', 'Confirm briefly that email was sent or explain error. ok=');
+S.p_dc_ask = registerData('p_dc_ask', 'Confirm briefly that Gmail was disconnected or explain error. ok=');
+S.p_help_ask = registerData('p_help_ask', 'Explain briefly how to set up a Google 16-letter App Password and use /gmail config, /gmail, /gmail inbox, /gmail read <id>, /gmail send, /gmail disconnect. Reason: ');
+S.p_to_k = registerData('p_to_k', ' to=');
+S.p_sub_k = registerData('p_sub_k', ' subject=');
+S.p_err_k = registerData('p_err_k', ' error=');
 
-// AI Prompts
-S.p_st_hdr = registerData('p_st_hdr', 'DATA:\nop=gmail_status\nconfigured=');
-S.p_verified = registerData('p_verified', '\nimap_verified=');
-S.p_account = registerData('p_account', '\naccount=');
-S.p_imap = registerData('p_imap', '\nimap=');
-S.p_smtp = registerData('p_smtp', '\nsmtp=');
-S.p_unread = registerData('p_unread', '\nunread_count=');
-S.p_total = registerData('p_total', '\ntotal_count=');
-S.p_err = registerData('p_err', '\nerror=');
-S.p_st_ask_uncfg = registerData(
-  'p_st_ask_uncfg',
-  '\nReturn ONLY JSON with keys: intro (1 friendly sentence explaining Gmail is not configured yet), card_title, card_subtitle, badge, lbl_status, val_status, lbl_cmd, guide (concise step-by-step setup guide: enable Google 2-Step Verification, generate a 16-char App Password at myaccount.google.com/security, run /gmail config <email> <16-char-password>), btn_1 (label for Help).'
-);
-S.p_st_ask_ok = registerData(
-  'p_st_ask_ok',
-  '\nReturn ONLY JSON with keys: intro (1 sentence confirming Gmail is connected and IMAP verified), card_title, card_subtitle, badge, lbl_status, val_status, lbl_account, lbl_imap, lbl_smtp, lbl_unread, btn_1 (Inbox), btn_2 (Help), btn_3 (Disconnect).'
-);
-S.p_st_ask_err = registerData(
-  'p_st_ask_err',
-  '\nReturn ONLY JSON with keys: intro (1 sentence explaining saved credentials failed IMAP check), card_title, card_subtitle, badge, lbl_status, val_status, lbl_account, lbl_imap, err_text (clear advice to verify App Password and re-run /gmail config), btn_1 (Retry), btn_2 (Disconnect).'
-);
-
-S.p_cfg_hdr = registerData('p_cfg_hdr', 'DATA:\nop=gmail_config\nsuccess=');
-S.p_prov = registerData('p_prov', '\nprovider=');
-S.p_cfg_ask = registerData(
-  'p_cfg_ask',
-  '\nReturn ONLY JSON with keys: intro (1 sentence), card_title, card_subtitle, badge, lbl_account, lbl_provider, lbl_status, val_status, err_text (if failed, explain Google App Password / IMAP auth fix), btn_1 (Inbox if ok, Help if failed), btn_2 (Status if ok).'
-);
-
-S.p_inb_hdr = registerData('p_inb_hdr', 'DATA:\nop=gmail_inbox\nsuccess=');
-S.p_preview = registerData('p_preview', '\nemails=');
-S.p_inb_ask = registerData(
-  'p_inb_ask',
-  '\nReturn ONLY JSON with keys: intro (1 concise summary sentence mentioning unread count or highlights), card_title, card_subtitle, badge, empty_text, unread_tag (short word like UNREAD), btn_1 (Refresh), btn_2 (Status), err_text.'
-);
-
-S.p_rd_hdr = registerData('p_rd_hdr', 'DATA:\nop=gmail_read\nsuccess=');
-S.p_from = registerData('p_from', '\nfrom=');
-S.p_to = registerData('p_to', '\nto=');
-S.p_subj = registerData('p_subj', '\nsubject=');
-S.p_date = registerData('p_date', '\ndate=');
-S.p_body = registerData('p_body', '\nbody_preview=');
-S.p_rd_ask = registerData(
-  'p_rd_ask',
-  '\nReturn ONLY JSON with keys: intro (1 concise summary sentence of the email), card_title, card_subtitle, badge, lbl_from, lbl_to, lbl_subject, lbl_date, btn_1 (Inbox), err_text.'
-);
-
-S.p_sd_hdr = registerData('p_sd_hdr', 'DATA:\nop=gmail_send\nsuccess=');
-S.p_sd_ask = registerData(
-  'p_sd_ask',
-  '\nReturn ONLY JSON with keys: intro (1 sentence), card_title, card_subtitle, badge, lbl_to, lbl_subject, lbl_status, val_status, err_text, btn_1 (Inbox).'
-);
-
-S.p_dc_hdr = registerData('p_dc_hdr', 'DATA:\nop=gmail_disconnect\nsuccess=');
-S.p_dc_ask = registerData(
-  'p_dc_ask',
-  '\nReturn ONLY JSON with keys: intro (1 sentence), card_title, card_subtitle, badge, lbl_status, val_status, err_text, btn_1 (Status).'
-);
-
-S.p_help_1 = registerData('p_help_1', 'Reason: ');
-S.p_help_2 = registerData(
-  'p_help_2',
-  '. Explain clearly in the user language how to set up and use Gmail in Chattree: (1) Enable Google 2-Step Verification at myaccount.google.com/security and create a 16-letter App Password; (2) Connect using /gmail config <email> <app_password> (works with 4 space-separated groups like abcd efgh ijkl mnop); (3) Check connection status anytime by typing /gmail alone; (4) Read inbox with /gmail inbox or natural language, open an email with /gmail read <id>, send with /gmail send <to> | <subject> | <body> or natural language, and unlink with /gmail disconnect. If Reason is missing_config, missing_id, or missing_send, clearly explain which parameters were missing and show an example.'
-);
-
-// UI Card JSON Output Templates
+// UI Card JSON Output Templates (hideText:true for clean English cards)
 S.ui_p1 = registerData('ui_p1', '{"type":"ui","displayText":"');
 S.ui_p2 = registerData('ui_p2', '","ui":{"title":"');
 S.ui_sub = registerData('ui_sub', '","subtitle":"');
 S.ui_badge = registerData('ui_badge', '","badge":"');
-S.ui_bc_green = registerData('ui_bc_green', '","badgeColor":"green","icon":"check","hideText":false,"elements":[');
-S.ui_bc_orange = registerData('ui_bc_orange', '","badgeColor":"orange","icon":"warning","hideText":false,"elements":[');
-S.ui_bc_red = registerData('ui_bc_red', '","badgeColor":"red","icon":"error","hideText":false,"elements":[');
-S.ui_bc_blue = registerData('ui_bc_blue', '","badgeColor":"blue","icon":"info","hideText":false,"elements":[');
-S.ui_bc_msg = registerData('ui_bc_msg', '","badgeColor":"green","icon":"message","hideText":false,"elements":[');
+S.ui_bc_green = registerData('ui_bc_green', '","badgeColor":"green","icon":"check","hideText":true,"elements":[');
+S.ui_bc_orange = registerData('ui_bc_orange', '","badgeColor":"orange","icon":"warning","hideText":true,"elements":[');
+S.ui_bc_red = registerData('ui_bc_red', '","badgeColor":"red","icon":"error","hideText":true,"elements":[');
 S.ui_kv_start = registerData('ui_kv_start', '{"type":"key_value","items":[');
 S.ui_kv_item1 = registerData('ui_kv_item1', '{"key":"');
 S.ui_kv_item2 = registerData('ui_kv_item2', '","value":"');
 S.ui_kv_item3 = registerData('ui_kv_item3', '"}');
-S.ui_list_start = registerData('ui_list_start', '{"type":"list","items":[');
-S.ui_list_item1 = registerData('ui_list_item1', '{"title":"');
-S.ui_list_item2 = registerData('ui_list_item2', '","subtitle":"');
-S.ui_list_item3 = registerData('ui_list_item3', '"}');
 S.ui_text_start = registerData('ui_text_start', '{"type":"text","content":"');
 S.ui_text_end = registerData('ui_text_end', '"}');
 S.ui_arr_end = registerData('ui_arr_end', ']}');
@@ -306,12 +239,38 @@ S.ui_close = registerData('ui_close', ']}}');
 S.direct_p1 = registerData('direct_p1', '{"type":"direct","displayText":"');
 S.direct_p2 = registerData('direct_p2', '"}');
 
+// Compact JSON Output Templates (Conversational AI mode, 0 extra LLM calls)
+S.j_err1 = registerData('j_err1', '{"ok":false,"error":"');
+S.j_inb1 = registerData('j_inb1', '{"ok":true,"account":"');
+S.j_inb2 = registerData('j_inb2', '","unread":');
+S.j_inb3 = registerData('j_inb3', ',"total":');
+S.j_inb4 = registerData('j_inb4', ',"emails":[');
+S.j_em1 = registerData('j_em1', '{"id":"');
+S.j_em2 = registerData('j_em2', '","from":"');
+S.j_em3 = registerData('j_em3', '","subject":"');
+S.j_em4 = registerData('j_em4', '","date":"');
+S.j_em5 = registerData('j_em5', '","unread":');
+S.j_em6 = registerData('j_em6', ',"snippet":"');
+S.j_em7 = registerData('j_em7', '"}');
+S.j_arr_end = registerData('j_arr_end', ']}');
+S.j_rd1 = registerData('j_rd1', '{"ok":true,"id":"');
+S.j_rd2 = registerData('j_rd2', '","from":"');
+S.j_rd3 = registerData('j_rd3', '","to":"');
+S.j_rd4 = registerData('j_rd4', '","subject":"');
+S.j_rd5 = registerData('j_rd5', '","date":"');
+S.j_rd6 = registerData('j_rd6', '","body":"');
+S.j_sd1 = registerData('j_sd1', '{"ok":true,"sent":true,"to":"');
+S.j_sd2 = registerData('j_sd2', '","subject":"');
+S.j_dc_ok = registerData('j_dc_ok', '{"ok":true,"disconnected":true}');
+S.j_help_r1 = registerData('j_help_r1', '{"ok":false,"reason":"');
+S.j_help_ok = registerData('j_help_ok', '{"ok":true,"action":"help","commands":["/gmail","/gmail config <email> <app_password>","/gmail inbox","/gmail read <id>","/gmail send <to> | <subject> | <body>","/gmail disconnect"]}');
+
 const dataLines = dataEntries
   .map((e) => `  (data (i32.const ${e.offset}) "${e.escaped}") ;; ${e.name} (len=${e.strLen})`)
   .join('\n');
 
-const wat = `;; Chattree Official Gmail Plugin (v2.3.0)
-;; Multilingual AI + Live Status Flutter UI + Native IMAP/SMTP Host API ('email' namespace)
+const wat = `;; Chattree Official Gmail Plugin (v2.4.0)
+;; Token-Optimized English Flutter Status/Config UI + Natural-Language Inbox/Read/Send
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -330,6 +289,7 @@ ${dataLines}
   (global $g_verified (mut i32) (i32.const 0))
   (global $g_unread_cnt (mut i32) (i32.const 0))
   (global $g_total_cnt (mut i32) (i32.const 0))
+  (global $g_is_json (mut i32) (i32.const 0))
 
   (global $lang_len (mut i32) (i32.const 0))
   (global $act_len (mut i32) (i32.const 0))
@@ -351,33 +311,8 @@ ${dataLines}
   (global $sp_len (mut i32) (i32.const 0))
   (global $prov_len (mut i32) (i32.const 0))
   (global $err_len (mut i32) (i32.const 0))
-  (global $reason_len (mut i32) (i32.const 0))
   (global $saved_res_len (mut i32) (i32.const 0))
-
   (global $ai_text_len (mut i32) (i32.const 0))
-  (global $ai_intro_len (mut i32) (i32.const 0))
-  (global $ai_ct_len (mut i32) (i32.const 0))
-  (global $ai_cs_len (mut i32) (i32.const 0))
-  (global $ai_badge_len (mut i32) (i32.const 0))
-  (global $ai_guide_len (mut i32) (i32.const 0))
-  (global $ai_ls_len (mut i32) (i32.const 0))
-  (global $ai_vs_len (mut i32) (i32.const 0))
-  (global $ai_la_len (mut i32) (i32.const 0))
-  (global $ai_li_len (mut i32) (i32.const 0))
-  (global $ai_lsmtp_len (mut i32) (i32.const 0))
-  (global $ai_lu_len (mut i32) (i32.const 0))
-  (global $ai_lp_len (mut i32) (i32.const 0))
-  (global $ai_lc_len (mut i32) (i32.const 0))
-  (global $ai_lf_len (mut i32) (i32.const 0))
-  (global $ai_lt_len (mut i32) (i32.const 0))
-  (global $ai_lsub_len (mut i32) (i32.const 0))
-  (global $ai_ld_len (mut i32) (i32.const 0))
-  (global $ai_empty_len (mut i32) (i32.const 0))
-  (global $ai_utag_len (mut i32) (i32.const 0))
-  (global $ai_b1_len (mut i32) (i32.const 0))
-  (global $ai_b2_len (mut i32) (i32.const 0))
-  (global $ai_b3_len (mut i32) (i32.const 0))
-  (global $ai_err_len (mut i32) (i32.const 0))
 
   (global $arr_cursor (mut i32) (i32.const 0))
   (global $arr_obj_start (mut i32) (i32.const 0))
@@ -1277,7 +1212,7 @@ ${dataLines}
         (global.set $g_configured (i32.const 0))
         (global.set $g_verified (i32.const 0))
         (global.set $g_op_ok (i32.const 0))
-        (return (call $call_ai_status))
+        (return (call $render_status_ui))
       )
     )
     (global.set $g_configured (i32.const 1))
@@ -1384,153 +1319,57 @@ ${dataLines}
     (call $dispatch_host (local.get $len))
   )
 
-  ;; ── AI Prompt Dispatchers ────────────────────────────────────────────
+  ;; ── Compact Direct-Mode AI Dispatchers (plain-text slash/button ONLY) ─
 
-  (func $begin_ai_json_req (result i32)
+  (func $begin_ai_txt_req (result i32)
     (local $p i32)
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p1.offset}) (i32.const 560000)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_txt_p1.offset}) (i32.const 560000)))
     (local.set $p (call $copy_json_esc (i32.const 410000) (global.get $lang_len) (local.get $p)))
-    (call $copy_zstr (i32.const ${S.ai_req_p2.offset}) (local.get $p))
+    (call $copy_zstr (i32.const ${S.ai_txt_p2.offset}) (local.get $p))
   )
 
-  (func $call_ai_status (result i32)
-    (local $p i32)
-    (global.set $g_state (i32.const 20))
-    (local.set $p (call $begin_ai_json_req))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_st_hdr.offset}) (i32.const ${S.p_st_hdr.len}) (local.get $p)))
-    (if (global.get $g_configured)
-      (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-      (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-    )
-    (if (global.get $g_configured)
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_verified.offset}) (i32.const ${S.p_verified.len}) (local.get $p)))
-        (if (global.get $g_verified)
-          (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-          (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-        )
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_account.offset}) (i32.const ${S.p_account.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 447000) (global.get $se_len) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_imap.offset}) (i32.const ${S.p_imap.len}) (local.get $p)))
-        (if (i32.gt_s (global.get $si_len) (i32.const 0))
-          (then (local.set $p (call $copy_json_esc (i32.const 447300) (global.get $si_len) (local.get $p))))
-          (else (local.set $p (call $copy_zstr (i32.const ${S.def_imap_def.offset}) (local.get $p))))
-        )
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_smtp.offset}) (i32.const ${S.p_smtp.len}) (local.get $p)))
-        (if (i32.gt_s (global.get $ss_len) (i32.const 0))
-          (then (local.set $p (call $copy_json_esc (i32.const 447600) (global.get $ss_len) (local.get $p))))
-          (else (local.set $p (call $copy_zstr (i32.const ${S.def_smtp_def.offset}) (local.get $p))))
-        )
-        (if (global.get $g_verified)
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_unread.offset}) (i32.const ${S.p_unread.len}) (local.get $p)))
-            (local.set $p (call $copy_int_str (global.get $g_unread_cnt) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_total.offset}) (i32.const ${S.p_total.len}) (local.get $p)))
-            (local.set $p (call $copy_int_str (global.get $g_total_cnt) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_st_ask_ok.offset}) (i32.const ${S.p_st_ask_ok.len}) (local.get $p)))
-          )
-          (else
-            (if (i32.gt_s (global.get $err_len) (i32.const 0))
-              (then
-                (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-                (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 400)) (local.get $p)))
-              )
-            )
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_st_ask_err.offset}) (i32.const ${S.p_st_ask_err.len}) (local.get $p)))
-          )
-        )
-      )
-      (else
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_st_ask_uncfg.offset}) (i32.const ${S.p_st_ask_uncfg.len}) (local.get $p)))
-      )
-    )
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
-    (call $dispatch_host (i32.sub (local.get $p) (i32.const 560000)))
-  )
-
-  (func $call_ai_config (result i32)
-    (local $p i32)
-    (global.set $g_state (i32.const 21))
-    (local.set $p (call $begin_ai_json_req))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_cfg_hdr.offset}) (i32.const ${S.p_cfg_hdr.len}) (local.get $p)))
-    (if (global.get $g_op_ok)
-      (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-      (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_account.offset}) (i32.const ${S.p_account.len}) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const 410150) (global.get $email_len) (local.get $p)))
-    (if (i32.gt_s (global.get $prov_len) (i32.const 0))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_prov.offset}) (i32.const ${S.p_prov.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 449200) (global.get $prov_len) (local.get $p)))
-      )
-    )
-    (if (i32.gt_s (global.get $err_len) (i32.const 0))
-      (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 400)) (local.get $p)))
-      )
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_cfg_ask.offset}) (i32.const ${S.p_cfg_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
-    (call $dispatch_host (i32.sub (local.get $p) (i32.const 560000)))
-  )
-
-  (func $call_ai_inbox (result i32)
+  (func $call_ai_inbox_direct (result i32)
     (local $p i32)
     (local $shown i32)
-    (local $fl i32)
-    (local $sl i32)
+    (local $il i32) (local $fl i32) (local $sl i32)
     (global.set $g_state (i32.const 22))
-    (local.set $p (call $begin_ai_json_req))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_inb_hdr.offset}) (i32.const ${S.p_inb_hdr.len}) (local.get $p)))
-    (if (global.get $g_op_ok)
-      (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-      (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-    )
+    (local.set $p (call $begin_ai_txt_req))
+    (local.set $p (call $copy_json_esc (i32.const ${S.p_inb_ask.offset}) (i32.const ${S.p_inb_ask.len}) (local.get $p)))
     (if (global.get $g_op_ok)
       (then
-        (if (i32.gt_s (global.get $se_len) (i32.const 0))
+        (if (call $find_array_start (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_emails.offset}))
           (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_account.offset}) (i32.const ${S.p_account.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 447000) (global.get $se_len) (local.get $p)))
-          )
-        )
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_unread.offset}) (i32.const ${S.p_unread.len}) (local.get $p)))
-        (local.set $p (call $copy_int_str (global.get $g_unread_cnt) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_total.offset}) (i32.const ${S.p_total.len}) (local.get $p)))
-        (local.set $p (call $copy_int_str (global.get $g_total_cnt) (local.get $p)))
-        (if (i32.gt_s (global.get $g_total_cnt) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_preview.offset}) (i32.const ${S.p_preview.len}) (local.get $p)))
-            (if (call $find_array_start (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_emails.offset}))
-              (then
-                (local.set $shown (i32.const 0))
-                (loop $pl
-                  (if (i32.and (i32.lt_s (local.get $shown) (i32.const 8))
-                               (call $next_array_obj (i32.const 1260000) (global.get $saved_res_len)))
+            (local.set $shown (i32.const 0))
+            (loop $pl
+              (if (i32.and (i32.lt_s (local.get $shown) (i32.const 8))
+                           (call $next_array_obj (i32.const 1260000) (global.get $saved_res_len)))
+                (then
+                  (local.set $il (call $extract_json_str_or_int (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_id.offset}) (i32.const 453200) (i32.const 40)))
+                  (local.set $fl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 64)))
+                  (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_subject.offset}) (i32.const 453700) (i32.const 80)))
+                  (if (i32.gt_s (local.get $shown) (i32.const 0)) (then (local.set $p (call $copy_zstr (i32.const ${S.jf_comma.offset}) (local.get $p)))))
+                  (if (i32.gt_s (local.get $il) (i32.const 0))
                     (then
-                      (local.set $fl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 64)))
-                      (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_subject.offset}) (i32.const 453700) (i32.const 80)))
-                      (if (i32.gt_s (local.get $shown) (i32.const 0))
-                        (then (local.set $p (call $copy_zstr (i32.const ${S.jf_comma.offset}) (local.get $p))))
-                      )
-                      (if (i32.gt_s (local.get $sl) (i32.const 0))
-                        (then (local.set $p (call $copy_json_esc (i32.const 453700) (local.get $sl) (local.get $p))))
-                      )
-                      (if (i32.gt_s (local.get $fl) (i32.const 0))
-                        (then
-                          (i32.store8 (local.get $p) (i32.const 40)) ;; '('
-                          (local.set $p (i32.add (local.get $p) (i32.const 1)))
-                          (local.set $p (call $copy_json_esc (i32.const 453400) (local.get $fl) (local.get $p)))
-                          (i32.store8 (local.get $p) (i32.const 41)) ;; ')'
-                          (local.set $p (i32.add (local.get $p) (i32.const 1)))
-                        )
-                      )
-                      (local.set $shown (i32.add (local.get $shown) (i32.const 1)))
-                      (br $pl)
+                      (i32.store8 (local.get $p) (i32.const 91))
+                      (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                      (local.set $p (call $copy_json_esc (i32.const 453200) (local.get $il) (local.get $p)))
+                      (i32.store8 (local.get $p) (i32.const 93))
+                      (i32.store8 (i32.add (local.get $p) (i32.const 1)) (i32.const 32))
+                      (local.set $p (i32.add (local.get $p) (i32.const 2)))
                     )
                   )
+                  (if (i32.gt_s (local.get $sl) (i32.const 0)) (then (local.set $p (call $copy_json_esc (i32.const 453700) (local.get $sl) (local.get $p)))))
+                  (if (i32.gt_s (local.get $fl) (i32.const 0))
+                    (then
+                      (i32.store8 (local.get $p) (i32.const 40))
+                      (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                      (local.set $p (call $copy_json_esc (i32.const 453400) (local.get $fl) (local.get $p)))
+                      (i32.store8 (local.get $p) (i32.const 41))
+                      (local.set $p (i32.add (local.get $p) (i32.const 1)))
+                    )
+                  )
+                  (local.set $shown (i32.add (local.get $shown) (i32.const 1)))
+                  (br $pl)
                 )
               )
             )
@@ -1538,200 +1377,67 @@ ${dataLines}
         )
       )
       (else
-        (if (i32.gt_s (global.get $err_len) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 400)) (local.get $p)))
-          )
-        )
+        (local.set $p (call $copy_json_esc (i32.const ${S.p_err_k.offset}) (i32.const ${S.p_err_k.len}) (local.get $p)))
+        (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 300)) (local.get $p)))
       )
     )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_inb_ask.offset}) (i32.const ${S.p_inb_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_txt_p3.offset}) (local.get $p)))
     (call $dispatch_host (i32.sub (local.get $p) (i32.const 560000)))
   )
 
-  (func $call_ai_read (result i32)
-    (local $p i32)
-    (local $fl i32) (local $tl i32) (local $sl i32) (local $dl i32) (local $bl i32)
-    (global.set $g_state (i32.const 23))
-    (local.set $p (call $begin_ai_json_req))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_rd_hdr.offset}) (i32.const ${S.p_rd_hdr.len}) (local.get $p)))
-    (if (global.get $g_op_ok)
-      (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
-      (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
-    )
-    (if (global.get $g_op_ok)
-      (then
-        (local.set $fl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 200)))
-        (local.set $tl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_to.offset}) (i32.const 453700) (i32.const 200)))
-        (local.set $sl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_subject.offset}) (i32.const 454000) (i32.const 120)))
-        (local.set $dl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_date.offset}) (i32.const 454200) (i32.const 100)))
-        (local.set $bl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_body.offset}) (i32.const 412300) (i32.const 4000)))
-        (if (i32.gt_s (local.get $fl) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_from.offset}) (i32.const ${S.p_from.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 453400) (local.get $fl) (local.get $p)))
-          )
-        )
-        (if (i32.gt_s (local.get $tl) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_to.offset}) (i32.const ${S.p_to.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 453700) (local.get $tl) (local.get $p)))
-          )
-        )
-        (if (i32.gt_s (local.get $sl) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_subj.offset}) (i32.const ${S.p_subj.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 454000) (local.get $sl) (local.get $p)))
-          )
-        )
-        (if (i32.gt_s (local.get $dl) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_date.offset}) (i32.const ${S.p_date.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 454200) (local.get $dl) (local.get $p)))
-          )
-        )
-        (if (i32.gt_s (local.get $bl) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_body.offset}) (i32.const ${S.p_body.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 412300) (call $utf8_clamp (i32.const 412300) (local.get $bl) (i32.const 350)) (local.get $p)))
-          )
-        )
-      )
-      (else
-        (if (i32.gt_s (global.get $err_len) (i32.const 0))
-          (then
-            (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-            (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 400)) (local.get $p)))
-          )
-        )
-      )
-    )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_rd_ask.offset}) (i32.const ${S.p_rd_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
-    (call $dispatch_host (i32.sub (local.get $p) (i32.const 560000)))
-  )
-
-  (func $call_ai_send (result i32)
+  (func $call_ai_send_direct (result i32)
     (local $p i32)
     (global.set $g_state (i32.const 24))
-    (local.set $p (call $begin_ai_json_req))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_sd_hdr.offset}) (i32.const ${S.p_sd_hdr.len}) (local.get $p)))
+    (local.set $p (call $begin_ai_txt_req))
+    (local.set $p (call $copy_json_esc (i32.const ${S.p_sd_ask.offset}) (i32.const ${S.p_sd_ask.len}) (local.get $p)))
     (if (global.get $g_op_ok)
       (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
       (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
     )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_to.offset}) (i32.const ${S.p_to.len}) (local.get $p)))
+    (local.set $p (call $copy_json_esc (i32.const ${S.p_to_k.offset}) (i32.const ${S.p_to_k.len}) (local.get $p)))
     (local.set $p (call $copy_json_esc (i32.const 410900) (global.get $to_len) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_subj.offset}) (i32.const ${S.p_subj.len}) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const 411200) (call $utf8_clamp (i32.const 411200) (global.get $subj_len) (i32.const 160)) (local.get $p)))
+    (local.set $p (call $copy_json_esc (i32.const ${S.p_sub_k.offset}) (i32.const ${S.p_sub_k.len}) (local.get $p)))
+    (local.set $p (call $copy_json_esc (i32.const 411200) (call $utf8_clamp (i32.const 411200) (global.get $subj_len) (i32.const 120)) (local.get $p)))
     (if (i32.gt_s (global.get $err_len) (i32.const 0))
       (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 400)) (local.get $p)))
+        (local.set $p (call $copy_json_esc (i32.const ${S.p_err_k.offset}) (i32.const ${S.p_err_k.len}) (local.get $p)))
+        (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 300)) (local.get $p)))
       )
     )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_sd_ask.offset}) (i32.const ${S.p_sd_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_txt_p3.offset}) (local.get $p)))
     (call $dispatch_host (i32.sub (local.get $p) (i32.const 560000)))
   )
 
-  (func $call_ai_disconnect (result i32)
+  (func $call_ai_disc_direct (result i32)
     (local $p i32)
     (global.set $g_state (i32.const 26))
-    (local.set $p (call $begin_ai_json_req))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_dc_hdr.offset}) (i32.const ${S.p_dc_hdr.len}) (local.get $p)))
+    (local.set $p (call $begin_ai_txt_req))
+    (local.set $p (call $copy_json_esc (i32.const ${S.p_dc_ask.offset}) (i32.const ${S.p_dc_ask.len}) (local.get $p)))
     (if (global.get $g_op_ok)
       (then (local.set $p (call $copy_zstr (i32.const ${S.def_true.offset}) (local.get $p))))
       (else (local.set $p (call $copy_zstr (i32.const ${S.def_false.offset}) (local.get $p))))
     )
     (if (i32.gt_s (global.get $err_len) (i32.const 0))
       (then
-        (local.set $p (call $copy_json_esc (i32.const ${S.p_err.offset}) (i32.const ${S.p_err.len}) (local.get $p)))
-        (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 400)) (local.get $p)))
+        (local.set $p (call $copy_json_esc (i32.const ${S.p_err_k.offset}) (i32.const ${S.p_err_k.len}) (local.get $p)))
+        (local.set $p (call $copy_json_esc (i32.const 448000) (call $utf8_clamp (i32.const 448000) (global.get $err_len) (i32.const 300)) (local.get $p)))
       )
     )
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_dc_ask.offset}) (i32.const ${S.p_dc_ask.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_txt_p3.offset}) (local.get $p)))
     (call $dispatch_host (i32.sub (local.get $p) (i32.const 560000)))
   )
 
   (func $call_ai_help (param $r_ptr i32) (param $r_len i32) (result i32)
     (local $p i32)
     (global.set $g_state (i32.const 25))
-    (memory.copy (i32.const 449100) (local.get $r_ptr) (local.get $r_len))
-    (global.set $reason_len (local.get $r_len))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_sys_help_p1.offset}) (i32.const 560000)))
-    (local.set $p (call $copy_json_esc (i32.const 410000) (global.get $lang_len) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_sys_help_p2.offset}) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_help_1.offset}) (i32.const ${S.p_help_1.len}) (local.get $p)))
+    (local.set $p (call $begin_ai_txt_req))
+    (local.set $p (call $copy_json_esc (i32.const ${S.p_help_ask.offset}) (i32.const ${S.p_help_ask.len}) (local.get $p)))
     (local.set $p (call $copy_json_esc (local.get $r_ptr) (local.get $r_len) (local.get $p)))
-    (local.set $p (call $copy_json_esc (i32.const ${S.p_help_2.offset}) (i32.const ${S.p_help_2.len}) (local.get $p)))
-    (local.set $p (call $copy_zstr (i32.const ${S.ai_req_p3.offset}) (local.get $p)))
+    (local.set $p (call $copy_zstr (i32.const ${S.ai_txt_p3.offset}) (local.get $p)))
     (call $dispatch_host (i32.sub (local.get $p) (i32.const 560000)))
   )
 
-  ;; ── AI Response Parser & Flutter UI Card Renderers ───────────────────
-
-  (func $parse_ai_fields (param $res_ptr i32) (param $res_len i32)
-    (local $tl i32)
-    (global.set $ai_text_len (i32.const 0))
-    (global.set $ai_intro_len (i32.const 0))
-    (global.set $ai_ct_len (i32.const 0))
-    (global.set $ai_cs_len (i32.const 0))
-    (global.set $ai_badge_len (i32.const 0))
-    (global.set $ai_guide_len (i32.const 0))
-    (global.set $ai_ls_len (i32.const 0))
-    (global.set $ai_vs_len (i32.const 0))
-    (global.set $ai_la_len (i32.const 0))
-    (global.set $ai_li_len (i32.const 0))
-    (global.set $ai_lsmtp_len (i32.const 0))
-    (global.set $ai_lu_len (i32.const 0))
-    (global.set $ai_lp_len (i32.const 0))
-    (global.set $ai_lc_len (i32.const 0))
-    (global.set $ai_lf_len (i32.const 0))
-    (global.set $ai_lt_len (i32.const 0))
-    (global.set $ai_lsub_len (i32.const 0))
-    (global.set $ai_ld_len (i32.const 0))
-    (global.set $ai_empty_len (i32.const 0))
-    (global.set $ai_utag_len (i32.const 0))
-    (global.set $ai_b1_len (i32.const 0))
-    (global.set $ai_b2_len (i32.const 0))
-    (global.set $ai_b3_len (i32.const 0))
-    (global.set $ai_err_len (i32.const 0))
-
-    (if (i32.ne (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})) (i32.const 1))
-      (then (return))
-    )
-    (local.set $tl (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_text.offset}) (i32.const 480000) (i32.const 16000)))
-    (if (i32.le_s (local.get $tl) (i32.const 0)) (then (return)))
-    (global.set $ai_text_len (local.get $tl))
-
-    (global.set $ai_intro_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_intro.offset}) (i32.const 497000) (i32.const 1000)))
-    (global.set $ai_ct_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_ct.offset}) (i32.const 498100) (i32.const 180)))
-    (global.set $ai_cs_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_cs.offset}) (i32.const 498400) (i32.const 280)))
-    (global.set $ai_badge_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_badge.offset}) (i32.const 498800) (i32.const 48)))
-    (global.set $ai_guide_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_guide.offset}) (i32.const 499000) (i32.const 3200)))
-    (global.set $ai_ls_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_ls.offset}) (i32.const 502600) (i32.const 48)))
-    (global.set $ai_vs_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_vs.offset}) (i32.const 502700) (i32.const 120)))
-    (global.set $ai_la_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_la.offset}) (i32.const 502900) (i32.const 48)))
-    (global.set $ai_li_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_li.offset}) (i32.const 503000) (i32.const 48)))
-    (global.set $ai_lsmtp_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_lsmtp.offset}) (i32.const 503100) (i32.const 48)))
-    (global.set $ai_lu_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_lu.offset}) (i32.const 503200) (i32.const 48)))
-    (global.set $ai_lp_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_lp.offset}) (i32.const 503300) (i32.const 48)))
-    (global.set $ai_lc_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_lc.offset}) (i32.const 503400) (i32.const 48)))
-    (global.set $ai_lf_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_lf.offset}) (i32.const 503500) (i32.const 48)))
-    (global.set $ai_lt_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_lt.offset}) (i32.const 503600) (i32.const 48)))
-    (global.set $ai_lsub_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_lsub.offset}) (i32.const 503700) (i32.const 48)))
-    (global.set $ai_ld_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_ld.offset}) (i32.const 503800) (i32.const 48)))
-    (global.set $ai_empty_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_empty.offset}) (i32.const 503900) (i32.const 480)))
-    (global.set $ai_utag_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_utag.offset}) (i32.const 504500) (i32.const 48)))
-    (global.set $ai_b1_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_b1.offset}) (i32.const 504600) (i32.const 48)))
-    (global.set $ai_b2_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_b2.offset}) (i32.const 504700) (i32.const 48)))
-    (global.set $ai_b3_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_b3.offset}) (i32.const 504800) (i32.const 48)))
-    (global.set $ai_err_len (call $extract_json_str (i32.const 480000) (local.get $tl) (i32.const ${S.ak_err.offset}) (i32.const 504900) (i32.const 900)))
-  )
+  ;; ── Zero-Token English Flutter UI Card Renderers (Status & Config) ───
 
   (func $emit_kv (param $kp i32) (param $kl i32) (param $vp i32) (param $vl i32) (param $first i32)
     (if (i32.eqz (local.get $first)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
@@ -1742,29 +1448,21 @@ ${dataLines}
     (call $out_z (i32.const ${S.ui_kv_item3.offset}))
   )
 
-  (func $emit_btn (param $lp i32) (param $ll i32) (param $cmd_z i32) (param $style_z i32) (param $first i32)
+  (func $emit_btn (param $lbl_z i32) (param $cmd_z i32) (param $style_z i32) (param $first i32)
     (if (i32.eqz (local.get $first)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
     (call $out_z (i32.const ${S.ui_btn_1.offset}))
-    (if (i32.gt_s (local.get $ll) (i32.const 0))
-      (then (call $out_json_esc (local.get $lp) (local.get $ll) (i32.const 38)))
-      (else (call $out_json_esc (local.get $cmd_z) (call $zlen (local.get $cmd_z)) (i32.const 38)))
-    )
+    (call $out_json_esc (local.get $lbl_z) (call $zlen (local.get $lbl_z)) (i32.const 38))
     (call $out_z (i32.const ${S.ui_btn_2.offset}))
-    (call $out_z (local.get $cmd_z))
+    (call $out_json_esc (local.get $cmd_z) (call $zlen (local.get $cmd_z)) (i32.const 64))
     (call $out_z (local.get $style_z))
   )
 
-  (func $emit_ui_header (param $intro_p i32) (param $intro_l i32) (param $sub_p i32) (param $sub_l i32) (param $badge_fb i32) (param $style_z i32)
+  (func $emit_ui_header (param $disp_z i32) (param $title_z i32) (param $sub_p i32) (param $sub_l i32) (param $badge_z i32) (param $style_z i32)
     (global.set $out_pos (i32.const 65536))
     (call $out_z (i32.const ${S.ui_p1.offset}))
-    (if (i32.gt_s (local.get $intro_l) (i32.const 0))
-      (then (call $out_json_esc (local.get $intro_p) (local.get $intro_l) (i32.const 900)))
-    )
+    (call $out_json_esc (local.get $disp_z) (call $zlen (local.get $disp_z)) (i32.const 200))
     (call $out_z (i32.const ${S.ui_p2.offset}))
-    (if (i32.gt_s (global.get $ai_ct_len) (i32.const 0))
-      (then (call $out_json_esc (i32.const 498100) (global.get $ai_ct_len) (i32.const 95)))
-      (else (call $out_json_esc (i32.const ${S.def_gmail.offset}) (i32.const ${S.def_gmail.len}) (i32.const 95)))
-    )
+    (call $out_json_esc (local.get $title_z) (call $zlen (local.get $title_z)) (i32.const 95))
     (if (i32.gt_s (local.get $sub_l) (i32.const 0))
       (then
         (call $out_z (i32.const ${S.ui_sub.offset}))
@@ -1772,199 +1470,162 @@ ${dataLines}
       )
     )
     (call $out_z (i32.const ${S.ui_badge.offset}))
-    (if (i32.gt_s (global.get $ai_badge_len) (i32.const 0))
-      (then (call $out_json_esc (i32.const 498800) (global.get $ai_badge_len) (i32.const 28)))
-      (else (call $out_z (local.get $badge_fb)))
-    )
+    (call $out_json_esc (local.get $badge_z) (call $zlen (local.get $badge_z)) (i32.const 28))
     (call $out_z (local.get $style_z))
   )
 
-  ;; Render Status UI Card (state 20)
+  ;; Render Bare /gmail & /gmail status Flutter UI Card (0 AI tokens)
   (func $render_status_ui (result i32)
-    (local $sub_p i32) (local $sub_l i32)
-    (local $nlen i32)
-    (local $p i32)
-    (local.set $sub_p (i32.const 498400))
-    (local.set $sub_l (global.get $ai_cs_len))
-    (if (i32.and (i32.le_s (local.get $sub_l) (i32.const 0)) (i32.gt_s (global.get $se_len) (i32.const 0)))
-      (then (local.set $sub_p (i32.const 447000)) (local.set $sub_l (global.get $se_len)))
-    )
-
-    ;; Unconfigured -> Orange Warning Card
+    (local $sp i32)
+    (local $up i32)
     (if (i32.eqz (global.get $g_configured))
       (then
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (local.get $sub_p) (local.get $sub_l) (i32.const ${S.def_err.offset}) (i32.const ${S.ui_bc_orange.offset}))
+        (call $emit_ui_header
+          (i32.const ${S.en_setup_sub.offset})
+          (i32.const ${S.en_setup_title.offset})
+          (i32.const ${S.en_setup_sub.offset}) (i32.const ${S.en_setup_sub.len})
+          (i32.const ${S.en_setup_badge.offset})
+          (i32.const ${S.ui_bc_orange.offset}))
         (call $out_z (i32.const ${S.ui_kv_start.offset}))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (i32.const 502600)) (else (i32.const ${S.a_status.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (global.get $ai_ls_len)) (else (i32.const ${S.a_status.len})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (i32.const 502700)) (else (i32.const ${S.def_false.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (global.get $ai_vs_len)) (else (i32.const ${S.def_false.len})))
-          (i32.const 1))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_lc_len) (i32.const 0)) (then (i32.const 503400)) (else (i32.const ${S.a_config.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_lc_len) (i32.const 0)) (then (global.get $ai_lc_len)) (else (i32.const ${S.a_config.len})))
-          (i32.const ${S.def_cmd_cfg.offset}) (i32.const ${S.def_cmd_cfg.len}) (i32.const 0))
+        (call $emit_kv (i32.const ${S.en_lbl_status.offset}) (i32.const ${S.en_lbl_status.len}) (i32.const ${S.en_val_uncfg.offset}) (i32.const ${S.en_val_uncfg.len}) (i32.const 1))
+        (call $emit_kv (i32.const ${S.en_lbl_cmd.offset}) (i32.const ${S.en_lbl_cmd.len}) (i32.const ${S.def_cmd_cfg.offset}) (i32.const ${S.def_cmd_cfg.len}) (i32.const 0))
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
-        (if (i32.gt_s (global.get $ai_guide_len) (i32.const 0))
-          (then
-            (call $out_z (i32.const ${S.jf_comma.offset}))
-            (call $out_z (i32.const ${S.ui_text_start.offset}))
-            (call $out_json_esc (i32.const 499000) (global.get $ai_guide_len) (i32.const 3200))
-            (call $out_z (i32.const ${S.ui_text_end.offset}))
-          )
-        )
+        (call $out_z (i32.const ${S.jf_comma.offset}))
+        (call $out_z (i32.const ${S.ui_div.offset}))
+        (call $out_z (i32.const ${S.jf_comma.offset}))
+        (call $out_z (i32.const ${S.ui_text_start.offset}))
+        (call $out_json_esc (i32.const ${S.en_setup_guide.offset}) (i32.const ${S.en_setup_guide.len}) (i32.const 600))
+        (call $out_z (i32.const ${S.ui_text_end.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_div.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_btn_start.offset}))
-        (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_help.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
+        (call $emit_btn (i32.const ${S.en_btn_help.offset}) (i32.const ${S.def_cmd_help.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
+        (call $emit_btn (i32.const ${S.en_btn_status.offset}) (i32.const ${S.def_cmd_gmail.offset}) (i32.const ${S.ui_btn_sec.offset}) (i32.const 0))
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
         (call $out_z (i32.const ${S.ui_close.offset}))
         (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
 
-    ;; Configured & Live IMAP Verified -> Green Card
     (if (global.get $g_verified)
       (then
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (local.get $sub_p) (local.get $sub_l) (i32.const ${S.def_ok.offset}) (i32.const ${S.ui_bc_green.offset}))
+        (call $emit_ui_header
+          (i32.const ${S.en_cfg_ok_title.offset})
+          (i32.const ${S.en_status_title.offset})
+          (i32.const 447000) (global.get $se_len)
+          (i32.const ${S.en_conn_badge.offset})
+          (i32.const ${S.ui_bc_green.offset}))
         (call $out_z (i32.const ${S.ui_kv_start.offset}))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_la_len) (i32.const 0)) (then (i32.const 502900)) (else (i32.const ${S.k_account.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_la_len) (i32.const 0)) (then (global.get $ai_la_len)) (else (i32.const ${S.k_account.len})))
-          (i32.const 447000) (global.get $se_len) (i32.const 1))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (i32.const 502600)) (else (i32.const ${S.a_status.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (global.get $ai_ls_len)) (else (i32.const ${S.a_status.len})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (i32.const 502700)) (else (i32.const ${S.def_ok.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (global.get $ai_vs_len)) (else (i32.const ${S.def_ok.len})))
-          (i32.const 0))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_li_len) (i32.const 0)) (then (i32.const 503000)) (else (i32.const ${S.k_imapHost.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_li_len) (i32.const 0)) (then (global.get $ai_li_len)) (else (i32.const ${S.k_imapHost.len})))
-          (if (result i32) (i32.gt_s (global.get $si_len) (i32.const 0)) (then (i32.const 447300)) (else (i32.const ${S.def_imap_def.offset})))
-          (if (result i32) (i32.gt_s (global.get $si_len) (i32.const 0)) (then (global.get $si_len)) (else (i32.const ${S.def_imap_def.len})))
-          (i32.const 0))
-        ;; SMTP host:port into 449200
-        (local.set $p (i32.const 449200))
+        (call $emit_kv (i32.const ${S.en_lbl_status.offset}) (i32.const ${S.en_lbl_status.len}) (i32.const ${S.en_verified_val.offset}) (i32.const ${S.en_verified_val.len}) (i32.const 1))
+        (call $emit_kv (i32.const ${S.en_lbl_account.offset}) (i32.const ${S.en_lbl_account.len}) (i32.const 447000) (global.get $se_len) (i32.const 0))
+        (if (i32.gt_s (global.get $si_len) (i32.const 0))
+          (then (call $emit_kv (i32.const ${S.en_lbl_imap.offset}) (i32.const ${S.en_lbl_imap.len}) (i32.const 447300) (global.get $si_len) (i32.const 0)))
+          (else (call $emit_kv (i32.const ${S.en_lbl_imap.offset}) (i32.const ${S.en_lbl_imap.len}) (i32.const ${S.def_imap_def.offset}) (i32.const ${S.def_imap_def.len}) (i32.const 0)))
+        )
+        (local.set $sp (i32.const 454500))
         (if (i32.gt_s (global.get $ss_len) (i32.const 0))
-          (then (local.set $p (call $copy_mem (i32.const 447600) (local.get $p) (global.get $ss_len))))
-          (else (local.set $p (call $copy_zstr (i32.const ${S.def_smtp_def.offset}) (local.get $p))))
+          (then (local.set $sp (call $copy_mem (i32.const 447600) (local.get $sp) (global.get $ss_len))))
+          (else (local.set $sp (call $copy_zstr (i32.const ${S.def_smtp_def.offset}) (local.get $sp))))
         )
-        (local.set $p (call $copy_zstr (i32.const ${S.def_colon.offset}) (local.get $p)))
+        (local.set $sp (call $copy_zstr (i32.const ${S.def_colon.offset}) (local.get $sp)))
         (if (i32.gt_s (global.get $sp_len) (i32.const 0))
-          (then (local.set $p (call $copy_mem (i32.const 447900) (local.get $p) (global.get $sp_len))))
-          (else (local.set $p (call $copy_zstr (i32.const ${S.def_port_def.offset}) (local.get $p))))
+          (then (local.set $sp (call $copy_mem (i32.const 447900) (local.get $sp) (global.get $sp_len))))
+          (else (local.set $sp (call $copy_zstr (i32.const ${S.def_port_def.offset}) (local.get $sp))))
         )
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_lsmtp_len) (i32.const 0)) (then (i32.const 503100)) (else (i32.const ${S.k_smtpHost.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_lsmtp_len) (i32.const 0)) (then (global.get $ai_lsmtp_len)) (else (i32.const ${S.k_smtpHost.len})))
-          (i32.const 449200) (i32.sub (local.get $p) (i32.const 449200)) (i32.const 0))
-        ;; Unread count
-        (local.set $nlen (i32.sub (call $copy_int_str (global.get $g_unread_cnt) (i32.const 449200)) (i32.const 449200)))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_lu_len) (i32.const 0)) (then (i32.const 503200)) (else (i32.const ${S.k_unread.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_lu_len) (i32.const 0)) (then (global.get $ai_lu_len)) (else (i32.const ${S.k_unread.len})))
-          (i32.const 449200) (local.get $nlen) (i32.const 0))
+        (call $emit_kv (i32.const ${S.en_lbl_smtp.offset}) (i32.const ${S.en_lbl_smtp.len}) (i32.const 454500) (i32.sub (local.get $sp) (i32.const 454500)) (i32.const 0))
+        (local.set $up (call $copy_int_str (global.get $g_unread_cnt) (i32.const 454450)))
+        (call $emit_kv (i32.const ${S.en_lbl_unread.offset}) (i32.const ${S.en_lbl_unread.len}) (i32.const 454450) (i32.sub (local.get $up) (i32.const 454450)) (i32.const 0))
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_div.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_btn_start.offset}))
-        (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_inbox.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-        (call $emit_btn (i32.const 504700) (global.get $ai_b2_len) (i32.const ${S.def_cmd_help.offset}) (i32.const ${S.ui_btn_sec.offset}) (i32.const 0))
-        (call $emit_btn (i32.const 504800) (global.get $ai_b3_len) (i32.const ${S.def_cmd_disc.offset}) (i32.const ${S.ui_btn_dng.offset}) (i32.const 0))
+        (call $emit_btn (i32.const ${S.en_btn_inbox.offset}) (i32.const ${S.def_cmd_inbox.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
+        (call $emit_btn (i32.const ${S.en_btn_help.offset}) (i32.const ${S.def_cmd_help.offset}) (i32.const ${S.ui_btn_sec.offset}) (i32.const 0))
+        (call $emit_btn (i32.const ${S.en_btn_disc.offset}) (i32.const ${S.def_cmd_disc.offset}) (i32.const ${S.ui_btn_dng.offset}) (i32.const 0))
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
         (call $out_z (i32.const ${S.ui_close.offset}))
         (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
 
-    ;; Configured, IMAP verification failed -> Red Error Card
+    ;; Configured but IMAP verification failed
     (call $emit_ui_header
-      (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (i32.const 497000)) (else (i32.const 448000)))
-      (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (global.get $ai_intro_len)) (else (global.get $err_len)))
-      (local.get $sub_p) (local.get $sub_l) (i32.const ${S.def_err.offset}) (i32.const ${S.ui_bc_red.offset}))
+      (i32.const ${S.en_err_title.offset})
+      (i32.const ${S.en_err_title.offset})
+      (i32.const 447000) (global.get $se_len)
+      (i32.const ${S.en_auth_badge.offset})
+      (i32.const ${S.ui_bc_red.offset}))
     (call $out_z (i32.const ${S.ui_kv_start.offset}))
-    (call $emit_kv
-      (if (result i32) (i32.gt_s (global.get $ai_la_len) (i32.const 0)) (then (i32.const 502900)) (else (i32.const ${S.k_account.offset})))
-      (if (result i32) (i32.gt_s (global.get $ai_la_len) (i32.const 0)) (then (global.get $ai_la_len)) (else (i32.const ${S.k_account.len})))
-      (i32.const 447000) (global.get $se_len) (i32.const 1))
-    (call $emit_kv
-      (if (result i32) (i32.gt_s (global.get $ai_li_len) (i32.const 0)) (then (i32.const 503000)) (else (i32.const ${S.k_imapHost.offset})))
-      (if (result i32) (i32.gt_s (global.get $ai_li_len) (i32.const 0)) (then (global.get $ai_li_len)) (else (i32.const ${S.k_imapHost.len})))
-      (if (result i32) (i32.gt_s (global.get $si_len) (i32.const 0)) (then (i32.const 447300)) (else (i32.const ${S.def_imap_def.offset})))
-      (if (result i32) (i32.gt_s (global.get $si_len) (i32.const 0)) (then (global.get $si_len)) (else (i32.const ${S.def_imap_def.len})))
-      (i32.const 0))
+    (call $emit_kv (i32.const ${S.en_lbl_account.offset}) (i32.const ${S.en_lbl_account.len}) (i32.const 447000) (global.get $se_len) (i32.const 1))
+    (if (i32.gt_s (global.get $si_len) (i32.const 0))
+      (then (call $emit_kv (i32.const ${S.en_lbl_imap.offset}) (i32.const ${S.en_lbl_imap.len}) (i32.const 447300) (global.get $si_len) (i32.const 0)))
+    )
     (call $out_z (i32.const ${S.ui_arr_end.offset}))
     (call $out_z (i32.const ${S.jf_comma.offset}))
+    (call $out_z (i32.const ${S.ui_div.offset}))
+    (call $out_z (i32.const ${S.jf_comma.offset}))
     (call $out_z (i32.const ${S.ui_text_start.offset}))
-    (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-      (then (call $out_json_esc (i32.const 504900) (global.get $ai_err_len) (i32.const 900)))
-      (else (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
+    (if (i32.gt_s (global.get $err_len) (i32.const 0))
+      (then (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
+      (else (call $out_json_esc (i32.const ${S.en_auth_fb.offset}) (i32.const ${S.en_auth_fb.len}) (i32.const 900)))
     )
     (call $out_z (i32.const ${S.ui_text_end.offset}))
     (call $out_z (i32.const ${S.jf_comma.offset}))
     (call $out_z (i32.const ${S.ui_div.offset}))
     (call $out_z (i32.const ${S.jf_comma.offset}))
     (call $out_z (i32.const ${S.ui_btn_start.offset}))
-    (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_gmail.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-    (call $emit_btn (i32.const 504700) (global.get $ai_b2_len) (i32.const ${S.def_cmd_disc.offset}) (i32.const ${S.ui_btn_dng.offset}) (i32.const 0))
+    (call $emit_btn (i32.const ${S.en_btn_retry.offset}) (i32.const ${S.def_cmd_gmail.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
+    (call $emit_btn (i32.const ${S.en_btn_disc.offset}) (i32.const ${S.def_cmd_disc.offset}) (i32.const ${S.ui_btn_dng.offset}) (i32.const 0))
     (call $out_z (i32.const ${S.ui_arr_end.offset}))
     (call $out_z (i32.const ${S.ui_close.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  ;; Render Config UI Card (state 21)
+  ;; Render /gmail config Flutter UI Card (0 AI tokens)
   (func $render_config_ui (result i32)
     (if (global.get $g_op_ok)
       (then
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (i32.const 410150) (global.get $email_len) (i32.const ${S.def_ok.offset}) (i32.const ${S.ui_bc_green.offset}))
+        (call $emit_ui_header
+          (i32.const ${S.en_cfg_ok_title.offset})
+          (i32.const ${S.en_cfg_ok_title.offset})
+          (i32.const 410150) (global.get $email_len)
+          (i32.const ${S.en_conn_badge.offset})
+          (i32.const ${S.ui_bc_green.offset}))
         (call $out_z (i32.const ${S.ui_kv_start.offset}))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_la_len) (i32.const 0)) (then (i32.const 502900)) (else (i32.const ${S.k_account.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_la_len) (i32.const 0)) (then (global.get $ai_la_len)) (else (i32.const ${S.k_account.len})))
-          (i32.const 410150) (global.get $email_len) (i32.const 1))
+        (call $emit_kv (i32.const ${S.en_lbl_account.offset}) (i32.const ${S.en_lbl_account.len}) (i32.const 410150) (global.get $email_len) (i32.const 1))
         (if (i32.gt_s (global.get $prov_len) (i32.const 0))
-          (then
-            (call $emit_kv
-              (if (result i32) (i32.gt_s (global.get $ai_lp_len) (i32.const 0)) (then (i32.const 503300)) (else (i32.const ${S.k_provider.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_lp_len) (i32.const 0)) (then (global.get $ai_lp_len)) (else (i32.const ${S.k_provider.len})))
-              (i32.const 449200) (global.get $prov_len) (i32.const 0))
-          )
+          (then (call $emit_kv (i32.const ${S.en_lbl_provider.offset}) (i32.const ${S.en_lbl_provider.len}) (i32.const 449200) (global.get $prov_len) (i32.const 0)))
         )
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (i32.const 502600)) (else (i32.const ${S.a_status.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (global.get $ai_ls_len)) (else (i32.const ${S.a_status.len})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (i32.const 502700)) (else (i32.const ${S.def_ok.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (global.get $ai_vs_len)) (else (i32.const ${S.def_ok.len})))
-          (i32.const 0))
+        (call $emit_kv (i32.const ${S.en_lbl_status.offset}) (i32.const ${S.en_lbl_status.len}) (i32.const ${S.en_val_verified.offset}) (i32.const ${S.en_val_verified.len}) (i32.const 0))
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_div.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_btn_start.offset}))
-        (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_inbox.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-        (call $emit_btn (i32.const 504700) (global.get $ai_b2_len) (i32.const ${S.def_cmd_gmail.offset}) (i32.const ${S.ui_btn_sec.offset}) (i32.const 0))
+        (call $emit_btn (i32.const ${S.en_btn_inbox.offset}) (i32.const ${S.def_cmd_inbox.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
+        (call $emit_btn (i32.const ${S.en_btn_status.offset}) (i32.const ${S.def_cmd_gmail.offset}) (i32.const ${S.ui_btn_sec.offset}) (i32.const 0))
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
       )
       (else
         (call $emit_ui_header
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (i32.const 497000)) (else (i32.const 448000)))
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (global.get $ai_intro_len)) (else (global.get $err_len)))
-          (i32.const 410150) (global.get $email_len) (i32.const ${S.def_err.offset}) (i32.const ${S.ui_bc_red.offset}))
+          (i32.const ${S.en_cfg_fail_title.offset})
+          (i32.const ${S.en_cfg_fail_title.offset})
+          (i32.const 410150) (global.get $email_len)
+          (i32.const ${S.en_err_badge.offset})
+          (i32.const ${S.ui_bc_red.offset}))
         (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 504900) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
+        (if (i32.gt_s (global.get $err_len) (i32.const 0))
+          (then (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
+          (else (call $out_json_esc (i32.const ${S.en_err_generic.offset}) (i32.const ${S.en_err_generic.len}) (i32.const 900)))
         )
         (call $out_z (i32.const ${S.ui_text_end.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_div.offset}))
         (call $out_z (i32.const ${S.jf_comma.offset}))
         (call $out_z (i32.const ${S.ui_btn_start.offset}))
-        (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_help.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
+        (call $emit_btn (i32.const ${S.en_btn_help.offset}) (i32.const ${S.def_cmd_help.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
         (call $out_z (i32.const ${S.ui_arr_end.offset}))
       )
     )
@@ -1972,298 +1633,236 @@ ${dataLines}
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  ;; Render Inbox List Card (state 22)
-  (func $render_inbox_ui (result i32)
-    (local $cnt i32)
-    (local $idl i32) (local $fl i32) (local $sl i32) (local $dl i32) (local $snl i32) (local $unr i32)
-    (local $p i32)
-    (local $sub_p i32) (local $sub_l i32)
-    (local.set $sub_p (i32.const 498400))
-    (local.set $sub_l (global.get $ai_cs_len))
-    (if (i32.and (i32.le_s (local.get $sub_l) (i32.const 0)) (i32.gt_s (global.get $se_len) (i32.const 0)))
-      (then (local.set $sub_p (i32.const 447000)) (local.set $sub_l (global.get $se_len)))
-    )
+  ;; ── Zero-Token Compact JSON Renderers (Conversational Natural Text) ──
 
-    (if (i32.eqz (global.get $g_op_ok))
+  (func $emit_json_err (result i32)
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.j_err1.offset}))
+    (if (i32.gt_s (global.get $err_len) (i32.const 0))
+      (then (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 600)))
+      (else (call $out_json_esc (i32.const ${S.en_err_generic.offset}) (i32.const ${S.en_err_generic.len}) (i32.const 600)))
+    )
+    (call $out_z (i32.const ${S.direct_p2.offset}))
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  (func $render_inbox_json (result i32)
+    (local $count i32)
+    (local $il i32) (local $fl i32) (local $sl i32) (local $dl i32) (local $snl i32) (local $unr i32)
+    (if (i32.eqz (global.get $g_op_ok)) (then (return (call $emit_json_err))))
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.j_inb1.offset}))
+    (call $out_json_esc (i32.const 447000) (global.get $se_len) (i32.const 160))
+    (call $out_z (i32.const ${S.j_inb2.offset}))
+    (global.set $out_pos (call $copy_int_str (global.get $g_unread_cnt) (global.get $out_pos)))
+    (call $out_z (i32.const ${S.j_inb3.offset}))
+    (global.set $out_pos (call $copy_int_str (global.get $g_total_cnt) (global.get $out_pos)))
+    (call $out_z (i32.const ${S.j_inb4.offset}))
+    (local.set $count (i32.const 0))
+    (if (call $find_array_start (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_emails.offset}))
       (then
-        (call $emit_ui_header
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (i32.const 497000)) (else (i32.const 448000)))
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (global.get $ai_intro_len)) (else (global.get $err_len)))
-          (local.get $sub_p) (local.get $sub_l) (i32.const ${S.def_err.offset}) (i32.const ${S.ui_bc_red.offset}))
-        (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 504900) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
+        (loop $el
+          (if (i32.and (i32.lt_s (local.get $count) (i32.const 12))
+                       (call $next_array_obj (i32.const 1260000) (global.get $saved_res_len)))
+            (then
+              (local.set $il (call $extract_json_str_or_int (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_id.offset}) (i32.const 453200) (i32.const 60)))
+              (local.set $fl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 120)))
+              (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_subject.offset}) (i32.const 453700) (i32.const 140)))
+              (local.set $dl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_date.offset}) (i32.const 454000) (i32.const 60)))
+              (local.set $snl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_snippet.offset}) (i32.const 454200) (i32.const 140)))
+              (local.set $unr (call $extract_json_bool (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_unread.offset})))
+              (if (i32.gt_s (local.get $count) (i32.const 0)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
+              (call $out_z (i32.const ${S.j_em1.offset}))
+              (if (i32.gt_s (local.get $il) (i32.const 0)) (then (call $out_json_esc (i32.const 453200) (local.get $il) (i32.const 60))))
+              (call $out_z (i32.const ${S.j_em2.offset}))
+              (if (i32.gt_s (local.get $fl) (i32.const 0)) (then (call $out_json_esc (i32.const 453400) (local.get $fl) (i32.const 120))))
+              (call $out_z (i32.const ${S.j_em3.offset}))
+              (if (i32.gt_s (local.get $sl) (i32.const 0)) (then (call $out_json_esc (i32.const 453700) (local.get $sl) (i32.const 140))))
+              (call $out_z (i32.const ${S.j_em4.offset}))
+              (if (i32.gt_s (local.get $dl) (i32.const 0)) (then (call $out_json_esc (i32.const 454000) (local.get $dl) (i32.const 60))))
+              (call $out_z (i32.const ${S.j_em5.offset}))
+              (if (i32.eq (local.get $unr) (i32.const 1)) (then (call $out_z (i32.const ${S.def_true.offset}))) (else (call $out_z (i32.const ${S.def_false.offset}))))
+              (call $out_z (i32.const ${S.j_em6.offset}))
+              (if (i32.gt_s (local.get $snl) (i32.const 0)) (then (call $out_json_esc (i32.const 454200) (local.get $snl) (i32.const 140))))
+              (call $out_z (i32.const ${S.j_em7.offset}))
+              (local.set $count (i32.add (local.get $count) (i32.const 1)))
+              (br $el)
+            )
+          )
         )
-        (call $out_z (i32.const ${S.ui_text_end.offset}))
-        (call $out_z (i32.const ${S.jf_comma.offset}))
-        (call $out_z (i32.const ${S.ui_div.offset}))
-        (call $out_z (i32.const ${S.jf_comma.offset}))
-        (call $out_z (i32.const ${S.ui_btn_start.offset}))
-        (call $emit_btn (i32.const 504700) (global.get $ai_b2_len) (i32.const ${S.def_cmd_help.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-        (call $out_z (i32.const ${S.ui_arr_end.offset}))
-        (call $out_z (i32.const ${S.ui_close.offset}))
-        (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
+    (call $out_z (i32.const ${S.j_arr_end.offset}))
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
 
-    (if (i32.le_s (global.get $g_total_cnt) (i32.const 0))
+  (func $render_read_json (result i32)
+    (local $fl i32) (local $tl i32) (local $sl i32) (local $dl i32) (local $bl i32)
+    (if (i32.eqz (global.get $g_op_ok)) (then (return (call $emit_json_err))))
+    (local.set $fl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 200)))
+    (local.set $tl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_to.offset}) (i32.const 453700) (i32.const 200)))
+    (local.set $sl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_subject.offset}) (i32.const 454000) (i32.const 240)))
+    (local.set $dl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_date.offset}) (i32.const 454300) (i32.const 100)))
+    (local.set $bl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_body.offset}) (i32.const 412300) (i32.const 3500)))
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.j_rd1.offset}))
+    (call $out_json_esc (i32.const 410750) (global.get $id_len) (i32.const 60))
+    (call $out_z (i32.const ${S.j_rd2.offset}))
+    (if (i32.gt_s (local.get $fl) (i32.const 0)) (then (call $out_json_esc (i32.const 453400) (local.get $fl) (i32.const 200))))
+    (call $out_z (i32.const ${S.j_rd3.offset}))
+    (if (i32.gt_s (local.get $tl) (i32.const 0)) (then (call $out_json_esc (i32.const 453700) (local.get $tl) (i32.const 200))))
+    (call $out_z (i32.const ${S.j_rd4.offset}))
+    (if (i32.gt_s (local.get $sl) (i32.const 0)) (then (call $out_json_esc (i32.const 454000) (local.get $sl) (i32.const 240))))
+    (call $out_z (i32.const ${S.j_rd5.offset}))
+    (if (i32.gt_s (local.get $dl) (i32.const 0)) (then (call $out_json_esc (i32.const 454300) (local.get $dl) (i32.const 100))))
+    (call $out_z (i32.const ${S.j_rd6.offset}))
+    (if (i32.gt_s (local.get $bl) (i32.const 0)) (then (call $out_json_esc (i32.const 412300) (local.get $bl) (i32.const 3500))))
+    (call $out_z (i32.const ${S.direct_p2.offset}))
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  (func $render_send_json (result i32)
+    (if (i32.eqz (global.get $g_op_ok)) (then (return (call $emit_json_err))))
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.j_sd1.offset}))
+    (call $out_json_esc (i32.const 410900) (global.get $to_len) (i32.const 180))
+    (call $out_z (i32.const ${S.j_sd2.offset}))
+    (call $out_json_esc (i32.const 411200) (global.get $subj_len) (i32.const 200))
+    (call $out_z (i32.const ${S.direct_p2.offset}))
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  (func $render_disconnect_json (result i32)
+    (if (i32.eqz (global.get $g_op_ok)) (then (return (call $emit_json_err))))
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.j_dc_ok.offset}))
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  (func $render_help_json (param $r_ptr i32) (param $r_len i32) (result i32)
+    (global.set $out_pos (i32.const 65536))
+    (if (call $str_eq (local.get $r_ptr) (local.get $r_len) (i32.const ${S.r_help.offset}))
+      (then (call $out_z (i32.const ${S.j_help_ok.offset})))
+      (else
+        (call $out_z (i32.const ${S.j_help_r1.offset}))
+        (call $out_json_esc (local.get $r_ptr) (local.get $r_len) (i32.const 48))
+        (call $out_z (i32.const ${S.direct_p2.offset}))
+      )
+    )
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  ;; ── Direct Plain-Text Renderers (button / slash commands, NO UI card) ─
+
+  (func $render_read_direct (result i32)
+    (local $fl i32) (local $tl i32) (local $sl i32) (local $dl i32) (local $bl i32)
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.direct_p1.offset}))
+    (if (global.get $g_op_ok)
       (then
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (local.get $sub_p) (local.get $sub_l) (i32.const ${S.def_ok.offset}) (i32.const ${S.ui_bc_blue.offset}))
-        (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_empty_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 503900) (global.get $ai_empty_len) (i32.const 480)))
-          (else (call $out_json_esc (i32.const ${S.def_gmail.offset}) (i32.const ${S.def_gmail.len}) (i32.const 480)))
+        (local.set $fl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 200)))
+        (local.set $tl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_to.offset}) (i32.const 453700) (i32.const 200)))
+        (local.set $sl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_subject.offset}) (i32.const 454000) (i32.const 240)))
+        (local.set $dl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_date.offset}) (i32.const 454300) (i32.const 100)))
+        (local.set $bl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_body.offset}) (i32.const 412300) (i32.const 4000)))
+        (call $out_json_esc (i32.const ${S.en_hdr_from.offset}) (i32.const ${S.en_hdr_from.len}) (i32.const 16))
+        (if (i32.gt_s (local.get $fl) (i32.const 0)) (then (call $out_json_esc (i32.const 453400) (local.get $fl) (i32.const 200))))
+        (if (i32.gt_s (local.get $tl) (i32.const 0))
+          (then
+            (call $out_json_esc (i32.const ${S.en_hdr_to.offset}) (i32.const ${S.en_hdr_to.len}) (i32.const 16))
+            (call $out_json_esc (i32.const 453700) (local.get $tl) (i32.const 200))
+          )
         )
-        (call $out_z (i32.const ${S.ui_text_end.offset}))
+        (call $out_json_esc (i32.const ${S.en_hdr_subj.offset}) (i32.const ${S.en_hdr_subj.len}) (i32.const 16))
+        (if (i32.gt_s (local.get $sl) (i32.const 0)) (then (call $out_json_esc (i32.const 454000) (local.get $sl) (i32.const 240))))
+        (if (i32.gt_s (local.get $dl) (i32.const 0))
+          (then
+            (call $out_json_esc (i32.const ${S.en_hdr_date.offset}) (i32.const ${S.en_hdr_date.len}) (i32.const 16))
+            (call $out_json_esc (i32.const 454300) (local.get $dl) (i32.const 100))
+          )
+        )
+        (call $out_json_esc (i32.const ${S.en_hdr_body.offset}) (i32.const ${S.en_hdr_body.len}) (i32.const 16))
+        (if (i32.gt_s (local.get $bl) (i32.const 0)) (then (call $out_json_esc (i32.const 412300) (local.get $bl) (i32.const 4000))))
       )
       (else
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (local.get $sub_p) (local.get $sub_l) (i32.const ${S.def_ok.offset}) (i32.const ${S.ui_bc_msg.offset}))
-        (call $out_z (i32.const ${S.ui_list_start.offset}))
-        (local.set $cnt (i32.const 0))
-        (if (call $find_array_start (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_emails.offset}))
+        (if (i32.gt_s (global.get $err_len) (i32.const 0))
+          (then (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 600)))
+          (else (call $out_json_esc (i32.const ${S.en_err_generic.offset}) (i32.const ${S.en_err_generic.len}) (i32.const 600)))
+        )
+      )
+    )
+    (call $out_z (i32.const ${S.direct_p2.offset}))
+    (i32.sub (global.get $out_pos) (i32.const 65536))
+  )
+
+  (func $render_inbox_direct (result i32)
+    (local $count i32) (local $il i32) (local $fl i32) (local $sl i32)
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.direct_p1.offset}))
+    (if (i32.gt_s (global.get $ai_text_len) (i32.const 0))
+      (then (call $out_json_esc (i32.const 480000) (global.get $ai_text_len) (i32.const 12000)))
+      (else
+        (if (i32.eqz (global.get $g_op_ok))
           (then
-            (loop $em_l
-              (if (i32.and (i32.lt_s (local.get $cnt) (i32.const 15))
-                           (call $next_array_obj (i32.const 1260000) (global.get $saved_res_len)))
-                (then
-                  (local.set $idl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_id.offset}) (i32.const 454500) (i32.const 48)))
-                  (local.set $fl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 120)))
-                  (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_subject.offset}) (i32.const 453700) (i32.const 120)))
-                  (local.set $dl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_date.offset}) (i32.const 454000) (i32.const 48)))
-                  (local.set $snl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_snippet.offset}) (i32.const 454200) (i32.const 160)))
-                  (local.set $unr (call $extract_json_bool (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_unread.offset})))
-
-                  ;; Assemble item title: [id] (● )subject into 449200
-                  (local.set $p (i32.const 449200))
-                  (if (i32.gt_s (local.get $idl) (i32.const 0))
-                    (then
-                      (local.set $p (call $copy_zstr (i32.const ${S.def_lbr.offset}) (local.get $p)))
-                      (local.set $p (call $copy_mem (i32.const 454500) (local.get $p) (local.get $idl)))
-                      (local.set $p (call $copy_zstr (i32.const ${S.def_rbr.offset}) (local.get $p)))
+            (if (i32.gt_s (global.get $err_len) (i32.const 0))
+              (then (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 600)))
+              (else (call $out_json_esc (i32.const ${S.en_err_generic.offset}) (i32.const ${S.en_err_generic.len}) (i32.const 600)))
+            )
+          )
+          (else
+            (if (i32.le_s (global.get $g_total_cnt) (i32.const 0))
+              (then (call $out_json_esc (i32.const ${S.en_inb_empty.offset}) (i32.const ${S.en_inb_empty.len}) (i32.const 120)))
+              (else
+                (call $out_json_esc (i32.const ${S.en_inb_hdr.offset}) (i32.const ${S.en_inb_hdr.len}) (i32.const 64))
+                (local.set $count (i32.const 0))
+                (if (call $find_array_start (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_emails.offset}))
+                  (then
+                    (loop $flp
+                      (if (i32.and (i32.lt_s (local.get $count) (i32.const 10))
+                                   (call $next_array_obj (i32.const 1260000) (global.get $saved_res_len)))
+                        (then
+                          (local.set $il (call $extract_json_str_or_int (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_id.offset}) (i32.const 453200) (i32.const 40)))
+                          (local.set $fl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 80)))
+                          (local.set $sl (call $extract_json_str (global.get $arr_obj_start) (global.get $arr_obj_len) (i32.const ${S.k_subject.offset}) (i32.const 453700) (i32.const 100)))
+                          (if (i32.gt_s (local.get $count) (i32.const 0)) (then (call $out_json_esc (i32.const ${S.def_nl.offset}) (i32.const 1) (i32.const 4))))
+                          (if (i32.gt_s (local.get $il) (i32.const 0)) (then (call $out_json_esc (i32.const 453200) (local.get $il) (i32.const 40)) (call $out_z (i32.const ${S.def_colon.offset}))))
+                          (if (i32.gt_s (local.get $sl) (i32.const 0)) (then (call $out_json_esc (i32.const 453700) (local.get $sl) (i32.const 100))))
+                          (if (i32.gt_s (local.get $fl) (i32.const 0)) (then (call $out_z (i32.const ${S.jf_comma.offset})) (call $out_json_esc (i32.const 453400) (local.get $fl) (i32.const 80))))
+                          (local.set $count (i32.add (local.get $count) (i32.const 1)))
+                          (br $flp)
+                        )
+                      )
                     )
                   )
-                  (if (i32.eq (local.get $unr) (i32.const 1))
-                    (then (local.set $p (call $copy_zstr (i32.const ${S.def_star.offset}) (local.get $p))))
-                  )
-                  (if (i32.gt_s (local.get $sl) (i32.const 0))
-                    (then (local.set $p (call $copy_mem (i32.const 453700) (local.get $p) (call $utf8_clamp (i32.const 453700) (local.get $sl) (i32.const 70)))))
-                  )
-                  (if (i32.gt_s (local.get $cnt) (i32.const 0)) (then (call $out_z (i32.const ${S.jf_comma.offset}))))
-                  (call $out_z (i32.const ${S.ui_list_item1.offset}))
-                  (call $out_json_esc (i32.const 449200) (i32.sub (local.get $p) (i32.const 449200)) (i32.const 95))
-                  (call $out_z (i32.const ${S.ui_list_item2.offset}))
-
-                  ;; Assemble subtitle: from • date(16) • snippet into 449200
-                  (local.set $p (i32.const 449200))
-                  (if (i32.gt_s (local.get $fl) (i32.const 0))
-                    (then (local.set $p (call $copy_mem (i32.const 453400) (local.get $p) (call $utf8_clamp (i32.const 453400) (local.get $fl) (i32.const 60)))))
-                  )
-                  (if (i32.gt_s (local.get $dl) (i32.const 0))
-                    (then
-                      (if (i32.gt_s (local.get $p) (i32.const 449200)) (then (local.set $p (call $copy_zstr (i32.const ${S.def_dot.offset}) (local.get $p)))))
-                      (local.set $p (call $copy_mem (i32.const 454000) (local.get $p) (call $utf8_clamp (i32.const 454000) (local.get $dl) (i32.const 16))))
-                    )
-                  )
-                  (if (i32.gt_s (local.get $snl) (i32.const 0))
-                    (then
-                      (if (i32.gt_s (local.get $p) (i32.const 449200)) (then (local.set $p (call $copy_zstr (i32.const ${S.def_dot.offset}) (local.get $p)))))
-                      (local.set $p (call $copy_mem (i32.const 454200) (local.get $p) (call $utf8_clamp (i32.const 454200) (local.get $snl) (i32.const 70))))
-                    )
-                  )
-                  (call $out_json_esc (i32.const 449200) (i32.sub (local.get $p) (i32.const 449200)) (i32.const 155))
-                  (call $out_z (i32.const ${S.ui_list_item3.offset}))
-
-                  (local.set $cnt (i32.add (local.get $cnt) (i32.const 1)))
-                  (br $em_l)
                 )
               )
             )
           )
         )
-        (call $out_z (i32.const ${S.ui_arr_end.offset}))
       )
     )
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_div.offset}))
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_btn_start.offset}))
-    (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_inbox.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-    (call $emit_btn (i32.const 504700) (global.get $ai_b2_len) (i32.const ${S.def_cmd_gmail.offset}) (i32.const ${S.ui_btn_sec.offset}) (i32.const 0))
-    (call $out_z (i32.const ${S.ui_arr_end.offset}))
-    (call $out_z (i32.const ${S.ui_close.offset}))
+    (call $out_z (i32.const ${S.direct_p2.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
-  ;; Render Full Email Read Card (state 23)
-  (func $render_read_ui (result i32)
-    (local $fl i32) (local $tl i32) (local $sl i32) (local $dl i32) (local $bl i32)
-    (local $has_kv i32)
-    (if (i32.eqz (global.get $g_op_ok))
-      (then
-        (call $emit_ui_header
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (i32.const 497000)) (else (i32.const 448000)))
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (global.get $ai_intro_len)) (else (global.get $err_len)))
-          (i32.const 410750) (global.get $id_len) (i32.const ${S.def_err.offset}) (i32.const ${S.ui_bc_red.offset}))
-        (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 504900) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
-        )
-        (call $out_z (i32.const ${S.ui_text_end.offset}))
-      )
+  (func $render_direct_with_fb (param $ok_z i32) (result i32)
+    (global.set $out_pos (i32.const 65536))
+    (call $out_z (i32.const ${S.direct_p1.offset}))
+    (if (i32.gt_s (global.get $ai_text_len) (i32.const 0))
+      (then (call $out_json_esc (i32.const 480000) (global.get $ai_text_len) (i32.const 12000)))
       (else
-        (local.set $fl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_from.offset}) (i32.const 453400) (i32.const 200)))
-        (local.set $tl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_to.offset}) (i32.const 453700) (i32.const 200)))
-        (local.set $sl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_subject.offset}) (i32.const 454000) (i32.const 200)))
-        (local.set $dl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_date.offset}) (i32.const 454200) (i32.const 100)))
-        (local.set $bl (call $extract_json_str (i32.const 1260000) (global.get $saved_res_len) (i32.const ${S.k_body.offset}) (i32.const 412300) (i32.const 4000)))
-
-        (call $emit_ui_header
-          (i32.const 497000) (global.get $ai_intro_len)
-          (if (result i32) (i32.gt_s (global.get $ai_cs_len) (i32.const 0)) (then (i32.const 498400)) (else (i32.const 453400)))
-          (if (result i32) (i32.gt_s (global.get $ai_cs_len) (i32.const 0)) (then (global.get $ai_cs_len)) (else (local.get $fl)))
-          (i32.const ${S.def_ok.offset}) (i32.const ${S.ui_bc_msg.offset}))
-        (call $out_z (i32.const ${S.ui_kv_start.offset}))
-        (local.set $has_kv (i32.const 0))
-        (if (i32.gt_s (local.get $fl) (i32.const 0))
-          (then
-            (call $emit_kv
-              (if (result i32) (i32.gt_s (global.get $ai_lf_len) (i32.const 0)) (then (i32.const 503500)) (else (i32.const ${S.k_from.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_lf_len) (i32.const 0)) (then (global.get $ai_lf_len)) (else (i32.const ${S.k_from.len})))
-              (i32.const 453400) (local.get $fl) (i32.const 1))
-            (local.set $has_kv (i32.const 1))
-          )
-        )
-        (if (i32.gt_s (local.get $tl) (i32.const 0))
-          (then
-            (call $emit_kv
-              (if (result i32) (i32.gt_s (global.get $ai_lt_len) (i32.const 0)) (then (i32.const 503600)) (else (i32.const ${S.k_to.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_lt_len) (i32.const 0)) (then (global.get $ai_lt_len)) (else (i32.const ${S.k_to.len})))
-              (i32.const 453700) (local.get $tl) (i32.eqz (local.get $has_kv)))
-            (local.set $has_kv (i32.const 1))
-          )
-        )
-        (if (i32.gt_s (local.get $sl) (i32.const 0))
-          (then
-            (call $emit_kv
-              (if (result i32) (i32.gt_s (global.get $ai_lsub_len) (i32.const 0)) (then (i32.const 503700)) (else (i32.const ${S.k_subject.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_lsub_len) (i32.const 0)) (then (global.get $ai_lsub_len)) (else (i32.const ${S.k_subject.len})))
-              (i32.const 454000) (local.get $sl) (i32.eqz (local.get $has_kv)))
-            (local.set $has_kv (i32.const 1))
-          )
-        )
-        (if (i32.gt_s (local.get $dl) (i32.const 0))
-          (then
-            (call $emit_kv
-              (if (result i32) (i32.gt_s (global.get $ai_ld_len) (i32.const 0)) (then (i32.const 503800)) (else (i32.const ${S.k_date.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_ld_len) (i32.const 0)) (then (global.get $ai_ld_len)) (else (i32.const ${S.k_date.len})))
-              (i32.const 454200) (local.get $dl) (i32.eqz (local.get $has_kv)))
-          )
-        )
-        (call $out_z (i32.const ${S.ui_arr_end.offset}))
-        (if (i32.gt_s (local.get $bl) (i32.const 0))
-          (then
-            (call $out_z (i32.const ${S.jf_comma.offset}))
-            (call $out_z (i32.const ${S.ui_div.offset}))
-            (call $out_z (i32.const ${S.jf_comma.offset}))
-            (call $out_z (i32.const ${S.ui_text_start.offset}))
-            (call $out_json_esc (i32.const 412300) (local.get $bl) (i32.const 3800))
-            (call $out_z (i32.const ${S.ui_text_end.offset}))
+        (if (global.get $g_op_ok)
+          (then (call $out_json_esc (local.get $ok_z) (call $zlen (local.get $ok_z)) (i32.const 400)))
+          (else
+            (if (i32.gt_s (global.get $err_len) (i32.const 0))
+              (then (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 600)))
+              (else (call $out_json_esc (i32.const ${S.en_err_generic.offset}) (i32.const ${S.en_err_generic.len}) (i32.const 600)))
+            )
           )
         )
       )
     )
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_div.offset}))
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_btn_start.offset}))
-    (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_inbox.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-    (call $out_z (i32.const ${S.ui_arr_end.offset}))
-    (call $out_z (i32.const ${S.ui_close.offset}))
-    (i32.sub (global.get $out_pos) (i32.const 65536))
-  )
-
-  ;; Render Send Card (state 24)
-  (func $render_send_ui (result i32)
-    (if (global.get $g_op_ok)
-      (then
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (i32.const 410900) (global.get $to_len) (i32.const ${S.def_ok.offset}) (i32.const ${S.ui_bc_green.offset}))
-        (call $out_z (i32.const ${S.ui_kv_start.offset}))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_lt_len) (i32.const 0)) (then (i32.const 503600)) (else (i32.const ${S.k_to.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_lt_len) (i32.const 0)) (then (global.get $ai_lt_len)) (else (i32.const ${S.k_to.len})))
-          (i32.const 410900) (global.get $to_len) (i32.const 1))
-        (if (i32.gt_s (global.get $subj_len) (i32.const 0))
-          (then
-            (call $emit_kv
-              (if (result i32) (i32.gt_s (global.get $ai_lsub_len) (i32.const 0)) (then (i32.const 503700)) (else (i32.const ${S.k_subject.offset})))
-              (if (result i32) (i32.gt_s (global.get $ai_lsub_len) (i32.const 0)) (then (global.get $ai_lsub_len)) (else (i32.const ${S.k_subject.len})))
-              (i32.const 411200) (global.get $subj_len) (i32.const 0))
-          )
-        )
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (i32.const 502600)) (else (i32.const ${S.a_status.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (global.get $ai_ls_len)) (else (i32.const ${S.a_status.len})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (i32.const 502700)) (else (i32.const ${S.def_ok.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (global.get $ai_vs_len)) (else (i32.const ${S.def_ok.len})))
-          (i32.const 0))
-        (call $out_z (i32.const ${S.ui_arr_end.offset}))
-      )
-      (else
-        (call $emit_ui_header
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (i32.const 497000)) (else (i32.const 448000)))
-          (if (result i32) (i32.gt_s (global.get $ai_intro_len) (i32.const 0)) (then (global.get $ai_intro_len)) (else (global.get $err_len)))
-          (i32.const 410900) (global.get $to_len) (i32.const ${S.def_err.offset}) (i32.const ${S.ui_bc_red.offset}))
-        (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 504900) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
-        )
-        (call $out_z (i32.const ${S.ui_text_end.offset}))
-      )
-    )
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_div.offset}))
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_btn_start.offset}))
-    (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_inbox.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-    (call $out_z (i32.const ${S.ui_arr_end.offset}))
-    (call $out_z (i32.const ${S.ui_close.offset}))
-    (i32.sub (global.get $out_pos) (i32.const 65536))
-  )
-
-  ;; Render Disconnect Card (state 26)
-  (func $render_disconnect_ui (result i32)
-    (if (global.get $g_op_ok)
-      (then
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (i32.const 498400) (global.get $ai_cs_len) (i32.const ${S.def_ok.offset}) (i32.const ${S.ui_bc_blue.offset}))
-        (call $out_z (i32.const ${S.ui_kv_start.offset}))
-        (call $emit_kv
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (i32.const 502600)) (else (i32.const ${S.a_status.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_ls_len) (i32.const 0)) (then (global.get $ai_ls_len)) (else (i32.const ${S.a_status.len})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (i32.const 502700)) (else (i32.const ${S.def_ok.offset})))
-          (if (result i32) (i32.gt_s (global.get $ai_vs_len) (i32.const 0)) (then (global.get $ai_vs_len)) (else (i32.const ${S.def_ok.len})))
-          (i32.const 1))
-        (call $out_z (i32.const ${S.ui_arr_end.offset}))
-      )
-      (else
-        (call $emit_ui_header (i32.const 497000) (global.get $ai_intro_len) (i32.const 498400) (global.get $ai_cs_len) (i32.const ${S.def_err.offset}) (i32.const ${S.ui_bc_red.offset}))
-        (call $out_z (i32.const ${S.ui_text_start.offset}))
-        (if (i32.gt_s (global.get $ai_err_len) (i32.const 0))
-          (then (call $out_json_esc (i32.const 504900) (global.get $ai_err_len) (i32.const 900)))
-          (else (call $out_json_esc (i32.const 448000) (global.get $err_len) (i32.const 900)))
-        )
-        (call $out_z (i32.const ${S.ui_text_end.offset}))
-      )
-    )
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_div.offset}))
-    (call $out_z (i32.const ${S.jf_comma.offset}))
-    (call $out_z (i32.const ${S.ui_btn_start.offset}))
-    (call $emit_btn (i32.const 504600) (global.get $ai_b1_len) (i32.const ${S.def_cmd_gmail.offset}) (i32.const ${S.ui_btn_pri.offset}) (i32.const 1))
-    (call $out_z (i32.const ${S.ui_arr_end.offset}))
-    (call $out_z (i32.const ${S.ui_close.offset}))
+    (call $out_z (i32.const ${S.direct_p2.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
@@ -2272,19 +1871,39 @@ ${dataLines}
     (call $out_z (i32.const ${S.direct_p1.offset}))
     (if (i32.gt_s (global.get $ai_text_len) (i32.const 0))
       (then (call $out_json_esc (i32.const 480000) (global.get $ai_text_len) (i32.const 12000)))
-      (else (call $out_json_esc (i32.const ${S.def_cmd_cfg.offset}) (i32.const ${S.def_cmd_cfg.len}) (i32.const 120)))
+      (else (call $out_json_esc (i32.const ${S.en_help_fb.offset}) (i32.const ${S.en_help_fb.len}) (i32.const 600)))
     )
     (call $out_z (i32.const ${S.direct_p2.offset}))
     (i32.sub (global.get $out_pos) (i32.const 65536))
   )
 
   (func $render_fallback_for_state (result i32)
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 10)) (i32.eq (global.get $g_state) (i32.const 20))) (then (return (call $render_status_ui))))
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 11)) (i32.eq (global.get $g_state) (i32.const 21))) (then (return (call $render_config_ui))))
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 12)) (i32.eq (global.get $g_state) (i32.const 22))) (then (return (call $render_inbox_ui))))
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 13)) (i32.eq (global.get $g_state) (i32.const 23))) (then (return (call $render_read_ui))))
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 14)) (i32.eq (global.get $g_state) (i32.const 24))) (then (return (call $render_send_ui))))
-    (if (i32.or (i32.eq (global.get $g_state) (i32.const 15)) (i32.eq (global.get $g_state) (i32.const 26))) (then (return (call $render_disconnect_ui))))
+    (if (i32.eq (global.get $g_state) (i32.const 10)) (then (return (call $render_status_ui))))
+    (if (i32.eq (global.get $g_state) (i32.const 11)) (then (return (call $render_config_ui))))
+    (if (i32.or (i32.eq (global.get $g_state) (i32.const 12)) (i32.eq (global.get $g_state) (i32.const 22)))
+      (then
+        (if (global.get $g_is_json) (then (return (call $render_inbox_json))))
+        (return (call $render_inbox_direct))
+      )
+    )
+    (if (i32.eq (global.get $g_state) (i32.const 13))
+      (then
+        (if (global.get $g_is_json) (then (return (call $render_read_json))))
+        (return (call $render_read_direct))
+      )
+    )
+    (if (i32.or (i32.eq (global.get $g_state) (i32.const 14)) (i32.eq (global.get $g_state) (i32.const 24)))
+      (then
+        (if (global.get $g_is_json) (then (return (call $render_send_json))))
+        (return (call $render_direct_with_fb (i32.const ${S.en_sent_ok.offset})))
+      )
+    )
+    (if (i32.or (i32.eq (global.get $g_state) (i32.const 15)) (i32.eq (global.get $g_state) (i32.const 26)))
+      (then
+        (if (global.get $g_is_json) (then (return (call $render_disconnect_json))))
+        (return (call $render_direct_with_fb (i32.const ${S.en_disc_ok.offset})))
+      )
+    )
     (call $render_help_direct)
   )
 
@@ -2344,6 +1963,7 @@ ${dataLines}
     (global.set $g_verified (i32.const 0))
     (global.set $g_unread_cnt (i32.const 0))
     (global.set $g_total_cnt (i32.const 0))
+    (global.set $g_is_json (i32.const 0))
     (global.set $act_len (i32.const 0))
     (global.set $email_len (i32.const 0))
     (call $zero_pass_buf)
@@ -2363,6 +1983,7 @@ ${dataLines}
     (global.set $prov_len (i32.const 0))
     (global.set $err_len (i32.const 0))
     (global.set $saved_res_len (i32.const 0))
+    (global.set $ai_text_len (i32.const 0))
     (call $set_default_lang)
 
     ;; Trim whitespace
@@ -2373,9 +1994,10 @@ ${dataLines}
     (loop $rt (if (i32.and (i32.gt_s (local.get $tl) (i32.const 0)) (call $is_ws (i32.load8_u (i32.add (local.get $ts) (i32.sub (local.get $tl) (i32.const 1))))))
       (then (local.set $tl (i32.sub (local.get $tl) (i32.const 1))) (br $rt))))
 
-    ;; Case A: JSON input
+    ;; Case A: JSON input (conversational AI)
     (if (i32.and (i32.gt_s (local.get $tl) (i32.const 0)) (i32.eq (i32.load8_u (local.get $ts)) (i32.const 123)))
       (then
+        (global.set $g_is_json (i32.const 1))
         (local.set $ll (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const ${S.k_lang.offset}) (i32.const 410000) (i32.const 24)))
         (if (i32.gt_s (local.get $ll) (i32.const 0)) (then (global.set $lang_len (local.get $ll))))
 
@@ -2396,7 +2018,7 @@ ${dataLines}
         ;; Route actions (NEVER forward raw "api":"gmail"!)
         (if (i32.or (call $str_eq (i32.const 410050) (global.get $act_len) (i32.const ${S.a_help.offset}))
                     (call $str_eq (i32.const 410050) (global.get $act_len) (i32.const ${S.a_unknown.offset})))
-          (then (return (call $call_ai_help (i32.const ${S.r_help.offset}) (i32.const ${S.r_help.len}))))
+          (then (return (call $render_help_json (i32.const ${S.r_help.offset}) (i32.const ${S.r_help.len}))))
         )
 
         (if (i32.or (call $str_eq (i32.const 410050) (global.get $act_len) (i32.const ${S.a_status.offset}))
@@ -2471,7 +2093,7 @@ ${dataLines}
                         (i32.le_s (global.get $pass_len) (i32.const 0)))
               (then
                 (call $zero_pass_buf)
-                (return (call $call_ai_help (i32.const ${S.r_miss_cfg.offset}) (i32.const ${S.r_miss_cfg.len})))
+                (return (call $render_help_json (i32.const ${S.r_miss_cfg.offset}) (i32.const ${S.r_miss_cfg.len})))
               )
             )
             (return (call $start_config_flow))
@@ -2488,7 +2110,7 @@ ${dataLines}
             (if (i32.le_s (global.get $id_len) (i32.const 0)) (then (global.set $id_len (call $extract_json_str_or_int (local.get $ts) (local.get $tl) (i32.const ${S.k_email_id.offset}) (i32.const 410750) (i32.const 120)))))
             (if (i32.le_s (global.get $id_len) (i32.const 0)) (then (global.set $id_len (call $extract_json_str_or_int (local.get $ts) (local.get $tl) (i32.const ${S.k_query.offset}) (i32.const 410750) (i32.const 120)))))
             (if (i32.le_s (global.get $id_len) (i32.const 0))
-              (then (return (call $call_ai_help (i32.const ${S.r_miss_id.offset}) (i32.const ${S.r_miss_id.len}))))
+              (then (return (call $render_help_json (i32.const ${S.r_miss_id.offset}) (i32.const ${S.r_miss_id.len}))))
             )
             (return (call $start_read_flow))
           )
@@ -2514,7 +2136,7 @@ ${dataLines}
             (if (i32.lt_s (global.get $body_len) (i32.const 0)) (then (global.set $body_len (i32.const 0))))
 
             (if (i32.eqz (call $contains_char (i32.const 410900) (global.get $to_len) (i32.const 64)))
-              (then (return (call $call_ai_help (i32.const ${S.r_miss_send.offset}) (i32.const ${S.r_miss_send.len}))))
+              (then (return (call $render_help_json (i32.const ${S.r_miss_send.offset}) (i32.const ${S.r_miss_send.len}))))
             )
             (return (call $start_send_flow))
           )
@@ -2680,7 +2302,7 @@ ${dataLines}
     (local $ok i32)
     (local $v i32)
 
-    ;; STATE 10: Status live IMAP check result
+    ;; STATE 10: Status live IMAP check result -> Instant English Flutter UI card (0 AI tokens)
     (if (i32.eq (global.get $g_state) (i32.const 10))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
@@ -2701,11 +2323,11 @@ ${dataLines}
             (call $extract_err (local.get $res_ptr) (local.get $res_len))
           )
         )
-        (return (call $call_ai_status))
+        (return (call $render_status_ui))
       )
     )
 
-    ;; STATE 11: Config response
+    ;; STATE 11: Config response -> Instant English Flutter UI card (0 AI tokens)
     (if (i32.eq (global.get $g_state) (i32.const 11))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
@@ -2725,11 +2347,11 @@ ${dataLines}
             (call $extract_err (local.get $res_ptr) (local.get $res_len))
           )
         )
-        (return (call $call_ai_config))
+        (return (call $render_config_ui))
       )
     )
 
-    ;; STATE 12: Inbox response
+    ;; STATE 12: Inbox response -> Compact JSON for conversational AI, short natural text for direct /gmail inbox
     (if (i32.eq (global.get $g_state) (i32.const 12))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
@@ -2751,11 +2373,12 @@ ${dataLines}
             (call $extract_err (local.get $res_ptr) (local.get $res_len))
           )
         )
-        (return (call $call_ai_inbox))
+        (if (global.get $g_is_json) (then (return (call $render_inbox_json))))
+        (return (call $call_ai_inbox_direct))
       )
     )
 
-    ;; STATE 13: Read response
+    ;; STATE 13: Read response -> 0 AI tokens! Compact JSON for AI mode, formatted English text for direct /gmail read
     (if (i32.eq (global.get $g_state) (i32.const 13))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
@@ -2764,11 +2387,12 @@ ${dataLines}
           (then (global.set $g_op_ok (i32.const 1)) (global.set $err_len (i32.const 0)))
           (else (global.set $g_op_ok (i32.const 0)) (call $extract_err (local.get $res_ptr) (local.get $res_len)))
         )
-        (return (call $call_ai_read))
+        (if (global.get $g_is_json) (then (return (call $render_read_json))))
+        (return (call $render_read_direct))
       )
     )
 
-    ;; STATE 14: Send response
+    ;; STATE 14: Send response -> Compact JSON for conversational AI, short natural text for direct /gmail send
     (if (i32.eq (global.get $g_state) (i32.const 14))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
@@ -2777,11 +2401,12 @@ ${dataLines}
           (then (global.set $g_op_ok (i32.const 1)) (global.set $err_len (i32.const 0)))
           (else (global.set $g_op_ok (i32.const 0)) (call $extract_err (local.get $res_ptr) (local.get $res_len)))
         )
-        (return (call $call_ai_send))
+        (if (global.get $g_is_json) (then (return (call $render_send_json))))
+        (return (call $call_ai_send_direct))
       )
     )
 
-    ;; STATE 15: Disconnect response
+    ;; STATE 15: Disconnect response -> Compact JSON for conversational AI, short natural text for direct /gmail disconnect
     (if (i32.eq (global.get $g_state) (i32.const 15))
       (then
         (call $save_res (local.get $res_ptr) (local.get $res_len))
@@ -2790,18 +2415,22 @@ ${dataLines}
           (then (global.set $g_op_ok (i32.const 1)) (global.set $err_len (i32.const 0)))
           (else (global.set $g_op_ok (i32.const 0)) (call $extract_err (local.get $res_ptr) (local.get $res_len)))
         )
-        (return (call $call_ai_disconnect))
+        (if (global.get $g_is_json) (then (return (call $render_disconnect_json))))
+        (return (call $call_ai_disc_direct))
       )
     )
 
-    ;; STATES 20..26: AI complete finished
-    (call $parse_ai_fields (local.get $res_ptr) (local.get $res_len))
-    (if (i32.eq (global.get $g_state) (i32.const 20)) (then (return (call $render_status_ui))))
-    (if (i32.eq (global.get $g_state) (i32.const 21)) (then (return (call $render_config_ui))))
-    (if (i32.eq (global.get $g_state) (i32.const 22)) (then (return (call $render_inbox_ui))))
-    (if (i32.eq (global.get $g_state) (i32.const 23)) (then (return (call $render_read_ui))))
-    (if (i32.eq (global.get $g_state) (i32.const 24)) (then (return (call $render_send_ui))))
-    (if (i32.eq (global.get $g_state) (i32.const 26)) (then (return (call $render_disconnect_ui))))
+    ;; STATES 22..26: Direct-mode AI complete finished
+    (global.set $ai_text_len (i32.const 0))
+    (if (i32.eq (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset})) (i32.const 1))
+      (then
+        (local.set $v (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_text.offset}) (i32.const 480000) (i32.const 12000)))
+        (if (i32.gt_s (local.get $v) (i32.const 0)) (then (global.set $ai_text_len (local.get $v))))
+      )
+    )
+    (if (i32.eq (global.get $g_state) (i32.const 22)) (then (return (call $render_inbox_direct))))
+    (if (i32.eq (global.get $g_state) (i32.const 24)) (then (return (call $render_direct_with_fb (i32.const ${S.en_sent_ok.offset})))))
+    (if (i32.eq (global.get $g_state) (i32.const 26)) (then (return (call $render_direct_with_fb (i32.const ${S.en_disc_ok.offset})))))
     (call $render_help_direct)
   )
 
@@ -2879,41 +2508,22 @@ async function runTests() {
     return JSON.parse(outStr);
   }
 
-  // Test 1: Bare /gmail ("lang=es") when NOT configured -> orange setup Flutter UI card
+  // Test 1: Bare /gmail ("lang=es") when NOT configured -> 0 async hops, 0 AI tokens, orange English setup card
   {
     const storage = {};
     const out = await execPlugin(
       'lang=es',
       (req) => ({ success: true, data: { key: req.payload.key, value: storage[req.payload.key] || null, exists: !!storage[req.payload.key] } }),
-      async (req) => {
-        assert(req.api === 'ai' && req.operation === 'complete', 'Unconfigured bare /gmail must NOT call email.inbox; only ai.complete');
-        assert(req.payload.systemPrompt.includes('"es"'), 'AI lang es');
-        return {
-          success: true,
-          data: {
-            text: JSON.stringify({
-              intro: 'Tu cuenta de Gmail aún no está configurada.',
-              card_title: 'Configuración de Gmail',
-              card_subtitle: 'Cuenta sin vincular',
-              badge: 'SIN CONFIGURAR',
-              lbl_status: 'Estado',
-              val_status: 'No conectado',
-              lbl_cmd: 'Comando',
-              guide: '1. Activa la verificación en 2 pasos.\n2. Crea una contraseña de aplicación de 16 letras.\n3. Ejecuta /gmail config tu-correo@gmail.com abcd efgh ijkl mnop.',
-              btn_1: 'Ayuda',
-            }),
-          },
-        };
-      }
+      async (req) => { throw new Error('Unconfigured bare /gmail must make 0 async calls: ' + JSON.stringify(req)); }
     );
-    assert(out.type === 'ui' && out.ui.badgeColor === 'orange' && out.ui.icon === 'warning', 'Orange warning card when unconfigured');
-    assert(out.ui.elements[1].type === 'text' && out.ui.elements[1].content.includes('16 letras'), 'Setup guide displayed');
-    assert(out.ui.elements[3].buttons[0].value === '/gmail help', 'Help button');
+    assert(out.type === 'ui' && out.ui.title === 'Gmail Setup' && out.ui.badge === 'NOT CONFIGURED' && out.ui.badgeColor === 'orange' && out.ui.hideText === true, 'English orange setup card');
+    const btns = out.ui.elements[4].buttons;
+    assert(btns[0].label === 'Help' && btns[0].value === '/gmail help', 'Button 1 is Help (no raw command label)');
+    assert(btns[1].label === 'Check Status' && btns[1].value === '/gmail', 'Button 2 is Check Status');
   }
 
-  // Test 2: Exact user /gmail config command via marketplace_plugin.dart ("api":"gmail"!) -> routes to "api":"email" + strips password spaces + zeroizes password
+  // Test 2: Conversational /gmail config ("api":"gmail"!) -> routes to "api":"email", strips spaces, 0 AI calls, English connected card
   {
-    const storage = {};
     const asyncCalls = [];
     const marketplaceInput = JSON.stringify({
       api: 'gmail',
@@ -2937,59 +2547,39 @@ async function runTests() {
           assert(req.payload.email === 'user@gmail.com', 'Email preserved');
           assert(req.payload.password === 'abcdefghijklmnop', 'Spaces stripped from App Password');
           assert(req.payload.imapHost === 'imap.gmail.com' && req.payload.smtpPort === '465', 'CamelCase hosts/ports restored');
-          storage.chattree_email_account = req.payload.email;
           return {
             success: true,
             data: { configured: true, email: 'user@gmail.com', provider: 'Google Gmail', message: 'Connected' },
           };
         }
-        if (req.api === 'ai' && req.operation === 'complete') {
-          assert(!JSON.stringify(req).includes('abcd') && !JSON.stringify(req).includes('mnop'), 'Password MUST NEVER be sent to AI');
-          return {
-            success: true,
-            data: {
-              text: JSON.stringify({
-                intro: 'Tu cuenta user@gmail.com se conectó correctamente.',
-                card_title: 'Gmail Conectado',
-                card_subtitle: 'user@gmail.com',
-                badge: 'CONECTADO',
-                lbl_account: 'Cuenta',
-                lbl_provider: 'Proveedor',
-                lbl_status: 'Estado',
-                val_status: 'Verificado',
-                btn_1: 'Bandeja',
-                btn_2: 'Estado',
-              }),
-            },
-          };
-        }
-        throw new Error('Unexpected call: ' + JSON.stringify(req));
+        throw new Error('Unexpected call (must NOT call AI): ' + JSON.stringify(req));
       }
     );
-    assert(asyncCalls[0].api === 'email' && asyncCalls[0].operation === 'config', 'Critical: api must be email, never gmail');
-    assert(out.type === 'ui' && out.ui.badgeColor === 'green' && out.ui.icon === 'check', 'Green connected card');
+    assert(asyncCalls.length === 1 && asyncCalls[0].api === 'email' && asyncCalls[0].operation === 'config', 'Critical: only 1 email.config call (0 AI tokens)');
+    assert(out.type === 'ui' && out.ui.title === 'Gmail Connected' && out.ui.badge === 'CONNECTED' && out.ui.badgeColor === 'green', 'English connected card');
     assert(!JSON.stringify(out).includes('abcdefgh'), 'Password must never appear in output');
+    const btns = out.ui.elements[2].buttons;
+    assert(btns[0].label === 'View Inbox' && btns[0].value === '/gmail inbox', 'View Inbox button');
+    assert(btns[1].label === 'Check Status' && btns[1].value === '/gmail', 'Check Status button');
   }
 
-  // Test 3: Direct plain-text config user@gmail.com abcd efgh ijkl mnop lang=es
+  // Test 3: Direct plain-text config user@gmail.com abcd efgh ijkl mnop lang=es -> 0 AI calls
   {
     const out = await execPlugin(
       'config user@gmail.com abcd efgh ijkl mnop lang=es',
       () => ({ success: true, data: { exists: false } }),
       async (req) => {
         if (req.api === 'email' && req.operation === 'config') {
-          assert(req.payload.email === 'user@gmail.com', 'Direct email parsed');
-          assert(req.payload.password === 'abcdefghijklmnop', 'Direct 4-group app password joined & stripped');
+          assert(req.payload.email === 'user@gmail.com' && req.payload.password === 'abcdefghijklmnop', 'Direct 4-group app password stripped');
           return { success: true, data: { configured: true, email: 'user@gmail.com', provider: 'Google Gmail' } };
         }
-        if (req.api === 'ai') return { success: true, data: { text: '{"intro":"Conectado.","card_title":"Gmail","badge":"OK","val_status":"Conectado","btn_1":"Inbox","btn_2":"Estado"}' } };
         throw new Error('Unexpected call');
       }
     );
-    assert(out.type === 'ui' && out.ui.icon === 'check', 'Plain-text config succeeds');
+    assert(out.type === 'ui' && out.ui.icon === 'check' && out.ui.title === 'Gmail Connected', 'Plain-text config succeeds with 0 AI calls');
   }
 
-  // Test 4: Bare /gmail when configured & IMAP live-verified -> Green Flutter UI Card
+  // Test 4: Bare /gmail configured & IMAP verified + IMAP auth failure -> 0 AI calls, English buttons
   {
     const storage = {
       chattree_email_account: 'user@gmail.com',
@@ -3001,151 +2591,124 @@ async function runTests() {
       'lang=es',
       (req) => ({ success: true, data: { key: req.payload.key, value: storage[req.payload.key] || null, exists: !!storage[req.payload.key] } }),
       async (req) => {
-        if (req.api === 'email' && req.operation === 'inbox') {
-          return { success: true, data: { status: 'success', account: 'user@gmail.com', unread_count: 3, total_count: 8, emails: [] } };
-        }
-        if (req.api === 'ai') {
-          assert(req.payload.prompt.includes('unread_count=3'), 'Prompt has live unread_count');
-          return {
-            success: true,
-            data: {
-              text: JSON.stringify({
-                intro: 'Tu cuenta user@gmail.com está conectada y verificada.',
-                card_title: 'Estado de Gmail',
-                card_subtitle: 'user@gmail.com',
-                badge: 'ACTIVO',
-                lbl_status: 'Estado',
-                val_status: 'IMAP y SMTP verificados',
-                lbl_account: 'Cuenta',
-                lbl_imap: 'IMAP',
-                lbl_smtp: 'SMTP',
-                lbl_unread: 'No leídos',
-                btn_1: 'Bandeja',
-                btn_2: 'Ayuda',
-                btn_3: 'Desconectar',
-              }),
-            },
-          };
-        }
-        throw new Error('Unexpected call');
+        assert(req.api === 'email' && req.operation === 'inbox', 'Only calls email.inbox (0 AI tokens)');
+        return { success: true, data: { status: 'success', account: 'user@gmail.com', unread_count: 3, total_count: 8, emails: [] } };
       }
     );
-    assert(out.type === 'ui' && out.ui.badgeColor === 'green' && out.ui.icon === 'check', 'Green status card');
+    assert(out.type === 'ui' && out.ui.title === 'Gmail Status' && out.ui.badge === 'CONNECTED' && out.ui.badgeColor === 'green', 'Green English status card');
     const kv = out.ui.elements[0].items;
-    assert(kv.some((x) => x.value === 'user@gmail.com') && kv.some((x) => x.value === '3'), 'Account and unread count in status card');
-    assert(out.ui.elements[2].buttons.length === 3 && out.ui.elements[2].buttons[2].confirm === true, '3 action buttons including confirmed disconnect');
-  }
+    assert(kv.some((x) => x.key === 'Account' && x.value === 'user@gmail.com') && kv.some((x) => x.key === 'Unread' && x.value === '3'), 'Account & Unread in card');
+    const btns = out.ui.elements[2].buttons;
+    assert(btns.length === 3 && btns[0].label === 'View Inbox' && btns[1].label === 'Help' && btns[2].label === 'Disconnect' && btns[2].confirm === true, 'English action labels: View Inbox, Help, Disconnect');
 
-  // Test 5: Configured /gmail when IMAP auth fails -> Red Error Flutter UI Card
-  {
-    const storage = { chattree_email_account: 'user@gmail.com', chattree_email_imap_host: 'imap.gmail.com' };
-    const out = await execPlugin(
+    // Failed IMAP verification
+    const outErr = await execPlugin(
       'lang=en',
       (req) => ({ success: true, data: { key: req.payload.key, value: storage[req.payload.key] || null, exists: !!storage[req.payload.key] } }),
       async (req) => {
-        if (req.api === 'email' && req.operation === 'inbox') {
-          return { success: false, error: 'Authentication failed (Invalid credentials)' };
-        }
-        if (req.api === 'ai') {
-          return {
-            success: true,
-            data: {
-              text: JSON.stringify({
-                intro: 'Saved Gmail credentials failed IMAP authentication.',
-                card_title: 'Gmail Error',
-                card_subtitle: 'user@gmail.com',
-                badge: 'AUTH FAILED',
-                lbl_account: 'Account',
-                lbl_imap: 'IMAP',
-                err_text: 'Please generate a fresh 16-char Google App Password and run /gmail config.',
-                btn_1: 'Retry',
-                btn_2: 'Disconnect',
-              }),
-            },
-          };
-        }
-        throw new Error('Unexpected call');
+        assert(req.api === 'email' && req.operation === 'inbox', 'Only email.inbox');
+        return { success: false, error: 'Authentication failed' };
       }
     );
-    assert(out.type === 'ui' && out.ui.badgeColor === 'red' && out.ui.icon === 'error', 'Red error card on failed IMAP verify');
+    assert(outErr.type === 'ui' && outErr.ui.badgeColor === 'red' && outErr.ui.title === 'Connection Error' && outErr.ui.badge === 'AUTH FAILED', 'Red English error card');
+    assert(outErr.ui.elements[4].buttons[0].label === 'Retry' && outErr.ui.elements[4].buttons[1].label === 'Disconnect', 'Retry and Disconnect buttons');
   }
 
-  // Test 6: Inbox list + Read (with ToolRegistry.normalizeArgs rewriting read->get!) + Send + Disconnect + Help + AI fallback
+  // Test 5: Conversational JSON inbox / read (rewritten as get) / send / disconnect -> compact JSON (NO Flutter UI, 0 AI calls!)
   {
     const outInbox = await execPlugin(
       JSON.stringify({ api: 'gmail', operation: 'inbox', payload: { lang: 'es' } }),
       () => ({ success: true, data: { exists: false } }),
       async (req) => {
-        if (req.api === 'email' && req.operation === 'inbox') {
-          return {
-            success: true,
-            data: {
-              status: 'success',
-              account: 'user@gmail.com',
-              unread_count: 1,
-              total_count: 2,
-              emails: [
-                { id: '12', from: 'Ana <ana@test.com>', subject: 'Factura Noviembre', date: '2026-11-18 10:00', unread: true, snippet: 'Adjunto factura.' },
-                { id: '11', from: 'Equipo <team@test.com>', subject: 'Resumen', date: '2026-11-17 09:00', unread: false, snippet: 'Todo listo.' },
-              ],
-            },
-          };
-        }
-        return { success: true, data: { text: '{"intro":"Tienes 1 correo sin leer.","card_title":"Bandeja","card_subtitle":"user@gmail.com","badge":"1 NUEVO","btn_1":"Actualizar","btn_2":"Estado"}' } };
+        assert(req.api === 'email' && req.operation === 'inbox', 'Only email.inbox (0 AI tokens)');
+        return {
+          success: true,
+          data: {
+            status: 'success',
+            account: 'user@gmail.com',
+            unread_count: 1,
+            total_count: 2,
+            emails: [
+              { id: '12', from: 'Ana <ana@test.com>', subject: 'Invoice Nov', date: '2026-11-18 10:00', unread: true, snippet: 'Attached invoice.' },
+              { id: '11', from: 'Team <team@test.com>', subject: 'Summary', date: '2026-11-17 09:00', unread: false, snippet: 'All set.' },
+            ],
+          },
+        };
       }
     );
-    assert(outInbox.type === 'ui' && outInbox.ui.elements[0].type === 'list' && outInbox.ui.elements[0].items.length === 2, 'Inbox list rendered');
-    assert(outInbox.ui.elements[0].items[0].title.includes('[12]') && outInbox.ui.elements[0].items[0].title.includes('Factura Noviembre'), 'Email ID and subject shown');
+    assert(outInbox.type === undefined && outInbox.ok === true && outInbox.unread === 1 && outInbox.emails.length === 2, 'Conversational inbox returns compact JSON for natural language');
 
-    // Normalized action "get" -> email.read!
     const outRead = await execPlugin(
       JSON.stringify({ api: 'gmail', operation: 'get', payload: { id: '12', lang: 'es' } }),
       () => ({ success: true, data: { exists: false } }),
       async (req) => {
-        if (req.api === 'email' && req.operation === 'read') {
-          assert(req.payload.id === '12', 'Read ID forwarded');
-          return {
-            success: true,
-            data: { id: '12', from: 'Ana <ana@test.com>', to: 'user@gmail.com', subject: 'Factura Noviembre', date: '2026-11-18 10:00', body: 'Hola,\nTe envío la factura.\nSaludos.' },
-          };
-        }
-        if (req.api === 'ai') {
-          return { success: true, data: { text: '{"intro":"Correo de Ana sobre la factura de noviembre.","card_title":"Mensaje #12","card_subtitle":"Ana","badge":"CORREO","lbl_from":"De","lbl_to":"Para","lbl_subject":"Asunto","lbl_date":"Fecha","btn_1":"Bandeja"}' } };
-        }
-        throw new Error('Unexpected read call: ' + JSON.stringify(req));
+        assert(req.api === 'email' && req.operation === 'read' && req.payload.id === '12', 'Normalized get -> email.read (0 AI tokens)');
+        return {
+          success: true,
+          data: { id: '12', from: 'Ana <ana@test.com>', to: 'user@gmail.com', subject: 'Invoice Nov', date: '2026-11-18 10:00', body: 'Hello,\nInvoice attached.' },
+        };
       }
     );
-    assert(outRead.type === 'ui' && outRead.ui.elements[2].type === 'text' && outRead.ui.elements[2].content.includes('Te envío la factura.'), 'Full email body in UI card');
+    assert(outRead.type === undefined && outRead.ok === true && outRead.body.includes('Invoice attached.'), 'Conversational read returns compact JSON');
 
     const outSend = await execPlugin(
-      JSON.stringify({ api: 'gmail', operation: 'send', payload: { to: 'alex@example.com', subject: 'Hola', body: 'Contenido', lang: 'es' } }),
+      JSON.stringify({ api: 'gmail', operation: 'send', payload: { to: 'alex@example.com', subject: 'Hi', body: 'Body', lang: 'es' } }),
       () => ({ success: true, data: { exists: false } }),
       async (req) => {
-        if (req.api === 'email' && req.operation === 'send') return { success: true, data: { sent: true, to: 'alex@example.com', subject: 'Hola' } };
-        return { success: true, data: { text: '{"intro":"Correo enviado.","card_title":"Enviado","badge":"ENVIADO","lbl_to":"Para","lbl_subject":"Asunto","lbl_status":"Estado","val_status":"Entregado","btn_1":"Bandeja"}' } };
+        assert(req.api === 'email' && req.operation === 'send', 'Only email.send (0 AI tokens)');
+        return { success: true, data: { sent: true, to: 'alex@example.com', subject: 'Hi' } };
       }
     );
-    assert(outSend.type === 'ui' && outSend.ui.icon === 'check', 'Send confirmation card');
+    assert(outSend.type === undefined && outSend.ok === true && outSend.sent === true, 'Conversational send returns compact JSON');
 
     const outDisc = await execPlugin(
       JSON.stringify({ api: 'gmail', operation: 'disconnect', payload: { lang: 'en' } }),
       () => ({ success: true, data: { exists: false } }),
       async (req) => {
-        if (req.api === 'email' && req.operation === 'disconnect') return { success: true, data: { disconnected: true } };
-        return { success: false, error: 'AI offline' }; // Verify AI offline fallback too!
+        assert(req.api === 'email' && req.operation === 'disconnect', 'Only email.disconnect (0 AI tokens)');
+        return { success: true, data: { disconnected: true } };
       }
     );
-    assert(outDisc.type === 'ui' && outDisc.ui.badgeColor === 'blue', 'Disconnect fallback card');
+    assert(outDisc.type === undefined && outDisc.ok === true && outDisc.disconnected === true, 'Conversational disconnect returns compact JSON');
+  }
 
-    const outHelp = await execPlugin(
-      'help lang=es',
+  // Test 6: Direct slash/button commands -> natural plain text (type:"direct", NO Flutter UI) + English offline fallbacks
+  {
+    // Button tap "View Inbox" -> /gmail inbox -> short AI text summary (not UI card)
+    const outInbBtn = await execPlugin(
+      'inbox lang=es',
       () => ({ success: true, data: { exists: false } }),
       async (req) => {
-        assert(req.api === 'ai' && req.payload.systemPrompt.includes('"es"'), 'Help uses lang es');
-        return { success: true, data: { text: 'Para conectar Gmail usa /gmail config <correo> <contraseña de aplicación>.' } };
+        if (req.api === 'email' && req.operation === 'inbox') {
+          return { success: true, data: { account: 'user@gmail.com', unread_count: 1, total_count: 1, emails: [{ id: '12', from: 'Ana', subject: 'Invoice', date: '2026-11-18', unread: true, snippet: '' }] } };
+        }
+        if (req.api === 'ai' && req.operation === 'complete') {
+          assert(req.payload.systemPrompt.includes('"es"'), 'Direct inbox AI respects lang');
+          return { success: true, data: { text: 'Tienes 1 correo nuevo: [12] Invoice de Ana.' } };
+        }
+        throw new Error('Unexpected direct inbox call');
       }
     );
-    assert(outHelp.type === 'direct' && outHelp.displayText.includes('/gmail config'), 'Help direct AI output');
+    assert(outInbBtn.type === 'direct' && outInbBtn.displayText.includes('[12]'), 'Direct inbox returns natural text');
+
+    // Direct /gmail read 12 -> 0 AI tokens, formatted English headers + body
+    const outRdDir = await execPlugin(
+      'read 12 lang=es',
+      () => ({ success: true, data: { exists: false } }),
+      async (req) => {
+        assert(req.api === 'email' && req.operation === 'read', 'Direct read makes 0 AI calls');
+        return { success: true, data: { id: '12', from: 'Ana', to: 'user@gmail.com', subject: 'Invoice', date: '2026-11-18', body: 'Attached.' } };
+      }
+    );
+    assert(outRdDir.type === 'direct' && outRdDir.displayText.includes('From: Ana') && outRdDir.displayText.includes('Attached.'), 'Direct read formats email with 0 AI tokens');
+
+    // Direct /gmail help + offline English fallback
+    const outHelpFb = await execPlugin(
+      'help lang=en',
+      () => ({ success: true, data: { exists: false } }),
+      async () => ({ success: false, error: 'AI offline' })
+    );
+    assert(outHelpFb.type === 'direct' && outHelpFb.displayText.includes('Gmail commands:'), 'English offline help fallback');
   }
 
   console.log('ALL GMAIL WASM TESTS PASSED (6/6 suites)!');

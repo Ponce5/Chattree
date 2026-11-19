@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "name": "Calendar Plugin",
-  "description": "Official on-device calendar integration with multilingual AI guidance and rich Flutter UI cards for scheduling, viewing, updating, and deleting calendar events.",
+  "description": "Fast, token-optimized on-device calendar integration with English Flutter UI cards for event creation and /calendar overview, and natural-language responses for queries and edits.",
   "author": "Chattree Core Team",
   "primaryCommand": "calendar",
   "aliases": [
@@ -29,13 +29,13 @@
     "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.8.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.8.0",
-  "changelog": "1.8.0: Fixed first-message event creation reliability (explicit tool:'calendar' contract, lang=<code> stripping, camelCase Host API normalization, writable calendarId resolution + automatic retry, increased timeoutMs for OS permission prompts), removed all hardcoded static response text in favor of multilingual ai.complete generation, and added declarative Flutter UI cards for both bare /calendar event listings and event creation/update/delete confirmations (showing title, date, time, and description).",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.9.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.9.0",
+  "changelog": "1.9.0: Major token and performance optimization. Compacted manifest prompt schema, eliminated redundant ai.complete calls on UI cards and conversational queries, switched all predefined UI copy and action button labels to English ('View Events', 'Refresh', 'Retry' without raw slash commands), and balanced responses between Flutter UI cards (bare /calendar and create) and normal natural-language text (queries, updates, deletes, help).",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "c588fc7d04a4d93005aa602a5fbe79e7df91f5c3085742d35946bbcc417af4b6",
+  "wasmSha256": "871d46f04f513f3dcb577e36ca34e0b592485a8e76b8b9ec960dce0521813f1e",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 32,
   "timeoutMs": 50000,
@@ -48,7 +48,7 @@
       "id": "com.chattree.official.calendar.manager",
       "command": "calendar",
       "displayName": "Device Calendar",
-      "description": "Manage the user's local device calendar in ANY language. CRITICAL: Always include \"tool\":\"calendar\" and output ONLY ONE valid JSON object with no surrounding text or markdown. Supported actions: (1) \"create\" — schedule a new event with concise \"title\", exact 24-hour ISO-8601 \"start\" and \"startDate\" (YYYY-MM-DDTHH:mm:ss, resolving relative days like today/tomorrow/next Monday or specific dates from current local date/time; never use 12h format), exact \"end\" and \"endDate\" equal to start + durationMinutes (default 60 minutes if unspecified), integer \"durationMinutes\", and optional \"description\" (location, meeting link, notes, or attendees if mentioned). (2) \"events\" — list upcoming calendar events, optionally bounded by \"startDate\" and \"endDate\". (3) \"update\" — modify an event requiring \"eventId\" and \"calendarId\" plus changed fields. (4) \"delete\" — delete an event requiring \"eventId\" and \"calendarId\". (5) \"help\" — explain usage when asked how the calendar plugin works. Never invent event details the user did not state.",
+      "description": "Manage local device calendar. Always include \"tool\":\"calendar\" and return ONE JSON object. Actions: \"create\" (title, 24h ISO-8601 start & end YYYY-MM-DDTHH:mm:ss, durationMinutes default 60, optional description), \"events\" (optional startDate/endDate), \"update\" (eventId, calendarId, fields), \"delete\" (eventId, calendarId), \"help\".",
       "capabilities": [
         "calendar.read",
         "calendar.create",
@@ -68,132 +68,95 @@
           "help",
           "unknown"
         ],
-        "description": "ALWAYS emit \"tool\":\"calendar\". Interpret calendar requests in any language: schedule events with exact 24-hour ISO-8601 start/end timestamps, durationMinutes, and optional description; list events; update or delete by eventId + calendarId; or show help.",
+        "description": "Always emit \"tool\":\"calendar\". Use 24h ISO-8601 timestamps.",
         "fields": [
           {
             "name": "action",
             "key": "action",
             "type": "string",
-            "description": "Operation: \"create\", \"events\", \"update\", \"delete\", or \"help\".",
+            "description": "create, events, update, delete, or help.",
             "required": true
           },
           {
             "name": "title",
             "key": "title",
             "type": "string",
-            "description": "Concise event title without date/time phrases (required for \"create\").",
+            "description": "Concise event title.",
             "required": false
           },
           {
             "name": "start",
             "key": "start",
             "type": "string",
-            "description": "Start timestamp in 24-hour ISO-8601 format YYYY-MM-DDTHH:mm:ss.",
-            "required": false
-          },
-          {
-            "name": "startDate",
-            "key": "startDate",
-            "type": "string",
-            "description": "Identical to \"start\" (YYYY-MM-DDTHH:mm:ss), or optional start bound for \"events\".",
+            "description": "Start YYYY-MM-DDTHH:mm:ss (24h).",
             "required": false
           },
           {
             "name": "end",
             "key": "end",
             "type": "string",
-            "description": "End timestamp YYYY-MM-DDTHH:mm:ss equal to start + durationMinutes (default 60 min).",
-            "required": false
-          },
-          {
-            "name": "endDate",
-            "key": "endDate",
-            "type": "string",
-            "description": "Identical to \"end\" (YYYY-MM-DDTHH:mm:ss), or optional end bound for \"events\".",
+            "description": "End YYYY-MM-DDTHH:mm:ss (24h).",
             "required": false
           },
           {
             "name": "durationMinutes",
             "key": "durationMinutes",
             "type": "integer",
-            "description": "Event duration in minutes as an integer (e.g. 15, 30, 45, 60, 120).",
+            "description": "Duration in minutes (default 60).",
             "required": false
           },
           {
             "name": "description",
             "key": "description",
             "type": "string",
-            "description": "Optional event notes, location, link, or details mentioned by the user.",
-            "required": false
-          },
-          {
-            "name": "eventId",
-            "key": "eventId",
-            "type": "string",
-            "description": "Event ID (required for \"update\" or \"delete\").",
+            "description": "Optional notes or location.",
             "required": false
           },
           {
             "name": "calendarId",
             "key": "calendarId",
             "type": "string",
-            "description": "Calendar ID (required for \"update\" or \"delete\", optional otherwise).",
+            "description": "Calendar ID for update/delete.",
+            "required": false
+          },
+          {
+            "name": "eventId",
+            "key": "eventId",
+            "type": "string",
+            "description": "Event ID for update/delete.",
             "required": false
           }
         ],
         "examples": [
           {
-            "input": "schedule a medical appointment tomorrow at 3:30pm for 30 minutes at North Clinic",
+            "input": "schedule dentist tomorrow at 4pm for 45 min at North Clinic",
             "output": {
               "tool": "calendar",
               "action": "create",
-              "title": "Medical appointment",
-              "start": "2026-10-29T15:30:00",
-              "startDate": "2026-10-29T15:30:00",
-              "end": "2026-10-29T16:00:00",
-              "endDate": "2026-10-29T16:00:00",
-              "durationMinutes": 30,
+              "title": "Dentist",
+              "start": "2026-04-06T16:00:00",
+              "end": "2026-04-06T16:45:00",
+              "durationMinutes": 45,
               "description": "North Clinic"
             }
           },
           {
-            "input": "agéndame reunión con Ana hoy a las 5pm",
-            "output": {
-              "tool": "calendar",
-              "action": "create",
-              "title": "Reunión con Ana",
-              "start": "2026-10-28T17:00:00",
-              "startDate": "2026-10-28T17:00:00",
-              "end": "2026-10-28T18:00:00",
-              "endDate": "2026-10-28T18:00:00",
-              "durationMinutes": 60
-            }
-          },
-          {
-            "input": "what is on my calendar?",
+            "input": "what events do I have this week?",
             "output": {
               "tool": "calendar",
               "action": "events"
             }
           },
           {
-            "input": "qué eventos tengo del 2026-11-01 al 2026-11-07",
+            "input": "delete event ev-9 in calendar cal-1",
             "output": {
               "tool": "calendar",
-              "action": "events",
-              "startDate": "2026-11-01T00:00:00",
-              "endDate": "2026-11-07T23:59:59"
-            }
-          },
-          {
-            "input": "help",
-            "output": {
-              "tool": "calendar",
-              "action": "help"
+              "action": "delete",
+              "eventId": "ev-9",
+              "calendarId": "cal-1"
             }
           }
-        ],
-        "maxResponseTokens": 350
+        ]
       }
     }
   ]
