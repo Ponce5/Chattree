@@ -191,9 +191,15 @@ S.direct_p1 = registerData('direct_p1', '{"type":"direct","displayText":"');
 S.direct_p2 = registerData('direct_p2', '"}');
 
 // Grounded Direct-Text Templates (verbatim device calendar data — 0% hallucination, 0 extra LLM tokens)
+S.t_sod = registerData('t_sod', 'T00:00:00');
+S.t_eod = registerData('t_eod', 'T23:59:59');
 S.en_ev_hdr1 = registerData('en_ev_hdr1', 'Upcoming calendar events (');
 S.en_ev_hdr2 = registerData('en_ev_hdr2', '):');
+S.en_ev_for = registerData('en_ev_for', 'Calendar events for ');
 S.en_ev_none = registerData('en_ev_none', 'No upcoming events found in your calendar.');
+S.en_ev_none_for = registerData('en_ev_none_for', 'No events found for ');
+S.en_ev_to = registerData('en_ev_to', ' to ');
+S.en_dot_end = registerData('en_dot_end', '.');
 S.en_ev_bullet = registerData('en_ev_bullet', '\n- ');
 S.en_ev_lp = registerData('en_ev_lp', ' (');
 S.en_ev_comma = registerData('en_ev_comma', ', ');
@@ -210,8 +216,8 @@ const dataLines = dataEntries
   .map((e) => `  (data (i32.const ${e.offset}) "${e.escaped}") ;; ${e.name} (len=${e.strLen})`)
   .join('\n');
 
-const wat = `;; Chattree Official Calendar Plugin (v1.9.1)
-;; Grounded Verbatim Calendar Queries + Zero-Token English Flutter UI Cards
+const wat = `;; Chattree Official Calendar Plugin (v1.9.2)
+;; Single-Source-of-Truth Device Calendar Queries + Zero-Token English Flutter UI Cards
 (module
   (import "chattree" "host_call"
     (func $host_call (param i32 i32 i32 i32) (result i32))
@@ -1235,6 +1241,26 @@ ${dataLines}
     (local $p i32)
     (local $has_field i32)
     (global.set $g_state (i32.const 12))
+    ;; Normalize date-only / start-only queries to exact day bounds (prevent +30d spillover!)
+    (if (i32.eq (global.get $start_len) (i32.const 10))
+      (then
+        (memory.copy (i32.const 270710) (i32.const ${S.t_sod.offset}) (i32.const 9))
+        (global.set $start_len (i32.const 19))
+      )
+    )
+    (if (i32.eq (global.get $end_len) (i32.const 10))
+      (then
+        (memory.copy (i32.const 270810) (i32.const ${S.t_eod.offset}) (i32.const 9))
+        (global.set $end_len (i32.const 19))
+      )
+    )
+    (if (i32.and (i32.ge_s (global.get $start_len) (i32.const 10)) (i32.le_s (global.get $end_len) (i32.const 0)))
+      (then
+        (memory.copy (i32.const 270800) (i32.const 270700) (i32.const 10))
+        (memory.copy (i32.const 270810) (i32.const ${S.t_eod.offset}) (i32.const 9))
+        (global.set $end_len (i32.const 19))
+      )
+    )
     (local.set $has_field (i32.const 0))
     (local.set $p (call $copy_zstr (i32.const ${S.req_events_p.offset}) (i32.const 400000)))
     (if (i32.gt_s (global.get $calid_len) (i32.const 0))
@@ -1553,6 +1579,34 @@ ${dataLines}
 
   ;; ── Grounded Direct-Text Renderers (0% hallucination, 0 extra LLM tokens) ──
 
+  (func $dates_equal_10 (result i32)
+    (local $i i32)
+    (local.set $i (i32.const 0))
+    (loop $de
+      (if (i32.lt_s (local.get $i) (i32.const 10))
+        (then
+          (if (i32.ne (i32.load8_u (i32.add (i32.const 270700) (local.get $i)))
+                      (i32.load8_u (i32.add (i32.const 270800) (local.get $i))))
+            (then (return (i32.const 0)))
+          )
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $de)
+        )
+      )
+    )
+    (i32.const 1)
+  )
+
+  (func $emit_queried_range
+    (call $out_json_esc (i32.const 270700) (i32.const 10) (i32.const 10))
+    (if (i32.and (i32.ge_s (global.get $end_len) (i32.const 10)) (i32.eqz (call $dates_equal_10)))
+      (then
+        (call $out_json_esc (i32.const ${S.en_ev_to.offset}) (i32.const ${S.en_ev_to.len}) (i32.const 8))
+        (call $out_json_esc (i32.const 270800) (i32.const 10) (i32.const 10))
+      )
+    )
+  )
+
   (func $render_events_direct (result i32)
     (local $count i32)
     (local $tl i32)
@@ -1576,12 +1630,30 @@ ${dataLines}
     )
     (if (i32.le_s (global.get $g_ev_count) (i32.const 0))
       (then
-        (call $out_json_esc (i32.const ${S.en_ev_none.offset}) (i32.const ${S.en_ev_none.len}) (i32.const 120))
+        (if (i32.ge_s (global.get $start_len) (i32.const 10))
+          (then
+            (call $out_json_esc (i32.const ${S.en_ev_none_for.offset}) (i32.const ${S.en_ev_none_for.len}) (i32.const 48))
+            (call $emit_queried_range)
+            (call $out_json_esc (i32.const ${S.en_dot_end.offset}) (i32.const ${S.en_dot_end.len}) (i32.const 4))
+          )
+          (else
+            (call $out_json_esc (i32.const ${S.en_ev_none.offset}) (i32.const ${S.en_ev_none.len}) (i32.const 120))
+          )
+        )
         (call $out_z (i32.const ${S.direct_p2.offset}))
         (return (i32.sub (global.get $out_pos) (i32.const 65536)))
       )
     )
-    (call $out_json_esc (i32.const ${S.en_ev_hdr1.offset}) (i32.const ${S.en_ev_hdr1.len}) (i32.const 48))
+    (if (i32.ge_s (global.get $start_len) (i32.const 10))
+      (then
+        (call $out_json_esc (i32.const ${S.en_ev_for.offset}) (i32.const ${S.en_ev_for.len}) (i32.const 48))
+        (call $emit_queried_range)
+        (call $out_json_esc (i32.const ${S.en_ev_lp.offset}) (i32.const ${S.en_ev_lp.len}) (i32.const 8))
+      )
+      (else
+        (call $out_json_esc (i32.const ${S.en_ev_hdr1.offset}) (i32.const ${S.en_ev_hdr1.len}) (i32.const 48))
+      )
+    )
     (local.set $hdr_end (call $copy_int_str (global.get $g_ev_count) (i32.const 281700)))
     (call $out_json_esc (i32.const 281700) (i32.sub (local.get $hdr_end) (i32.const 281700)) (i32.const 16))
     (call $out_json_esc (i32.const ${S.en_ev_hdr2.offset}) (i32.const ${S.en_ev_hdr2.len}) (i32.const 16))
@@ -2470,21 +2542,43 @@ async function runTests() {
     assert(out.ui.elements[2].buttons[0].label === 'Retry', 'Retry button');
   }
 
-  // Test 5: Conversational JSON events/update/delete/missing_title -> Grounded verbatim type:"direct" text (0% hallucination, NO Flutter UI, 0 AI calls!)
+  // Test 5: Conversational JSON events/update/delete/missing_title -> Grounded verbatim type:"direct" text (0% hallucination, exact day bounds, 0 AI calls!)
   {
     const outEvents = await execPlugin(
-      JSON.stringify({ api: 'calendar', operation: 'events', payload: { startdate: '2026-11-26T00:00:00', enddate: '2026-11-27T23:59:59', lang: 'es' } }),
+      JSON.stringify({ api: 'calendar', operation: 'events', payload: { startdate: '2026-11-26', enddate: '2026-11-27', lang: 'es' } }),
       async (req) => {
         if (req.api === 'calendar' && req.operation === 'calendars') {
           return { success: true, data: { calendars: [{ id: 'cal_main', isReadOnly: false, isDefault: true }] } };
         }
         assert(req.api === 'calendar' && req.operation === 'events', 'Only calls calendar.events');
         assert(req.payload.calendarId === 'cal_main', 'Resolves writable calendarId');
-        assert(req.payload.startDate === '2026-11-26T00:00:00' && req.payload.endDate === '2026-11-27T23:59:59', 'CamelCase bounds');
+        assert(req.payload.startDate === '2026-11-26T00:00:00' && req.payload.endDate === '2026-11-27T23:59:59', 'Date-only bounds expanded to full day');
         return { success: true, data: { count: 1, events: [{ id: 'p1', calendarId: 'cal_main', title: 'Meeting', start: '2026-11-26T10:00:00', end: '2026-11-26T11:00:00', allDay: false, description: 'Room B' }] } };
       }
     );
-    assert(outEvents.type === 'direct' && outEvents.displayText.includes('Upcoming calendar events (1):') && outEvents.displayText.includes('- Meeting (2026-11-26, 10:00 - 11:00) - Room B'), 'Verbatim grounded events text');
+    assert(outEvents.type === 'direct' && outEvents.displayText.includes('Calendar events for 2026-11-26 to 2026-11-27 (1):') && outEvents.displayText.includes('- Meeting (2026-11-26, 10:00 - 11:00) - Room B'), 'Verbatim grounded range events text');
+
+    // Single-day query with start only (no end) must auto-cap endDate to 23:59:59 of that day (never +30 days!)
+    const outTomorrow = await execPlugin(
+      JSON.stringify({ api: 'calendar', operation: 'events', payload: { start: '2026-11-19', lang: 'es' } }),
+      async (req) => {
+        if (req.api === 'calendar' && req.operation === 'calendars') {
+          return { success: true, data: { calendars: [{ id: 'cal_main', isReadOnly: false, isDefault: true }] } };
+        }
+        assert(req.payload.startDate === '2026-11-19T00:00:00' && req.payload.endDate === '2026-11-19T23:59:59', 'Start-only auto-capped to single day');
+        return { success: true, data: { count: 1, events: [{ id: 'm1', calendarId: 'cal_main', title: 'Sync', start: '2026-11-19T15:00:00', end: '2026-11-19T16:00:00', allDay: false, description: '' }] } };
+      }
+    );
+    assert(outTomorrow.type === 'direct' && outTomorrow.displayText === 'Calendar events for 2026-11-19 (1):\n- Sync (2026-11-19, 15:00 - 16:00)', 'Exact single-day response');
+
+    const outTomorrowEmpty = await execPlugin(
+      JSON.stringify({ api: 'calendar', operation: 'events', payload: { start: '2026-11-19T00:00:00', end: '2026-11-19T23:59:59', lang: 'es' } }),
+      async (req) => {
+        if (req.api === 'calendar' && req.operation === 'calendars') return { success: true, data: { calendars: [{ id: 'cal_main', isReadOnly: false, isDefault: true }] } };
+        return { success: true, data: { count: 0, events: [] } };
+      }
+    );
+    assert(outTomorrowEmpty.type === 'direct' && outTomorrowEmpty.displayText === 'No events found for 2026-11-19.', 'Empty single-day message');
 
     const outUpd = await execPlugin(
       JSON.stringify({ api: 'calendar', operation: 'update', payload: { eventid: 'e1', calendarid: 'c1', title: 'Updated', lang: 'fr' } }),

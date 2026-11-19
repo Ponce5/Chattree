@@ -2,9 +2,9 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.calendar",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "name": "Calendar Plugin",
-  "description": "Fast, token-optimized on-device calendar integration with English Flutter UI cards for event creation and /calendar overview, and grounded factual text responses for queries and edits.",
+  "description": "Fast, token-optimized on-device calendar integration using the device calendar as the single source of truth, with English Flutter UI cards for /calendar and event creation, and exact date-filtered factual text responses for queries.",
   "author": "Chattree Core Team",
   "primaryCommand": "calendar",
   "aliases": [
@@ -29,13 +29,13 @@
     "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.9.1",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.9.1",
-  "changelog": "1.9.1: Fixed hallucinated calendar responses by returning verbatim real device calendar data directly (type:'direct' text) for conversational queries/updates/deletes instead of passing raw JSON to a second LLM generation pass, and aligned calendar.events to resolve the same default writable calendarId via calendar.calendars used by calendar.create.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/icon.png?v=1.9.2",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/calendar/banner.png?v=1.9.2",
+  "changelog": "1.9.2: Enforced device calendar as the single source of truth for day/range queries. Automatically normalizes date-only or start-only events queries to exact day bounds (00:00:00 to 23:59:59) so single-day questions like 'tomorrow' never expand to the host's 37-day default window, and shows the exact queried date/range in grounded text responses.",
   "runtime": "wasm",
   "entrypoint": "calendar_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "d227f036c09b13e18c4e7abccc4a47acd165a636edb66abfc8b36b9a17d40269",
+  "wasmSha256": "f76cb1e1409bc33cacc0eaeb0d3e8ea7d81f0e29a6ac8b0e9b31ad5c4040d435",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 32,
   "timeoutMs": 50000,
@@ -48,7 +48,7 @@
       "id": "com.chattree.official.calendar.manager",
       "command": "calendar",
       "displayName": "Device Calendar",
-      "description": "Manage local device calendar. Always include \"tool\":\"calendar\" and return ONE JSON object. Actions: \"create\" (title, 24h ISO-8601 start & end YYYY-MM-DDTHH:mm:ss, durationMinutes default 60, optional description), \"events\" (omit start/end unless user asks for a specific date range), \"update\" (eventId, calendarId, fields), \"delete\" (eventId, calendarId), \"help\".",
+      "description": "Manage local device calendar. Always include \"tool\":\"calendar\" and return ONE JSON object. Actions: \"create\" (title, 24h ISO-8601 start & end YYYY-MM-DDTHH:mm:ss, durationMinutes default 60, optional description), \"events\" (ALWAYS set start YYYY-MM-DDT00:00:00 and end YYYY-MM-DDT23:59:59 when user asks about a specific day or period like today/tomorrow/this week; omit only for general upcoming events), \"update\" (eventId, calendarId, fields), \"delete\" (eventId, calendarId), \"help\".",
       "capabilities": [
         "calendar.read",
         "calendar.create",
@@ -141,7 +141,16 @@
             }
           },
           {
-            "input": "what events do I have this week?",
+            "input": "what do I have tomorrow?",
+            "output": {
+              "tool": "calendar",
+              "action": "events",
+              "start": "2026-04-06T00:00:00",
+              "end": "2026-04-06T23:59:59"
+            }
+          },
+          {
+            "input": "what upcoming events do I have?",
             "output": {
               "tool": "calendar",
               "action": "events"

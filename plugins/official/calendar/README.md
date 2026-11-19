@@ -1,12 +1,13 @@
-# Chattree Calendar Plugin (v1.9.1)
+# Chattree Calendar Plugin (v1.9.2)
 
-Official on-device Calendar integration (`com.chattree.official.calendar`) for Chattree, optimized for minimal token usage, fast execution, English Flutter UI cards for event creation and `/calendar` overviews, and strictly grounded factual text responses for queries and edits.
+Official on-device Calendar integration (`com.chattree.official.calendar`) for Chattree, using the device calendar as the single source of truth with exact date-filtered factual text responses for queries and English Flutter UI cards for `/calendar` and event creation.
 
-## What Changed in v1.9.1
+## What Changed in v1.9.2
 
-1. **Zero-Hallucination Grounded Responses**:
-   - Conversational `events`, `update`, and `delete` queries now return verbatim device calendar data directly (`type: "direct"` plain text) instead of passing raw JSON through a second LLM pass, preventing on-device models from fabricating events, dates, or times.
-   - Aligned `calendar.events` to resolve the same default writable `calendarId` via `calendar.calendars` used by `calendar.create`, ensuring created events always appear when listing events.
+1. **Single Source of Truth & Exact Day/Range Filtering**:
+   - Date-only (`YYYY-MM-DD`) and start-only `events` queries are automatically normalized to exact day bounds (`00:00:00` to `23:59:59`) so asking about a specific day (e.g., today or tomorrow) never spills into the host's default 37-day window (`-7d..+30d`).
+   - Responses display the exact queried date or range (`Calendar events for YYYY-MM-DD (N):` / `No events found for YYYY-MM-DD.`) with verbatim device calendar entries (`type: "direct"` plain text, 0% hallucination, 0 extra LLM tokens).
+   - Aligned `calendar.events` to resolve the same default writable `calendarId` via `calendar.calendars` used by `calendar.create`.
 2. **Token & Performance Optimization**:
    - Compacted `plugin.json` tool descriptions, `intentContract`, fields, and examples to reduce prompt token usage on every chat turn.
    - Zero `ai.complete` calls on UI cards and conversational event queries/edits.
