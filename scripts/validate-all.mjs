@@ -12,6 +12,7 @@ const targets = [
   "examples/webhook-hub",
   "templates/plugin",
   "plugins/official/calendar",
+  "plugins/official/briefing",
   "plugins/official/mail",
   "plugins/official/pdf",
   "plugins/official/elevenlabs",

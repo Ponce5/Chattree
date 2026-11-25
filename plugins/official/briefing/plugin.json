@@ -1,0 +1,165 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.briefing",
+  "version": "1.0.0",
+  "name": "Daily Briefing",
+  "description": "Automatic morning summary combining today's calendar events, pending reminders, unread emails, your \"Daily\" Chattree note, and live Open-Meteo weather in one blue Flutter UI card with daily cron scheduling.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "briefing",
+  "aliases": [
+    "morning",
+    "resumen",
+    "digest"
+  ],
+  "type": "imported",
+  "category": "productivity",
+  "capabilities": [
+    "storage.private",
+    "calendar.read",
+    "chattree.reminders.read",
+    "chattree.notes.read",
+    "email.read",
+    "network.http",
+    "scheduler.cron",
+    "notifications.send",
+    "ui.components"
+  ],
+  "allowedDomains": [
+    "api.open-meteo.com",
+    "geocoding-api.open-meteo.com"
+  ],
+  "tags": [
+    "briefing",
+    "morning",
+    "calendar",
+    "reminders",
+    "notes",
+    "email",
+    "weather",
+    "cron",
+    "ui",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.0",
+  "changelog": "1.0.0: Initial official release combining calendar events, pending reminders, unread emails, your \"Daily\" Chattree note, and keyless Open-Meteo weather with daily scheduler.cron automation and blue Flutter UI cards.",
+  "runtime": "wasm",
+  "entrypoint": "briefing_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "e4776869b5776013c0e1e8b477524f6a1b9e2d1f7dfaf2ff397b0f7db2047f7e",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 32,
+  "timeoutMs": 35000,
+  "fuelLimit": 100000000,
+  "inputOffset": 0,
+  "outputOffset": 65536,
+  "maxPayloadSizeBytes": 65536,
+  "tools": [
+    {
+      "id": "com.chattree.official.briefing.digest",
+      "command": "briefing",
+      "displayName": "Daily Briefing",
+      "description": "Generate a morning briefing combining calendar events, pending reminders, unread emails, your \"Daily\" Chattree note, and live weather, or schedule it daily. Always include \"tool\":\"briefing\" and return ONE JSON object. Actions: \"briefing\", \"city\" (set weather city in \"city\"), \"note\" (set which Chattree note title to include in \"note\", default \"Daily\"), \"schedule\" (24h \"time\" like \"08:00\"), \"unschedule\", \"notify\", \"status\", or \"help\". Always include \"date\" as YYYY-MM-DD.",
+      "capabilities": [
+        "storage.private",
+        "calendar.read",
+        "chattree.reminders.read",
+        "chattree.notes.read",
+        "email.read",
+        "network.http",
+        "scheduler.cron",
+        "notifications.send",
+        "ui.components"
+      ],
+      "intentContract": {
+        "intent": "briefing_action",
+        "validIntents": [
+          "briefing",
+          "city",
+          "note",
+          "schedule",
+          "unschedule",
+          "notify",
+          "status",
+          "help"
+        ],
+        "description": "Interpret the user's daily briefing request (English or Spanish) and return ONE valid JSON object with \"tool\":\"briefing\", \"action\", optional \"city\"/\"note\"/\"time\", and \"date\" (YYYY-MM-DD).",
+        "fields": [
+          {
+            "name": "action",
+            "key": "action",
+            "type": "string",
+            "description": "Action: \"briefing\", \"city\", \"note\", \"schedule\", \"unschedule\", \"notify\", \"status\", or \"help\".",
+            "required": true
+          },
+          {
+            "name": "city",
+            "key": "city",
+            "type": "string",
+            "description": "City name for weather (when action=\"city\", e.g. \"Madrid\", \"Mexico City\").",
+            "required": false
+          },
+          {
+            "name": "note",
+            "key": "note",
+            "type": "string",
+            "description": "Chattree note title to display in briefing (when action=\"note\", default \"Daily\").",
+            "required": false
+          },
+          {
+            "name": "time",
+            "key": "time",
+            "type": "string",
+            "description": "24-hour time HH:MM for daily cron schedule (when action=\"schedule\", e.g. \"08:00\", \"07:30\").",
+            "required": false
+          },
+          {
+            "name": "date",
+            "key": "date",
+            "type": "string",
+            "description": "Today's local date in YYYY-MM-DD format.",
+            "required": false
+          }
+        ],
+        "examples": [
+          {
+            "input": "dame mi resumen del día",
+            "output": {
+              "tool": "briefing",
+              "action": "briefing",
+              "date": "2026-11-25"
+            }
+          },
+          {
+            "input": "configura mi ciudad en Ciudad de México",
+            "output": {
+              "tool": "briefing",
+              "action": "city",
+              "city": "Ciudad de México",
+              "date": "2026-11-25"
+            }
+          },
+          {
+            "input": "programa mi briefing diario a las 7:30 am",
+            "output": {
+              "tool": "briefing",
+              "action": "schedule",
+              "time": "07:30",
+              "date": "2026-11-25"
+            }
+          },
+          {
+            "input": "cancela el resumen automático",
+            "output": {
+              "tool": "briefing",
+              "action": "unschedule",
+              "date": "2026-11-25"
+            }
+          }
+        ],
+        "maxResponseTokens": 400
+      }
+    }
+  ]
+}
