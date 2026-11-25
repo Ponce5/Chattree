@@ -67,6 +67,8 @@ S.req_rems = registerData('req_rems', '{"api":"chattree.reminders","operation":"
 S.req_mail = registerData('req_mail', '{"api":"email","operation":"inbox","payload":{}}');
 S.req_note_p1 = registerData('req_note_p1', '{"api":"chattree.notes","operation":"search","payload":{"query":"');
 S.req_note_p2 = registerData('req_note_p2', '","limit":1}}');
+S.req_note_get_p1 = registerData('req_note_get_p1', '{"api":"chattree.notes","operation":"get","payload":{"id":"');
+S.req_note_get_p2 = registerData('req_note_get_p2', '"}}');
 
 S.req_geo_p1 = registerData('req_geo_p1', '{"api":"network","operation":"http_request","payload":{"url":"https://geocoding-api.open-meteo.com/v1/search?name=');
 S.req_geo_p2 = registerData('req_geo_p2', '&count=1&language=en&format=json","method":"GET","timeoutMs":15000}}');
@@ -172,6 +174,7 @@ S.kv_coords = registerData('kv_coords', 'Coordinates');
 
 S.s_not_set_city = registerData('s_not_set_city', 'Not set (/briefing city <name>)');
 S.s_no_note = registerData('s_no_note', 'Create a note titled Daily to show it here');
+S.s_empty_note = registerData('s_empty_note', 'Empty note');
 S.s_note_hdr_p = registerData('s_note_hdr_p', 'Note: ');
 S.s_note_hdr_s = registerData('s_note_hdr_s', '\\n');
 S.t_note_ok = registerData('t_note_ok', 'Briefing Note Saved');
@@ -917,7 +920,7 @@ ${dataBlock}
   )
 
   (func $render_briefing (result i32)
-    (local $i i32) (local $slot i32) (local $any_list i32)
+    (local $i i32) (local $slot i32) (local $any_list i32) (local $ncap i32)
     (call $emit_reset)
     (call $emit_zstr (i32.const ${S.ui_start.offset})) (call $emit_zstr (i32.const ${S.t_brief_title.offset}))
     (call $emit_zstr (i32.const ${S.ui_mid1.offset})) (call $emit_zstr (i32.const ${S.t_brief_title.offset}))
@@ -984,10 +987,29 @@ ${dataBlock}
     )
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
 
-    ;; 5. Daily Note status
+    ;; 5. Daily Note (show ONLY the note content, never the title)
     (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_note.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (if (global.get $note_found)
-      (then (call $emit_json_esc (i32.const 262600) (global.get $note_t_len)))
+      (then
+        (if (i32.gt_s (global.get $note_c_len) (i32.const 0))
+          (then
+            (local.set $ncap (global.get $note_c_len))
+            (if (i32.gt_u (local.get $ncap) (i32.const 150))
+              (then
+                (local.set $ncap (i32.const 150))
+                (loop $utf8_back
+                  (if (i32.and (i32.gt_u (local.get $ncap) (i32.const 0))
+                               (i32.eq (i32.and (i32.load8_u (i32.add (i32.const 295000) (local.get $ncap))) (i32.const 192)) (i32.const 128)))
+                    (then (local.set $ncap (i32.sub (local.get $ncap) (i32.const 1))) (br $utf8_back))
+                  )
+                )
+              )
+            )
+            (call $emit_json_esc (i32.const 295000) (local.get $ncap))
+          )
+          (else (call $emit_zstr (i32.const ${S.s_empty_note.offset})))
+        )
+      )
       (else (call $emit_zstr (i32.const ${S.s_no_note.offset})))
     )
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
@@ -1001,16 +1023,13 @@ ${dataBlock}
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset}))
     (call $emit_zstr (i32.const ${S.el_list_end.offset}))
 
-    ;; Daily Note content section (if found & non-empty)
-    (if (i32.and (global.get $note_found) (i32.gt_s (global.get $note_c_len) (i32.const 0)))
+    ;; Full Daily Note content section only if longer than 150 bytes (no title prefix)
+    (if (i32.and (global.get $note_found) (i32.gt_s (global.get $note_c_len) (i32.const 150)))
       (then
         (call $emit_byte (i32.const 44))
         (call $emit_zstr (i32.const ${S.el_divider.offset}))
         (call $emit_byte (i32.const 44))
         (call $emit_zstr (i32.const ${S.el_text_1.offset}))
-        (call $emit_zstr (i32.const ${S.s_note_hdr_p.offset}))
-        (call $emit_json_esc (i32.const 262600) (global.get $note_t_len))
-        (call $emit_zstr (i32.const ${S.s_note_hdr_s.offset}))
         (call $emit_json_esc (i32.const 295000) (global.get $note_c_len))
         (call $emit_zstr (i32.const ${S.el_text_end.offset}))
       )
@@ -1518,21 +1537,52 @@ ${dataBlock}
       )
     )
 
-    ;; State 7: chattree.notes.search ("Daily") -> extract title & content -> dispatch weather or finish
+    ;; State 7: chattree.notes.search ("Daily") -> extract id/title/content -> if content missing, call chattree.notes.get
     (if (i32.eq (global.get $state) (i32.const 7))
       (then
         (if (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset}))
           (then
             (local.set $nlen (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_title.offset}) (i32.const 262600) (i32.const 76)))
-            (if (i32.gt_s (local.get $nlen) (i32.const 0))
+            (local.set $llen (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_id.offset}) (i32.const 262700) (i32.const 76)))
+            (if (i32.le_s (local.get $llen) (i32.const 0))
+              (then (local.set $llen (call $extract_json_num_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_id.offset}) (i32.const 262700) (i32.const 76))))
+            )
+            (if (i32.or (i32.gt_s (local.get $nlen) (i32.const 0)) (i32.gt_s (local.get $llen) (i32.const 0)))
               (then
                 (global.set $note_found (i32.const 1))
-                (global.set $note_t_len (local.get $nlen))
+                (if (i32.gt_s (local.get $nlen) (i32.const 0)) (then (global.set $note_t_len (local.get $nlen))))
                 (local.set $blen (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_content.offset}) (i32.const 295000) (i32.const 400)))
                 (if (i32.gt_s (local.get $blen) (i32.const 0))
                   (then (global.set $note_c_len (local.get $blen)))
+                  (else
+                    (if (i32.gt_s (local.get $llen) (i32.const 0))
+                      (then
+                        (local.set $p (call $copy_zstr (i32.const ${S.req_note_get_p1.offset}) (i32.const 300000)))
+                        (local.set $p (call $copy_mem (i32.const 262700) (local.get $p) (local.get $llen)))
+                        (local.set $p (call $copy_zstr (i32.const ${S.req_note_get_p2.offset}) (local.get $p)))
+                        (global.set $state (i32.const 9))
+                        (drop (call $host_call (i32.const 300000) (i32.sub (local.get $p) (i32.const 300000)) (i32.const 350000) (i32.const 60000)))
+                        (return (i32.const 0))
+                      )
+                    )
+                  )
                 )
               )
+            )
+          )
+        )
+        (return (call $dispatch_weather_or_finish))
+      )
+    )
+
+    ;; State 9: chattree.notes.get -> extract full note content -> dispatch weather or finish
+    (if (i32.eq (global.get $state) (i32.const 9))
+      (then
+        (if (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset}))
+          (then
+            (local.set $blen (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_content.offset}) (i32.const 295000) (i32.const 400)))
+            (if (i32.gt_s (local.get $blen) (i32.const 0))
+              (then (global.set $note_c_len (local.get $blen)))
             )
           )
         )
@@ -1717,7 +1767,7 @@ const manifest = {
   $schema: '../../../schemas/plugin.manifest.v1.schema.json',
   schemaVersion: 1,
   id: 'com.chattree.official.briefing',
-  version: '1.0.3',
+  version: '1.0.4',
   name: 'Daily Briefing',
   description: 'Automatic morning summary combining today\'s calendar events, pending reminders, unread emails, your "Daily" Chattree note, and live Open-Meteo weather in one blue Flutter UI card with daily cron scheduling.',
   author: 'Chattree Core Team',
@@ -1743,9 +1793,9 @@ const manifest = {
     'ipwho.is',
   ],
   tags: ['briefing', 'morning', 'calendar', 'reminders', 'notes', 'email', 'weather', 'cron', 'ui', 'official'],
-  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.3',
-  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.3',
-  changelog: '1.0.3: Auto-detects weather city and coordinates on first run via ipwho.is (no manual setup required) and stacks summary rows vertically in the blue Flutter UI card.',
+  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.4',
+  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.4',
+  changelog: '1.0.4: Fetches full Daily note body via chattree.notes.get when search omits content and displays only the note content in the Daily Note section.',
   runtime: 'wasm',
   entrypoint: 'briefing_entry',
   wasmPath: 'plugin.wasm',
@@ -1925,7 +1975,10 @@ const mockHost = (req) => {
     return { success: true, data: { account: 'user@gmail.com', unread_count: 3, total_count: 10, emails: [{ subject: 'Invoice Ready' }] } };
   }
   if (req.api === 'chattree.notes' && req.operation === 'search') {
-    return { success: true, data: { notes: [{ id: 'n1', title: 'Daily', content: 'Focus on shipping v1.0\nReview PRs before noon' }], count: 1 } };
+    return { success: true, data: { notes: [{ id: 'n1', title: 'Daily' }], count: 1 } };
+  }
+  if (req.api === 'chattree.notes' && req.operation === 'get') {
+    return { success: true, data: { note: { id: 'n1', title: 'Daily', content: 'Focus on shipping v1.0\nReview PRs before noon' } } };
   }
   if (req.api === 'network' && req.payload.url.includes('geocoding-api')) {
     return { success: true, data: { statusCode: 200, body: JSON.stringify({ results: [{ name: 'Madrid', latitude: 40.4165, longitude: -3.7026 }] }) } };
@@ -1960,7 +2013,7 @@ assert.equal(out.ui.badge, 'SCHEDULED');
 assert.equal(storage.briefing_schedule, '07:30');
 assert.ok(calls.some((c) => c.api === 'scheduler' && c.payload.cronExpression === '30 7 * * *'));
 
-// 3. Full briefing (calendar + reminders + email + Daily note + weather) in BLUE vertical list layout
+// 3. Full briefing (calendar + reminders + email + Daily note content + weather) in BLUE vertical list layout
 out = runAsync('lang=es', mockHost);
 assert.equal(out.type, 'ui');
 assert.equal(out.ui.badgeColor, 'blue');
@@ -1969,14 +2022,14 @@ assert.match(out.ui.elements[0].items[0].subtitle, /Madrid: 21\.5 C Partly Cloud
 assert.equal(out.ui.elements[0].items[1].subtitle, '2 events');
 assert.equal(out.ui.elements[0].items[2].subtitle, '1 pending');
 assert.equal(out.ui.elements[0].items[3].subtitle, '3 unread');
-assert.equal(out.ui.elements[0].items[4].subtitle, 'Daily');
+// Daily Note row shows ONLY the note content (fetched via chattree.notes.get), NOT the title "Daily"
+assert.match(out.ui.elements[0].items[4].subtitle, /Focus on shipping v1\.0/);
+assert.ok(!out.ui.elements[0].items[4].subtitle.includes('Daily'));
+assert.ok(calls.some((c) => c.api === 'chattree.notes' && c.operation === 'get' && c.payload.id === 'n1'));
 assert.equal(out.ui.elements[0].items[5].subtitle, 'Daily at 07:30');
-// Divider + Daily Note text block + Divider + highlights list
+// Divider + highlights list
 assert.equal(out.ui.elements[1].type, 'divider');
-assert.equal(out.ui.elements[2].type, 'text');
-assert.match(out.ui.elements[2].content, /Focus on shipping v1\.0/);
-assert.equal(out.ui.elements[3].type, 'divider');
-assert.equal(out.ui.elements[4].items.length, 4); // 2 events + 1 reminder + 1 email
+assert.equal(out.ui.elements[2].items.length, 4); // 2 events + 1 reminder + 1 email
 
 // 3b. Custom briefing note name
 out = runAsync('note Morning Goals lang=es', mockHost);
