@@ -19,7 +19,6 @@ const targets = [
   "plugins/official/notion",
   "plugins/official/github",
   "plugins/official/habits",
-  "plugins/official/flashcards",
   "plugins/official/rpg",
 ];
 
