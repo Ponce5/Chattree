@@ -17,6 +17,7 @@ const targets = [
   "plugins/official/elevenlabs",
   "plugins/official/notion",
   "plugins/official/github",
+  "plugins/official/habits",
   "plugins/official/rpg",
 ];
 

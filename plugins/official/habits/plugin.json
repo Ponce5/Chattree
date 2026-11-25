@@ -1,0 +1,131 @@
+{
+  "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
+  "schemaVersion": 1,
+  "id": "com.chattree.official.habits",
+  "version": "1.0.0",
+  "name": "Habit Tracker",
+  "description": "100% local daily habit & streak tracker with interactive Flutter UI progress cards, automatic consecutive-day streak tracking, and natural-language AI control.",
+  "author": "Chattree Core Team",
+  "primaryCommand": "habits",
+  "aliases": [
+    "habit",
+    "habitos",
+    "streak"
+  ],
+  "type": "imported",
+  "category": "productivity",
+  "capabilities": [
+    "storage.private",
+    "ui.components"
+  ],
+  "tags": [
+    "habits",
+    "streaks",
+    "productivity",
+    "tracker",
+    "daily",
+    "ui",
+    "official"
+  ],
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/habits/icon.png?v=1.0.0",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/habits/banner.png?v=1.0.0",
+  "changelog": "1.0.0: Initial official release with 100% local private storage, interactive Flutter UI dashboard & progress cards, automatic consecutive-day streak tracking, undo support, and overall statistics.",
+  "runtime": "wasm",
+  "entrypoint": "habits_entry",
+  "wasmPath": "plugin.wasm",
+  "wasmSha256": "23e9ac4c18de4c1b41a1d3e4d75f7c2e54560e1178ea37664cf4c3379fd0c903",
+  "runtimeApiVersion": "1.0.0",
+  "maxMemoryPages": 16,
+  "timeoutMs": 15000,
+  "fuelLimit": 50000000,
+  "inputOffset": 0,
+  "outputOffset": 65536,
+  "maxPayloadSizeBytes": 65536,
+  "tools": [
+    {
+      "id": "com.chattree.official.habits.tracker",
+      "command": "habits",
+      "displayName": "Habit Tracker",
+      "description": "Track daily habits and streaks locally. Always include \"tool\":\"habits\" and return ONE JSON object. Actions: \"list\" (show today's habits), \"add\" (create a new habit with \"name\"), \"done\" (mark a habit completed today by \"name\" or number), \"undo\" (undo today's check-in), \"stats\" (overall statistics), \"delete\" (remove a habit), \"reset\" (clear all habits), or \"help\". Always include \"date\" as today's local YYYY-MM-DD.",
+      "capabilities": [
+        "storage.private",
+        "ui.components"
+      ],
+      "intentContract": {
+        "intent": "habits_action",
+        "validIntents": [
+          "list",
+          "add",
+          "done",
+          "undo",
+          "stats",
+          "delete",
+          "reset",
+          "help"
+        ],
+        "description": "Interpret the user's habit tracking request and return ONE valid JSON object with \"tool\":\"habits\", \"action\", optional \"name\", and \"date\" (today's local YYYY-MM-DD).",
+        "fields": [
+          {
+            "name": "action",
+            "key": "action",
+            "type": "string",
+            "description": "Action: \"list\", \"add\", \"done\", \"undo\", \"stats\", \"delete\", \"reset\", or \"help\".",
+            "required": true
+          },
+          {
+            "name": "name",
+            "key": "name",
+            "type": "string",
+            "description": "Concise habit name (for add/done/undo/delete) or habit number like \"1\".",
+            "required": false
+          },
+          {
+            "name": "date",
+            "key": "date",
+            "type": "string",
+            "description": "Today's local date in YYYY-MM-DD format.",
+            "required": false
+          }
+        ],
+        "examples": [
+          {
+            "input": "add a habit to drink 2L of water",
+            "output": {
+              "tool": "habits",
+              "action": "add",
+              "name": "Drink 2L of water",
+              "date": "2026-11-25"
+            }
+          },
+          {
+            "input": "I drank my water today",
+            "output": {
+              "tool": "habits",
+              "action": "done",
+              "name": "water",
+              "date": "2026-11-25"
+            }
+          },
+          {
+            "input": "show my habit stats",
+            "output": {
+              "tool": "habits",
+              "action": "stats",
+              "date": "2026-11-25"
+            }
+          },
+          {
+            "input": "undo water check-in",
+            "output": {
+              "tool": "habits",
+              "action": "undo",
+              "name": "water",
+              "date": "2026-11-25"
+            }
+          }
+        ],
+        "maxResponseTokens": 400
+      }
+    }
+  ]
+}
