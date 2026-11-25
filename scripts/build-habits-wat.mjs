@@ -74,6 +74,11 @@ S.a_new = registerData('a_new', 'new');
 S.a_done = registerData('a_done', 'done');
 S.a_check = registerData('a_check', 'check');
 S.a_complete = registerData('a_complete', 'complete');
+S.a_completed = registerData('a_completed', 'completed');
+S.a_finish = registerData('a_finish', 'finish');
+S.a_checkin = registerData('a_checkin', 'checkin');
+S.a_check_in = registerData('a_check_in', 'check_in');
+S.a_update = registerData('a_update', 'update');
 S.a_log = registerData('a_log', 'log');
 S.a_undo = registerData('a_undo', 'undo');
 S.a_uncheck = registerData('a_uncheck', 'uncheck');
@@ -83,15 +88,16 @@ S.a_delete = registerData('a_delete', 'delete');
 S.a_remove = registerData('a_remove', 'remove');
 S.a_reset = registerData('a_reset', 'reset');
 S.a_help = registerData('a_help', 'help');
+S.k_extra = registerData('k_extra', 'extra');
 
-// UI Card JSON fragments
+// UI Card JSON fragments (all green monochrome-emerald theme)
 S.ui_start = registerData('ui_start', '{"type":"ui","displayText":"');
 S.ui_mid1 = registerData('ui_mid1', '","ui":{"title":"');
 S.ui_sub = registerData('ui_sub', '","subtitle":"');
 S.ui_badge = registerData('ui_badge', '","badge":"');
 S.ui_bc_green = registerData('ui_bc_green', '","badgeColor":"green","icon":"check","hideText":true,"elements":[');
-S.ui_bc_blue = registerData('ui_bc_blue', '","badgeColor":"blue","icon":"info","hideText":true,"elements":[');
-S.ui_bc_analytics = registerData('ui_bc_analytics', '","badgeColor":"blue","icon":"analytics","hideText":true,"elements":[');
+S.ui_bc_blue = registerData('ui_bc_blue', '","badgeColor":"green","icon":"check","hideText":true,"elements":[');
+S.ui_bc_analytics = registerData('ui_bc_analytics', '","badgeColor":"green","icon":"analytics","hideText":true,"elements":[');
 S.ui_bc_orange = registerData('ui_bc_orange', '","badgeColor":"orange","icon":"warning","hideText":true,"elements":[');
 S.ui_bc_red = registerData('ui_bc_red', '","badgeColor":"red","icon":"error","hideText":true,"elements":[');
 S.ui_end = registerData('ui_end', ']}}');
@@ -100,7 +106,12 @@ S.ui_end = registerData('ui_end', ']}}');
 S.el_prog_p1 = registerData('el_prog_p1', '{"type":"progress","value":');
 S.el_prog_p2 = registerData('el_prog_p2', ',"label":"');
 S.el_prog_green = registerData('el_prog_green', '","color":"green"}');
-S.el_prog_blue = registerData('el_prog_blue', '","color":"blue"}');
+S.el_prog_blue = registerData('el_prog_blue', '","color":"green"}');
+S.el_btn_row_start = registerData('el_btn_row_start', '{"type":"button_row","buttons":[');
+S.el_btn_done_p1 = registerData('el_btn_done_p1', '{"label":"Done: ');
+S.el_btn_done_p2 = registerData('el_btn_done_p2', '","action":"command","value":"/habits done ');
+S.el_btn_done_p3 = registerData('el_btn_done_p3', '","style":"primary"}');
+S.el_btn_row_end = registerData('el_btn_row_end', ']}');
 S.el_list_start = registerData('el_list_start', '{"type":"list","items":[');
 S.el_list_item1 = registerData('el_list_item1', '{"title":"#');
 S.el_list_item2 = registerData('el_list_item2', '","subtitle":"');
@@ -927,10 +938,12 @@ ${dataBlock}
     (local.get $out)
   )
 
-  ;; Find habit index by 1-based number ("1" or "#1"), exact case-insensitive match, or substring match (-1 if none)
+  ;; Find habit index by 1-based number ("1" or "#1"), exact match, substring match, or word-overlap match (-1 if none)
   (func $find_habit (param $q_ptr i32) (param $q_len i32) (result i32)
     (local $num_ptr i32) (local $num_len i32) (local $num i32)
     (local $i i32) (local $sp i32) (local $nlen i32)
+    (local $best_idx i32) (local $best_score i32) (local $score i32)
+    (local $ws i32) (local $we i32) (local $wlen i32)
     (if (i32.le_s (local.get $q_len) (i32.const 0)) (then (return (i32.const -1))))
 
     ;; Check numeric index ("1" or "#1")
@@ -984,7 +997,59 @@ ${dataBlock}
         )
       )
     )
-    (i32.const -1)
+
+    ;; Pass 3: word-overlap fuzzy match (handles natural language like "leí 20 minutos" vs "Leer 20 minutos")
+    (local.set $best_idx (i32.const -1))
+    (local.set $best_score (i32.const 0))
+    (local.set $i (i32.const 0))
+    (loop $fuzzy
+      (if (i32.lt_u (local.get $i) (global.get $habit_count))
+        (then
+          (local.set $sp (call $slot_ptr (local.get $i)))
+          (local.set $nlen (i32.load (i32.add (local.get $sp) (i32.const 96))))
+          (call $to_lower (local.get $sp) (i32.const 290600) (local.get $nlen))
+          (local.set $score (i32.const 0))
+          ;; Scan words in query (len >= 2) and check if present in habit name
+          (local.set $ws (i32.const 0))
+          (loop $qwords
+            (if (i32.lt_u (local.get $ws) (local.get $q_len))
+              (then
+                (loop $skip_qws
+                  (if (i32.and (i32.lt_u (local.get $ws) (local.get $q_len)) (call $is_ws (i32.load8_u (i32.add (i32.const 290400) (local.get $ws)))))
+                    (then (local.set $ws (i32.add (local.get $ws) (i32.const 1))) (br $skip_qws))
+                  )
+                )
+                (local.set $we (local.get $ws))
+                (loop $scan_qw
+                  (if (i32.and (i32.lt_u (local.get $we) (local.get $q_len)) (i32.eqz (call $is_ws (i32.load8_u (i32.add (i32.const 290400) (local.get $we))))))
+                    (then (local.set $we (i32.add (local.get $we) (i32.const 1))) (br $scan_qw))
+                  )
+                )
+                (local.set $wlen (i32.sub (local.get $we) (local.get $ws)))
+                (if (i32.ge_u (local.get $wlen) (i32.const 3))
+                  (then
+                    (if (i32.ge_s (call $find_sub (i32.const 290600) (local.get $nlen) (i32.add (i32.const 290400) (local.get $ws)) (local.get $wlen)) (i32.const 0))
+                      (then (local.set $score (i32.add (local.get $score) (local.get $wlen))))
+                    )
+                  )
+                )
+                (local.set $ws (local.get $we))
+                (br $qwords)
+              )
+            )
+          )
+          (if (i32.gt_s (local.get $score) (local.get $best_score))
+            (then
+              (local.set $best_score (local.get $score))
+              (local.set $best_idx (local.get $i))
+            )
+          )
+          (local.set $i (i32.add (local.get $i) (i32.const 1)))
+          (br $fuzzy)
+        )
+      )
+    )
+    (local.get $best_idx)
   )
 
   ;; Check if habit at $idx is completed today
@@ -1057,7 +1122,7 @@ ${dataBlock}
   )
 
   (func $render_dashboard (result i32)
-    (local $done i32) (local $tot i32) (local $i i32) (local $sp i32)
+    (local $done i32) (local $tot i32) (local $i i32) (local $sp i32) (local $btn_cnt i32) (local $blen i32)
     (local.set $tot (global.get $habit_count))
     (if (i32.eqz (local.get $tot))
       (then
@@ -1142,6 +1207,49 @@ ${dataBlock}
       )
     )
     (call $emit_zstr (i32.const ${S.el_list_end.offset}))
+    ;; One-tap Done buttons for pending habits (up to 6 buttons)
+    (if (i32.lt_s (local.get $done) (local.get $tot))
+      (then
+        (call $emit_byte (i32.const 44))
+        (call $emit_zstr (i32.const ${S.el_btn_row_start.offset}))
+        (local.set $btn_cnt (i32.const 0))
+        (local.set $i (i32.const 0))
+        (loop $pbtns
+          (if (i32.and (i32.lt_u (local.get $i) (local.get $tot)) (i32.lt_u (local.get $btn_cnt) (i32.const 6)))
+            (then
+              (if (i32.eqz (call $is_done_today (local.get $i)))
+                (then
+                  (if (i32.gt_u (local.get $btn_cnt) (i32.const 0)) (then (call $emit_byte (i32.const 44))))
+                  (local.set $sp (call $slot_ptr (local.get $i)))
+                  (local.set $blen (i32.load (i32.add (local.get $sp) (i32.const 96))))
+                  (if (i32.gt_u (local.get $blen) (i32.const 16))
+                    (then
+                      (local.set $blen (i32.const 16))
+                      ;; Avoid slicing inside a UTF-8 continuation byte (0x80..0xBF)
+                      (loop $u8b
+                        (if (i32.and (i32.gt_u (local.get $blen) (i32.const 1))
+                                     (i32.eq (i32.and (i32.load8_u (i32.add (local.get $sp) (local.get $blen))) (i32.const 192)) (i32.const 128)))
+                          (then (local.set $blen (i32.sub (local.get $blen) (i32.const 1))) (br $u8b))
+                        )
+                      )
+                    )
+                  )
+                  (call $emit_zstr (i32.const ${S.el_btn_done_p1.offset}))
+                  (call $emit_json_esc (local.get $sp) (local.get $blen))
+                  (call $emit_zstr (i32.const ${S.el_btn_done_p2.offset}))
+                  (call $emit_uint (i32.add (local.get $i) (i32.const 1)))
+                  (call $emit_zstr (i32.const ${S.el_btn_done_p3.offset}))
+                  (local.set $btn_cnt (i32.add (local.get $btn_cnt) (i32.const 1)))
+                )
+              )
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $pbtns)
+            )
+          )
+        )
+        (call $emit_zstr (i32.const ${S.el_btn_row_end.offset}))
+      )
+    )
     (call $emit_byte (i32.const 44))
     (call $emit_zstr (i32.const ${S.el_btns_stats_help.offset}))
     (call $emit_zstr (i32.const ${S.ui_end.offset}))
@@ -1536,6 +1644,9 @@ ${dataBlock}
         (if (i32.le_s (local.get $vlen) (i32.const 0))
           (then (local.set $vlen (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const ${S.k_content.offset}) (i32.const 290200) (i32.const 100))))
         )
+        (if (i32.le_s (local.get $vlen) (i32.const 0))
+          (then (local.set $vlen (call $extract_json_str (local.get $ts) (local.get $tl) (i32.const ${S.k_extra.offset}) (i32.const 290200) (i32.const 100))))
+        )
         (if (i32.gt_s (local.get $vlen) (i32.const 0))
           (then (drop (call $sanitize_name (i32.const 290200) (local.get $vlen))))
         )
@@ -1624,10 +1735,18 @@ ${dataBlock}
                         (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_new.offset}))))
       (then (return (call $do_add)))
     )
-    (if (i32.or (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_done.offset}))
-                        (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_check.offset})))
-                (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_complete.offset}))
-                        (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_log.offset}))))
+    (if (i32.or
+          (i32.or
+            (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_done.offset}))
+                    (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_check.offset})))
+            (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_complete.offset}))
+                    (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_completed.offset}))))
+          (i32.or
+            (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_log.offset}))
+                    (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_finish.offset})))
+            (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_checkin.offset}))
+                    (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_check_in.offset}))
+                            (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_update.offset}))))))
       (then (return (call $do_done)))
     )
     (if (i32.or (call $str_eq_z (i32.const 290000) (global.get $act_len) (i32.const ${S.a_undo.offset}))
@@ -1670,9 +1789,9 @@ const manifest = {
   $schema: '../../../schemas/plugin.manifest.v1.schema.json',
   schemaVersion: 1,
   id: 'com.chattree.official.habits',
-  version: '1.0.0',
+  version: '1.0.1',
   name: 'Habit Tracker',
-  description: '100% local daily habit & streak tracker with interactive Flutter UI progress cards, automatic consecutive-day streak tracking, and natural-language AI control.',
+  description: '100% local daily habit & streak tracker with green interactive Flutter UI cards, one-tap completion buttons, fuzzy natural-language matching, and automatic consecutive-day streaks.',
   author: 'Chattree Core Team',
   primaryCommand: 'habits',
   aliases: ['habit', 'habitos', 'streak'],
@@ -1680,9 +1799,9 @@ const manifest = {
   category: 'productivity',
   capabilities: ['storage.private', 'ui.components'],
   tags: ['habits', 'streaks', 'productivity', 'tracker', 'daily', 'ui', 'official'],
-  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/habits/icon.png?v=1.0.0',
-  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/habits/banner.png?v=1.0.0',
-  changelog: '1.0.0: Initial official release with 100% local private storage, interactive Flutter UI dashboard & progress cards, automatic consecutive-day streak tracking, undo support, and overall statistics.',
+  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/habits/icon.png?v=1.0.1',
+  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/habits/banner.png?v=1.0.1',
+  changelog: '1.0.1: Switched all Flutter UI badges and progress bars to emerald green, added one-tap Done buttons on the Daily Habits card for pending habits, and added word-overlap fuzzy matching + extra completion action aliases for natural language (English & Spanish).',
   runtime: 'wasm',
   entrypoint: 'habits_entry',
   wasmPath: 'plugin.wasm',
@@ -1699,25 +1818,25 @@ const manifest = {
       id: 'com.chattree.official.habits.tracker',
       command: 'habits',
       displayName: 'Habit Tracker',
-      description: 'Track daily habits and streaks locally. Always include "tool":"habits" and return ONE JSON object. Actions: "list" (show today\'s habits), "add" (create a new habit with "name"), "done" (mark a habit completed today by "name" or number), "undo" (undo today\'s check-in), "stats" (overall statistics), "delete" (remove a habit), "reset" (clear all habits), or "help". Always include "date" as today\'s local YYYY-MM-DD.',
+      description: 'Track daily habits and streaks locally. Always include "tool":"habits" and return ONE JSON object. When the user says they already did, finished, or completed a habit (e.g. "ya leí 20 minutos", "completé leer", "I drank water"), ALWAYS use action="done" with "name" set to the habit keywords. Actions: "list", "add", "done", "undo", "stats", "delete", "reset", "help". Always include "date" as YYYY-MM-DD.',
       capabilities: ['storage.private', 'ui.components'],
       intentContract: {
         intent: 'habits_action',
         validIntents: ['list', 'add', 'done', 'undo', 'stats', 'delete', 'reset', 'help'],
-        description: 'Interpret the user\'s habit tracking request and return ONE valid JSON object with "tool":"habits", "action", optional "name", and "date" (today\'s local YYYY-MM-DD).',
+        description: 'Interpret the user\'s habit request (English or Spanish) and return ONE valid JSON object with "tool":"habits", "action", optional "name", and "date" (today\'s local YYYY-MM-DD). Use action="done" whenever the user reports completing a habit.',
         fields: [
           {
             name: 'action',
             key: 'action',
             type: 'string',
-            description: 'Action: "list", "add", "done", "undo", "stats", "delete", "reset", or "help".',
+            description: 'Action: "list", "add" (create new habit), "done" (mark habit completed today), "undo", "stats", "delete", "reset", or "help".',
             required: true,
           },
           {
             name: 'name',
             key: 'name',
             type: 'string',
-            description: 'Concise habit name (for add/done/undo/delete) or habit number like "1".',
+            description: 'Concise habit name or keywords (for add/done/undo/delete) or habit number like "1".',
             required: false,
           },
           {
@@ -1734,8 +1853,12 @@ const manifest = {
             output: { tool: 'habits', action: 'add', name: 'Drink 2L of water', date: '2026-11-25' },
           },
           {
-            input: 'I drank my water today',
-            output: { tool: 'habits', action: 'done', name: 'water', date: '2026-11-25' },
+            input: 'ya leí 20 minutos hoy',
+            output: { tool: 'habits', action: 'done', name: 'leer 20 minutos', date: '2026-11-25' },
+          },
+          {
+            input: 'completé mi hábito de tomar agua',
+            output: { tool: 'habits', action: 'done', name: 'agua', date: '2026-11-25' },
           },
           {
             input: 'show my habit stats',
@@ -1844,10 +1967,23 @@ out = run('stats lang=es');
 assert.equal(out.ui.badge, 'STATS');
 assert.equal(out.ui.elements[1].items[2].value, '2 days');
 
-// 10. Delete & Help
+// 10. Natural-language fuzzy match ("leí 20 minutos" matches "Leer 20 minutos") + green UI + 1-tap Done buttons
+out = run('add Leer 20 minutos lang=es');
+assert.equal(out.ui.badge, 'ADDED');
+out = run('lang=es');
+assert.equal(out.ui.badgeColor, 'green');
+assert.equal(out.ui.elements[0].color, 'green');
+assert.equal(out.ui.elements[2].type, 'button_row');
+assert.ok(out.ui.elements[2].buttons.some((b) => b.value === '/habits done 3'));
+out = run(wrapEnvelope({ tool: 'habits', action: 'update', name: 'leí 20 minutos hoy', date: '2026-11-25' }));
+assert.equal(out.ui.badge, 'CHECKED IN');
+assert.equal(out.ui.elements[1].items[0].value, 'Leer 20 minutos');
+
+// 11. Delete & Help (green UI)
 out = run('delete read lang=es');
 assert.equal(out.ui.badge, 'REMOVED');
 out = run('help lang=es');
 assert.equal(out.ui.badge, 'GUIDE');
+assert.equal(out.ui.badgeColor, 'green');
 
-console.log('[OK] All 10 Habit Tracker WASM self-tests passed!');
+console.log('[OK] All 11 Habit Tracker WASM self-tests passed!');
