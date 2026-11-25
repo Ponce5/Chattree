@@ -157,6 +157,7 @@
   (data (i32.const 204468) " day\00") ;; s_day (4)
   (data (i32.const 204480) "Date: \00") ;; s_date_label (6)
   (data (i32.const 204492) "Private on-device streak tracker\00") ;; s_local_sub (32)
+  (data (i32.const 204532) "local-day\00") ;; s_local_day (9)
 
   ;; ── Low-Level Memory & String Utilities ──────────────────────────────
 
@@ -195,22 +196,94 @@
     (call $copy_mem (local.get $src) (local.get $dst) (call $zlen (local.get $src)))
   )
 
-  (func $to_lower (param $src i32) (param $dst i32) (param $len i32)
-    (local $i i32) (local $ch i32)
+  ;; Lowercase ASCII + fold UTF-8 Latin-1 accented letters (á/é/í/ó/ú/ü/ñ -> a/e/i/o/u/n), returns normalized length
+  (func $norm_fold (param $src i32) (param $dst i32) (param $len i32) (result i32)
+    (local $i i32) (local $out i32) (local $ch i32) (local $b2 i32)
     (local.set $i (i32.const 0))
+    (local.set $out (i32.const 0))
     (loop $l
       (if (i32.lt_u (local.get $i) (local.get $len))
         (then
           (local.set $ch (i32.load8_u (i32.add (local.get $src) (local.get $i))))
+          ;; UTF-8 2-byte Latin-1 supplement (0xC3 0x80..0xBF)
+          (if (i32.and (i32.eq (local.get $ch) (i32.const 195)) (i32.lt_u (i32.add (local.get $i) (i32.const 1)) (local.get $len)))
+            (then
+              (local.set $b2 (i32.load8_u (i32.add (local.get $src) (i32.add (local.get $i) (i32.const 1)))))
+              ;; Fold uppercase 0x80..0x9F to lowercase 0xA0..0xBF
+              (if (i32.and (i32.ge_u (local.get $b2) (i32.const 128)) (i32.le_u (local.get $b2) (i32.const 159)))
+                (then (local.set $b2 (i32.add (local.get $b2) (i32.const 32))))
+              )
+              ;; Map accented vowels & ñ to ASCII
+              (if (i32.and (i32.ge_u (local.get $b2) (i32.const 160)) (i32.le_u (local.get $b2) (i32.const 165)))
+                (then (local.set $ch (i32.const 97))) ;; a
+                (else (if (i32.and (i32.ge_u (local.get $b2) (i32.const 168)) (i32.le_u (local.get $b2) (i32.const 171)))
+                  (then (local.set $ch (i32.const 101))) ;; e
+                  (else (if (i32.and (i32.ge_u (local.get $b2) (i32.const 172)) (i32.le_u (local.get $b2) (i32.const 175)))
+                    (then (local.set $ch (i32.const 105))) ;; i
+                    (else (if (i32.and (i32.ge_u (local.get $b2) (i32.const 178)) (i32.le_u (local.get $b2) (i32.const 182)))
+                      (then (local.set $ch (i32.const 111))) ;; o
+                      (else (if (i32.and (i32.ge_u (local.get $b2) (i32.const 185)) (i32.le_u (local.get $b2) (i32.const 188)))
+                        (then (local.set $ch (i32.const 117))) ;; u
+                        (else (if (i32.eq (local.get $b2) (i32.const 177))
+                          (then (local.set $ch (i32.const 110))) ;; n
+                          (else (local.set $ch (local.get $b2)))
+                        ))
+                      ))
+                    ))
+                  ))
+                ))
+              )
+              (i32.store8 (i32.add (local.get $dst) (local.get $out)) (local.get $ch))
+              (local.set $out (i32.add (local.get $out) (i32.const 1)))
+              (local.set $i (i32.add (local.get $i) (i32.const 2)))
+              (br $l)
+            )
+          )
           (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 90)))
             (then (local.set $ch (i32.add (local.get $ch) (i32.const 32))))
           )
-          (i32.store8 (i32.add (local.get $dst) (local.get $i)) (local.get $ch))
+          (i32.store8 (i32.add (local.get $dst) (local.get $out)) (local.get $ch))
+          (local.set $out (i32.add (local.get $out) (i32.const 1)))
           (local.set $i (i32.add (local.get $i) (i32.const 1)))
           (br $l)
         )
       )
     )
+    (local.get $out)
+  )
+
+  (func $to_lower (param $src i32) (param $dst i32) (param $len i32)
+    (drop (call $norm_fold (local.get $src) (local.get $dst) (local.get $len)))
+  )
+
+  (func $hex_val (param $ch i32) (result i32)
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 48)) (i32.le_u (local.get $ch) (i32.const 57)))
+      (then (return (i32.sub (local.get $ch) (i32.const 48))))
+    )
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 65)) (i32.le_u (local.get $ch) (i32.const 70)))
+      (then (return (i32.sub (local.get $ch) (i32.const 55))))
+    )
+    (if (i32.and (i32.ge_u (local.get $ch) (i32.const 97)) (i32.le_u (local.get $ch) (i32.const 102)))
+      (then (return (i32.sub (local.get $ch) (i32.const 87))))
+    )
+    (i32.const -1)
+  )
+
+  (func $write_utf8 (param $cp i32) (param $dst i32) (result i32)
+    (if (i32.le_u (local.get $cp) (i32.const 127))
+      (then (i32.store8 (local.get $dst) (local.get $cp)) (return (i32.add (local.get $dst) (i32.const 1))))
+    )
+    (if (i32.le_u (local.get $cp) (i32.const 2047))
+      (then
+        (i32.store8 (local.get $dst) (i32.or (i32.const 192) (i32.shr_u (local.get $cp) (i32.const 6))))
+        (i32.store8 (i32.add (local.get $dst) (i32.const 1)) (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+        (return (i32.add (local.get $dst) (i32.const 2)))
+      )
+    )
+    (i32.store8 (local.get $dst) (i32.or (i32.const 224) (i32.shr_u (local.get $cp) (i32.const 12))))
+    (i32.store8 (i32.add (local.get $dst) (i32.const 1)) (i32.or (i32.const 128) (i32.and (i32.shr_u (local.get $cp) (i32.const 6)) (i32.const 63))))
+    (i32.store8 (i32.add (local.get $dst) (i32.const 2)) (i32.or (i32.const 128) (i32.and (local.get $cp) (i32.const 63))))
+    (i32.add (local.get $dst) (i32.const 3))
   )
 
   (func $str_eq_z (param $a i32) (param $a_len i32) (param $b_z i32) (result i32)
@@ -489,10 +562,11 @@
     (i32.add (i32.mul (local.get $era) (i32.const 146097)) (local.get $doe))
   )
 
-  ;; Whitespace-tolerant JSON string extractor with escape decoding (returns len or -1)
+  ;; Whitespace-tolerant JSON string extractor with escape & \uXXXX decoding (returns len or -1)
   (func $extract_json_str (param $json i32) (param $jlen i32) (param $key_z i32) (param $dst i32) (param $max_out i32) (result i32)
     (local $klen i32) (local $i i32) (local $j i32) (local $match i32) (local $pos i32)
     (local $out i32) (local $ch i32) (local $esc i32)
+    (local $d0 i32) (local $d1 i32) (local $d2 i32) (local $d3 i32) (local $cp i32)
     (local.set $klen (call $zlen (local.get $key_z)))
     (local.set $i (i32.const 0))
     (block $found
@@ -569,6 +643,27 @@
                 (then (return (i32.sub (local.get $out) (local.get $dst))))
               )
               (local.set $esc (i32.load8_u (i32.add (local.get $json) (local.get $pos))))
+              (if (i32.and (i32.eq (local.get $esc) (i32.const 117)) ;; \uXXXX
+                           (i32.le_u (i32.add (local.get $pos) (i32.const 4)) (local.get $jlen)))
+                (then
+                  (local.set $d0 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 1))))))
+                  (local.set $d1 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 2))))))
+                  (local.set $d2 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 3))))))
+                  (local.set $d3 (call $hex_val (i32.load8_u (i32.add (local.get $json) (i32.add (local.get $pos) (i32.const 4))))))
+                  (if (i32.and (i32.and (i32.ge_s (local.get $d0) (i32.const 0)) (i32.ge_s (local.get $d1) (i32.const 0)))
+                               (i32.and (i32.ge_s (local.get $d2) (i32.const 0)) (i32.ge_s (local.get $d3) (i32.const 0))))
+                    (then
+                      (local.set $cp (i32.or (i32.or (i32.shl (local.get $d0) (i32.const 12)) (i32.shl (local.get $d1) (i32.const 8)))
+                                             (i32.or (i32.shl (local.get $d2) (i32.const 4)) (local.get $d3))))
+                      (if (i32.le_u (i32.add (i32.sub (local.get $out) (local.get $dst)) (i32.const 3)) (local.get $max_out))
+                        (then (local.set $out (call $write_utf8 (local.get $cp) (local.get $out))))
+                      )
+                      (local.set $pos (i32.add (local.get $pos) (i32.const 5)))
+                      (br $read)
+                    )
+                  )
+                )
+              )
               (if (i32.eq (local.get $esc) (i32.const 110))
                 (then (i32.store8 (local.get $out) (i32.const 10)))
                 (else (i32.store8 (local.get $out) (local.get $esc)))
@@ -814,7 +909,7 @@
         (return)
       )
     )
-    ;; Otherwise load last_date from storage
+    ;; Otherwise load last_date from storage (fallback to "local-day" if none saved yet)
     (local.set $rc (call $host_call (i32.const 200152) (i32.const 65) (i32.const 350000) (i32.const 1024)))
     (if (i32.gt_s (local.get $rc) (i32.const 0))
       (then
@@ -823,10 +918,14 @@
           (then
             (global.set $date_len (i32.const 10))
             (global.set $today_days (call $date_to_days (i32.const 290300) (i32.const 10)))
+            (return)
           )
         )
       )
     )
+    (drop (call $copy_zstr (i32.const 204532) (i32.const 290300)))
+    (global.set $date_len (i32.const 9))
+    (global.set $today_days (i32.const 0))
   )
 
   ;; Sanitize habit name into 290100 (trim ws, remove |, ", \, control chars; max 80 bytes)
@@ -889,17 +988,16 @@
       (then (return (i32.sub (local.get $num) (i32.const 1))))
     )
 
-    ;; Lowercase query into 290400
-    (call $to_lower (local.get $q_ptr) (i32.const 290400) (local.get $q_len))
+    ;; Normalize (lowercase + fold Latin-1 accents) query into 290400
+    (local.set $q_len (call $norm_fold (local.get $q_ptr) (i32.const 290400) (local.get $q_len)))
 
-    ;; Pass 1: exact case-insensitive match
+    ;; Pass 1: exact case/accent-insensitive match
     (local.set $i (i32.const 0))
     (loop $exact
       (if (i32.lt_u (local.get $i) (global.get $habit_count))
         (then
           (local.set $sp (call $slot_ptr (local.get $i)))
-          (local.set $nlen (i32.load (i32.add (local.get $sp) (i32.const 96))))
-          (call $to_lower (local.get $sp) (i32.const 290600) (local.get $nlen))
+          (local.set $nlen (call $norm_fold (local.get $sp) (i32.const 290600) (i32.load (i32.add (local.get $sp) (i32.const 96)))))
           (if (call $mem_eq (i32.const 290400) (local.get $q_len) (i32.const 290600) (local.get $nlen))
             (then (return (local.get $i)))
           )
@@ -915,8 +1013,7 @@
       (if (i32.lt_u (local.get $i) (global.get $habit_count))
         (then
           (local.set $sp (call $slot_ptr (local.get $i)))
-          (local.set $nlen (i32.load (i32.add (local.get $sp) (i32.const 96))))
-          (call $to_lower (local.get $sp) (i32.const 290600) (local.get $nlen))
+          (local.set $nlen (call $norm_fold (local.get $sp) (i32.const 290600) (i32.load (i32.add (local.get $sp) (i32.const 96)))))
           (if (i32.or (i32.ge_s (call $find_sub (i32.const 290600) (local.get $nlen) (i32.const 290400) (local.get $q_len)) (i32.const 0))
                       (i32.ge_s (call $find_sub (i32.const 290400) (local.get $q_len) (i32.const 290600) (local.get $nlen)) (i32.const 0)))
             (then (return (local.get $i)))
@@ -935,8 +1032,7 @@
       (if (i32.lt_u (local.get $i) (global.get $habit_count))
         (then
           (local.set $sp (call $slot_ptr (local.get $i)))
-          (local.set $nlen (i32.load (i32.add (local.get $sp) (i32.const 96))))
-          (call $to_lower (local.get $sp) (i32.const 290600) (local.get $nlen))
+          (local.set $nlen (call $norm_fold (local.get $sp) (i32.const 290600) (i32.load (i32.add (local.get $sp) (i32.const 96)))))
           (local.set $score (i32.const 0))
           ;; Scan words in query (len >= 2) and check if present in habit name
           (local.set $ws (i32.const 0))
@@ -1072,7 +1168,7 @@
     (call $emit_zstr (i32.const 200792))
     (call $emit_zstr (i32.const 202264))
     (call $emit_zstr (i32.const 200816))
-    (if (i32.gt_s (global.get $date_len) (i32.const 0))
+    (if (i32.gt_s (global.get $today_days) (i32.const 0))
       (then
         (call $emit_zstr (i32.const 204480))
         (call $emit_mem (i32.const 290300) (global.get $date_len))
