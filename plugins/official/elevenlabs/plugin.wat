@@ -72,6 +72,10 @@
   (data (i32.const 135800) "message\00")
   (data (i32.const 135820) "detail\00")
   (data (i32.const 135840) "statusCode\00")
+  (data (i32.const 135860) "operation\00")
+  (data (i32.const 135872) "query\00")
+  (data (i32.const 135880) "token\00")
+  (data (i32.const 135888) "lang=\00")
 
   ;; Actions & command keywords
   (data (i32.const 135900) "speak\00")
@@ -85,6 +89,13 @@
   (data (i32.const 136060) "set_key\00")
   (data (i32.const 136080) "key\00")
   (data (i32.const 136100) "sk_\00")
+  (data (i32.const 136110) "setup\00")
+  (data (i32.const 136120) "connect\00")
+  (data (i32.const 136132) "auth\00")
+  (data (i32.const 136140) "login\00")
+  (data (i32.const 136150) "set_token\00")
+  (data (i32.const 136164) "secret\00")
+  (data (i32.const 136176) "apikey\00")
 
   ;; Voices: ID (20 bytes) + Display Label
   (data (i32.const 136200) "JBFqnCBsd6RMkjVDRZzb\00")
@@ -842,14 +853,131 @@
     (local.get $vlen)
   )
 
+  ;; Strip trailing "lang=<code>" (or bare "lang=<code>") from trimmed plain-text input
+  (func $strip_lang_suffix (param $ptr i32) (param $len i32) (result i32)
+    (local $i i32)
+    (local $tok_start i32)
+    (local $tok_len i32)
+    (local $new_len i32)
+    (if (i32.le_s (local.get $len) (i32.const 0))
+      (then (return (i32.const 0)))
+    )
+    ;; Case 1: entire input starts with "lang=" and has no whitespace
+    (if (call $starts_with (local.get $ptr) (local.get $len) (i32.const 135888))
+      (then
+        (local.set $i (i32.const 0))
+        (loop $chk_bare
+          (if (i32.lt_u (local.get $i) (local.get $len))
+            (then
+              (if (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (local.get $i))))
+                (then (return (local.get $len)))
+              )
+              (local.set $i (i32.add (local.get $i) (i32.const 1)))
+              (br $chk_bare)
+            )
+          )
+        )
+        (return (i32.const 0))
+      )
+    )
+    ;; Case 2: find last whitespace and check if trailing token starts with "lang="
+    (local.set $i (local.get $len))
+    (loop $find_sp
+      (if (i32.gt_u (local.get $i) (i32.const 0))
+        (then
+          (local.set $i (i32.sub (local.get $i) (i32.const 1)))
+          (if (i32.eqz (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (local.get $i)))))
+            (then (br $find_sp))
+          )
+        )
+      )
+    )
+    (if (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (local.get $i))))
+      (then
+        (local.set $tok_start (i32.add (local.get $ptr) (i32.add (local.get $i) (i32.const 1))))
+        (local.set $tok_len (i32.sub (local.get $len) (i32.add (local.get $i) (i32.const 1))))
+        (if (call $starts_with (local.get $tok_start) (local.get $tok_len) (i32.const 135888))
+          (then
+            (local.set $new_len (local.get $i))
+            (loop $rtrim_l
+              (if (i32.and (i32.gt_u (local.get $new_len) (i32.const 0))
+                           (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (i32.sub (local.get $new_len) (i32.const 1))))))
+                (then
+                  (local.set $new_len (i32.sub (local.get $new_len) (i32.const 1)))
+                  (br $rtrim_l)
+                )
+              )
+            )
+            (return (local.get $new_len))
+          )
+        )
+      )
+    )
+    (local.get $len)
+  )
+
+  ;; Clean/extract an API key from $src[0..$len] into 160200 (prefers sk_... token, stops at ws/quotes/braces)
+  (func $clean_api_key (param $src i32) (param $len i32) (result i32)
+    (local $pos i32)
+    (local $start i32)
+    (local $end i32)
+    (local $out i32)
+    (local $ch i32)
+    (if (i32.le_s (local.get $len) (i32.const 0))
+      (then (return (i32.const 0)))
+    )
+    (local.set $end (i32.add (local.get $src) (local.get $len)))
+    ;; Prefer embedded "sk_" token if present
+    (local.set $pos (call $find_substring (local.get $src) (local.get $len) (i32.const 136100) (i32.const 3)))
+    (if (i32.ge_s (local.get $pos) (i32.const 0))
+      (then (local.set $start (i32.add (local.get $src) (local.get $pos))))
+      (else
+        (local.set $start (local.get $src))
+        (loop $skip_lead
+          (if (i32.and (i32.lt_u (local.get $start) (local.get $end))
+                       (i32.or (call $is_ws (i32.load8_u (local.get $start)))
+                               (i32.or (i32.eq (i32.load8_u (local.get $start)) (i32.const 34))
+                                       (i32.eq (i32.load8_u (local.get $start)) (i32.const 39)))))
+            (then
+              (local.set $start (i32.add (local.get $start) (i32.const 1)))
+              (br $skip_lead)
+            )
+          )
+        )
+      )
+    )
+    (local.set $out (i32.const 0))
+    (loop $copy_tok
+      (if (i32.and (i32.lt_u (i32.add (local.get $start) (local.get $out)) (local.get $end))
+                   (i32.lt_u (local.get $out) (i32.const 180)))
+        (then
+          (local.set $ch (i32.load8_u (i32.add (local.get $start) (local.get $out))))
+          (if (i32.and
+                (i32.and (i32.gt_u (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
+                (i32.and (i32.ne (local.get $ch) (i32.const 39))
+                         (i32.and (i32.ne (local.get $ch) (i32.const 125)) (i32.ne (local.get $ch) (i32.const 96)))))
+            (then
+              (i32.store8 (i32.add (i32.const 160200) (local.get $out)) (local.get $ch))
+              (local.set $out (i32.add (local.get $out) (i32.const 1)))
+              (br $copy_tok)
+            )
+          )
+        )
+      )
+    )
+    (local.get $out)
+  )
+
   (func $save_api_key (param $k_ptr i32) (param $k_len i32) (result i32)
+    (local $clean_len i32)
     (local $p i32)
     (local $req_len i32)
-    (if (i32.lt_u (local.get $k_len) (i32.const 8))
+    (local.set $clean_len (call $clean_api_key (local.get $k_ptr) (local.get $k_len)))
+    (if (i32.lt_s (local.get $clean_len) (i32.const 8))
       (then (return (call $return_zstr (i32.const 132900))))
     )
     (local.set $p (call $copy_zstr (i32.const 134400) (i32.const 260000)))
-    (local.set $p (call $copy_mem (local.get $k_ptr) (local.get $p) (local.get $k_len)))
+    (local.set $p (call $copy_mem (i32.const 160200) (local.get $p) (local.get $clean_len)))
     (local.set $p (call $copy_zstr (i32.const 134500) (local.get $p)))
     (local.set $req_len (i32.sub (local.get $p) (i32.const 260000)))
     (drop (call $host_call (i32.const 260000) (local.get $req_len) (i32.const 360000) (i32.const 1024)))
@@ -906,7 +1034,11 @@
     ;; ── Case A: JSON Tool Call from intentContract ──────────────────────
     (if (i32.eq (i32.load8_u (local.get $trim_start)) (i32.const 123)) ;; '{'
       (then
-        (local.set $act_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135620) (i32.const 160000) (i32.const 64)))
+        ;; Read "operation" first (Chattree Host envelope), then fallback to "action"
+        (local.set $act_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135860) (i32.const 160000) (i32.const 64)))
+        (if (i32.le_s (local.get $act_len) (i32.const 0))
+          (then (local.set $act_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135620) (i32.const 160000) (i32.const 64))))
+        )
         (if (i32.gt_s (local.get $act_len) (i32.const 0))
           (then
             (call $to_lower (i32.const 160000) (i32.const 160000) (local.get $act_len))
@@ -921,28 +1053,77 @@
                 (return (call $return_zstr (i32.const 133100)))
               )
             )
-            (if (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 135960)) ;; disconnect
+            (if (i32.or
+                  (i32.or (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 135960)) ;; disconnect
+                          (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136020))) ;; logout
+                  (i32.or (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136000)) ;; clear
+                          (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136040)))) ;; remove
               (then
                 (drop (call $host_call (i32.const 134520) (call $zlen (i32.const 134520)) (i32.const 360000) (i32.const 1024)))
                 (return (call $return_zstr (i32.const 133500)))
               )
             )
-            (if (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 135920)) ;; config
+            (if (i32.or
+                  (i32.or (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 135920)) ;; config
+                          (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136060))) ;; set_key
+                  (i32.or
+                    (i32.or (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136110)) ;; setup
+                            (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136120))) ;; connect
+                    (i32.or (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136132)) ;; auth
+                            (i32.or (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136140)) ;; login
+                                    (call $str_eq (i32.const 160000) (local.get $act_len) (i32.const 136150)))))) ;; set_token
               (then
-                (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135720) (i32.const 160100) (i32.const 200)))
+                (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135720) (i32.const 160100) (i32.const 200))) ;; api_key
                 (if (i32.le_s (local.get $val_len) (i32.const 0))
-                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135640) (i32.const 160100) (i32.const 200))))
+                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 136176) (i32.const 160100) (i32.const 200)))) ;; apikey
                 )
-                (return (call $save_api_key (i32.const 160100) (local.get $val_len)))
+                (if (i32.le_s (local.get $val_len) (i32.const 0))
+                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135880) (i32.const 160100) (i32.const 200)))) ;; token
+                )
+                (if (i32.le_s (local.get $val_len) (i32.const 0))
+                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 136080) (i32.const 160100) (i32.const 200)))) ;; key
+                )
+                (if (i32.le_s (local.get $val_len) (i32.const 0))
+                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135872) (i32.const 160100) (i32.const 200)))) ;; query
+                )
+                (if (i32.le_s (local.get $val_len) (i32.const 0))
+                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 136164) (i32.const 160100) (i32.const 200)))) ;; secret
+                )
+                (if (i32.le_s (local.get $val_len) (i32.const 0))
+                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135740) (i32.const 160100) (i32.const 200)))) ;; value
+                )
+                (if (i32.le_s (local.get $val_len) (i32.const 0))
+                  (then (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135640) (i32.const 160100) (i32.const 200)))) ;; text
+                )
+                (if (i32.gt_s (local.get $val_len) (i32.const 0))
+                  (then (return (call $save_api_key (i32.const 160100) (local.get $val_len))))
+                )
+                ;; Fallback: scan entire JSON input for embedded sk_... key
+                (if (i32.ge_s (call $find_substring (local.get $trim_start) (local.get $trim_len) (i32.const 136100) (i32.const 3)) (i32.const 0))
+                  (then (return (call $save_api_key (local.get $trim_start) (local.get $trim_len))))
+                )
+                (return (call $return_zstr (i32.const 132900)))
               )
             )
           )
         )
 
+        ;; Fallback: if LLM passed api_key directly (e.g. action rewritten to 'create'), save it
+        (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135720) (i32.const 160100) (i32.const 200)))
+        (if (i32.ge_s (local.get $val_len) (i32.const 8))
+          (then (return (call $save_api_key (i32.const 160100) (local.get $val_len))))
+        )
+
         ;; Default JSON action: speak
         (local.set $val_len (call $extract_json_str (local.get $trim_start) (local.get $trim_len) (i32.const 135640) (i32.const 162000) (i32.const 8000)))
         (if (i32.le_s (local.get $val_len) (i32.const 0))
-          (then (return (call $return_zstr (i32.const 132000))))
+          (then
+            ;; If no speech text, check if an sk_... key was embedded anywhere in the payload
+            (if (i32.ge_s (call $find_substring (local.get $trim_start) (local.get $trim_len) (i32.const 136100) (i32.const 3)) (i32.const 0))
+              (then (return (call $save_api_key (local.get $trim_start) (local.get $trim_len))))
+            )
+            (return (call $return_zstr (i32.const 132000)))
+          )
         )
         (global.set $text_len (local.get $val_len))
 
@@ -966,6 +1147,12 @@
       )
       (else
         ;; ── Case B: Direct Slash Command / Plain Text ───────────────────
+        ;; Strip trailing lang=<code> appended by Chattree host
+        (local.set $trim_len (call $strip_lang_suffix (local.get $trim_start) (local.get $trim_len)))
+        (if (i32.le_s (local.get $trim_len) (i32.const 0))
+          (then (return (call $return_zstr (i32.const 132000))))
+        )
+
         (call $to_lower (local.get $trim_start) (i32.const 190000) (local.get $trim_len))
 
         (if (i32.or (call $match_cmd (i32.const 190000) (local.get $trim_len) (i32.const 135980))
@@ -1009,15 +1196,6 @@
         (if (i32.ge_s (local.get $tok_start) (i32.const 0))
           (then
             (local.set $tok_len (i32.sub (i32.add (local.get $trim_start) (local.get $trim_len)) (local.get $tok_start)))
-            (loop $skip_ws_k
-              (if (i32.and (i32.gt_s (local.get $tok_len) (i32.const 0)) (call $is_ws (i32.load8_u (local.get $tok_start))))
-                (then
-                  (local.set $tok_start (i32.add (local.get $tok_start) (i32.const 1)))
-                  (local.set $tok_len (i32.sub (local.get $tok_len) (i32.const 1)))
-                  (br $skip_ws_k)
-                )
-              )
-            )
             (return (call $save_api_key (local.get $tok_start) (local.get $tok_len)))
           )
         )

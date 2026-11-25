@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.notion",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "name": "Notion Integration",
   "description": "Official Notion workspace integration powered by natural language and AI tool calling. Create structured Notion pages with native Markdown blocks, search notes, or inspect recent workspace updates.",
   "author": "Chattree Core Team",
@@ -28,13 +28,13 @@
     "database",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.3.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.3.0",
-  "changelog": "1.3.0: English predetermined UI strings with minimalist Chattree monochrome styling, native Notion Markdown blocks (headings, bullets, numbered lists, quotes, dividers), Unicode \\uXXXX decoding, whitespace-tolerant JSON parsing, bounded search title extraction, auto-clear invalid parent_id, and shorter token-safe AI content guidelines.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/icon.png?v=1.3.1",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/notion/banner.png?v=1.3.1",
+  "changelog": "1.3.1: Fixed Integration Secret token saving across all JSON field aliases (token, api_key, secret, integration_secret, key, query), direct token paste inside AI payloads, token sanitization, whitespace-tolerant storage reads, and lang=<code> stripping for direct slash commands.",
   "runtime": "wasm",
   "entrypoint": "notion_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "d0c54de8af01538aad09b75d1eb9f9c1178a21d43fd6fb49588eda00d4fbbb0e",
+  "wasmSha256": "0e0c34a9e1945c7aa40b0f2293b6ab016bca6179a4f0893f8368a2936baa24ef",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 35000,
@@ -91,7 +91,14 @@
             "name": "query",
             "key": "query",
             "type": "string",
-            "description": "Search query (when action='search'), integration token secret_/ntn_ (when action='config'), or parent page ID/URL (when action='parent').",
+            "description": "Search query (when action='search') or parent page ID/URL (when action='parent').",
+            "required": false
+          },
+          {
+            "name": "token",
+            "key": "token",
+            "type": "string",
+            "description": "Notion Internal Integration Secret (ntn_... or secret_...) for action='config'.",
             "required": false
           }
         ],
@@ -125,7 +132,7 @@
             "output": {
               "tool": "notion",
               "action": "config",
-              "query": "ntn_1234567890abcdef"
+              "token": "ntn_1234567890abcdef"
             }
           }
         ],

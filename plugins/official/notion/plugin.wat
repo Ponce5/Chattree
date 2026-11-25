@@ -122,6 +122,19 @@
   (data (i32.const 149510) "\22plain_text\22:\22\00")
   (data (i32.const 149540) "\22message\22:\22\00")
   (data (i32.const 149560) "\22object\22:\22\00")
+  (data (i32.const 149600) "\22value\22\00")
+  (data (i32.const 149620) "\22api_key\22\00")
+  (data (i32.const 149640) "\22apikey\22\00")
+  (data (i32.const 149660) "\22key\22\00")
+  (data (i32.const 149680) "\22secret\22\00")
+  (data (i32.const 149700) "\22integration_secret\22\00")
+  (data (i32.const 149730) "\22text\22\00")
+  (data (i32.const 149750) "lang=\00")
+  (data (i32.const 149770) "setup\00")
+  (data (i32.const 149785) "connect\00")
+  (data (i32.const 149800) "auth\00")
+  (data (i32.const 149815) "login\00")
+  (data (i32.const 149830) "set_token\00")
 
   ;; ── Utility Functions ────────────────────────────────────────────────────
 
@@ -437,13 +450,10 @@
     (i32.sub (local.get $out) (local.get $dst))
   )
 
-  ;; Loads stored API Token into 1302000
+  ;; Loads stored API Token into 1302000 (whitespace-tolerant JSON extraction)
   (func $load_api_token (result i32)
     (local $res_len i32)
-    (local $val_idx i32)
-    (local $val_start i32)
-    (local $i i32)
-    (local $ch i32)
+    (local $vlen i32)
     (local $req_len i32)
 
     (local.set $req_len (call $zlen (i32.const 145100)))
@@ -451,23 +461,74 @@
     (if (i32.le_s (local.get $res_len) (i32.const 0))
       (then (return (i32.const 0)))
     )
-
-    (local.set $val_idx (call $find_substring (i32.const 1300000) (local.get $res_len) (i32.const 149000) (i32.const 9)))
-    (if (i32.lt_s (local.get $val_idx) (i32.const 0))
+    (local.set $vlen (call $extract_json_raw_ws (i32.const 1300000) (local.get $res_len) (i32.const 149600) (i32.const 1302000) (i32.const 200)))
+    (if (i32.le_s (local.get $vlen) (i32.const 0))
       (then (return (i32.const 0)))
     )
+    (global.set $token_len (local.get $vlen))
+    (local.get $vlen)
+  )
 
-    (local.set $val_start (i32.add (i32.const 1300000) (i32.add (local.get $val_idx) (i32.const 9))))
+  ;; Loads stored Parent Page ID into 1307000 (whitespace-tolerant JSON extraction)
+  (func $load_parent_id (result i32)
+    (local $res_len i32)
+    (local $vlen i32)
+    (local $req_len i32)
+
+    (local.set $req_len (call $zlen (i32.const 145420)))
+    (local.set $res_len (call $host_call (i32.const 145420) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
+    (if (i32.le_s (local.get $res_len) (i32.const 0))
+      (then (return (i32.const 0)))
+    )
+    (local.set $vlen (call $extract_json_raw_ws (i32.const 1300000) (local.get $res_len) (i32.const 149600) (i32.const 1307000) (i32.const 60)))
+    (if (i32.le_s (local.get $vlen) (i32.const 0))
+      (then (return (i32.const 0)))
+    )
+    (global.set $parent_len (local.get $vlen))
+    (local.get $vlen)
+  )
+
+  ;; Extracts clean Notion token from $src[0..$len] into 1302000 (prefers ntn_/secret_, stops at ws/quotes/braces)
+  (func $clean_notion_token (param $src i32) (param $len i32) (result i32)
+    (local $pos i32) (local $start i32) (local $end i32) (local $i i32) (local $ch i32)
+    (if (i32.le_s (local.get $len) (i32.const 0)) (then (return (i32.const 0))))
+    (local.set $end (i32.add (local.get $src) (local.get $len)))
+    (local.set $pos (call $find_substring (local.get $src) (local.get $len) (i32.const 149380) (i32.const 4))) ;; ntn_
+    (if (i32.lt_s (local.get $pos) (i32.const 0))
+      (then (local.set $pos (call $find_substring (local.get $src) (local.get $len) (i32.const 149360) (i32.const 7)))) ;; secret_
+    )
+    (if (i32.ge_s (local.get $pos) (i32.const 0))
+      (then (local.set $start (i32.add (local.get $src) (local.get $pos))))
+      (else
+        (local.set $start (local.get $src))
+        (loop $skip_lead
+          (if (i32.and (i32.lt_u (local.get $start) (local.get $end))
+                       (i32.or (call $is_ws (i32.load8_u (local.get $start)))
+                               (i32.or (i32.eq (i32.load8_u (local.get $start)) (i32.const 34))
+                                       (i32.or (i32.eq (i32.load8_u (local.get $start)) (i32.const 39))
+                                               (i32.eq (i32.load8_u (local.get $start)) (i32.const 96))))))
+            (then
+              (local.set $start (i32.add (local.get $start) (i32.const 1)))
+              (br $skip_lead)
+            )
+          )
+        )
+      )
+    )
     (local.set $i (i32.const 0))
-    (loop $copy_key
-      (if (i32.lt_u (local.get $i) (i32.const 200))
+    (loop $scan_tok
+      (if (i32.and (i32.lt_u (i32.add (local.get $start) (local.get $i)) (local.get $end))
+                   (i32.lt_u (local.get $i) (i32.const 150)))
         (then
-          (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
-          (if (i32.and (i32.ne (local.get $ch) (i32.const 34)) (i32.ne (local.get $ch) (i32.const 0)))
+          (local.set $ch (i32.load8_u (i32.add (local.get $start) (local.get $i))))
+          (if (i32.and
+                (i32.and (i32.gt_u (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
+                (i32.and (i32.ne (local.get $ch) (i32.const 39))
+                         (i32.and (i32.ne (local.get $ch) (i32.const 125)) (i32.ne (local.get $ch) (i32.const 96)))))
             (then
               (i32.store8 (i32.add (i32.const 1302000) (local.get $i)) (local.get $ch))
               (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $copy_key)
+              (br $scan_tok)
             )
           )
         )
@@ -477,44 +538,80 @@
     (local.get $i)
   )
 
-  ;; Loads stored Parent Page ID into 1307000
-  (func $load_parent_id (result i32)
-    (local $res_len i32)
-    (local $val_idx i32)
-    (local $val_start i32)
-    (local $i i32)
-    (local $ch i32)
-    (local $req_len i32)
-
-    (local.set $req_len (call $zlen (i32.const 145420)))
-    (local.set $res_len (call $host_call (i32.const 145420) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
-    (if (i32.le_s (local.get $res_len) (i32.const 0))
-      (then (return (i32.const 0)))
-    )
-
-    (local.set $val_idx (call $find_substring (i32.const 1300000) (local.get $res_len) (i32.const 149000) (i32.const 9)))
-    (if (i32.lt_s (local.get $val_idx) (i32.const 0))
-      (then (return (i32.const 0)))
-    )
-
-    (local.set $val_start (i32.add (i32.const 1300000) (i32.add (local.get $val_idx) (i32.const 9))))
-    (local.set $i (i32.const 0))
-    (loop $copy_p_id
-      (if (i32.lt_u (local.get $i) (i32.const 60))
-        (then
-          (local.set $ch (i32.load8_u (i32.add (local.get $val_start) (local.get $i))))
-          (if (i32.and (i32.ne (local.get $ch) (i32.const 34)) (i32.ne (local.get $ch) (i32.const 0)))
+  ;; Strips trailing "lang=<code>" (or bare "lang=<code>") from trimmed plain-text input
+  (func $strip_lang_suffix (param $ptr i32) (param $len i32) (result i32)
+    (local $i i32) (local $tok_start i32) (local $tok_len i32) (local $new_len i32)
+    (if (i32.le_s (local.get $len) (i32.const 0)) (then (return (i32.const 0))))
+    (if (i32.and (i32.ge_u (local.get $len) (i32.const 5))
+                 (i32.eq (call $find_substring (local.get $ptr) (i32.const 5) (i32.const 149750) (i32.const 5)) (i32.const 0)))
+      (then
+        (local.set $i (i32.const 0))
+        (loop $chk_bare
+          (if (i32.lt_u (local.get $i) (local.get $len))
             (then
-              (i32.store8 (i32.add (i32.const 1307000) (local.get $i)) (local.get $ch))
+              (if (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (local.get $i))))
+                (then (return (local.get $len)))
+              )
               (local.set $i (i32.add (local.get $i) (i32.const 1)))
-              (br $copy_p_id)
+              (br $chk_bare)
             )
+          )
+        )
+        (return (i32.const 0))
+      )
+    )
+    (local.set $i (local.get $len))
+    (loop $find_sp
+      (if (i32.gt_u (local.get $i) (i32.const 0))
+        (then
+          (local.set $i (i32.sub (local.get $i) (i32.const 1)))
+          (if (i32.eqz (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (local.get $i)))))
+            (then (br $find_sp))
           )
         )
       )
     )
-    (global.set $parent_len (local.get $i))
-    (local.get $i)
+    (if (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (local.get $i))))
+      (then
+        (local.set $tok_start (i32.add (local.get $ptr) (i32.add (local.get $i) (i32.const 1))))
+        (local.set $tok_len (i32.sub (local.get $len) (i32.add (local.get $i) (i32.const 1))))
+        (if (i32.and (i32.ge_u (local.get $tok_len) (i32.const 5))
+                     (i32.eq (call $find_substring (local.get $tok_start) (i32.const 5) (i32.const 149750) (i32.const 5)) (i32.const 0)))
+          (then
+            (local.set $new_len (local.get $i))
+            (loop $rtrim_l
+              (if (i32.and (i32.gt_u (local.get $new_len) (i32.const 0))
+                           (call $is_ws (i32.load8_u (i32.add (local.get $ptr) (i32.sub (local.get $new_len) (i32.const 1))))))
+                (then
+                  (local.set $new_len (i32.sub (local.get $new_len) (i32.const 1)))
+                  (br $rtrim_l)
+                )
+              )
+            )
+            (return (local.get $new_len))
+          )
+        )
+      )
+    )
+    (local.get $len)
+  )
+
+  ;; Persists token already in 1302000 (len $token_len) and starts Notion /v1/users/me verification
+  (func $save_and_verify_token (result i32)
+    (local $p i32) (local $req_len i32)
+    (local.set $p (call $copy_zstr (i32.const 145200) (i32.const 200000)))
+    (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
+    (local.set $p (call $copy_zstr (i32.const 145300) (local.get $p)))
+    (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
+    (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
+
+    (local.set $p (call $copy_zstr (i32.const 145720) (i32.const 200000)))
+    (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
+    (local.set $p (call $copy_zstr (i32.const 145920) (local.get $p)))
+    (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
+    (global.set $phase (i32.const 1))
+    (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
+    (i32.const 0)
   )
 
   ;; Decodes raw JSON single-line title/query (with \uXXXX) into 1303000 (UTF-8 safe <= 500 bytes)
@@ -1055,9 +1152,81 @@
     (global.set $raw_body_len (i32.const 0))
     (global.set $preview_len (i32.const 0))
 
-    ;; 1. Empty input -> Help
+    ;; 1. Empty input or bare lang=<code> -> Help
     (if (i32.eqz (local.get $in_len))
       (then (return (call $return_static (i32.const 140000))))
+    )
+
+    ;; Trim leading/trailing whitespace and strip trailing lang=<code> for non-JSON plain text
+    (if (i32.ne (i32.load8_u (local.get $in_ptr)) (i32.const 123))
+      (then
+        (loop $ltrim_p
+          (if (i32.and (i32.gt_u (local.get $in_len) (i32.const 0)) (call $is_ws (i32.load8_u (local.get $in_ptr))))
+            (then
+              (local.set $in_ptr (i32.add (local.get $in_ptr) (i32.const 1)))
+              (local.set $in_len (i32.sub (local.get $in_len) (i32.const 1)))
+              (br $ltrim_p)
+            )
+          )
+        )
+        (loop $rtrim_p
+          (if (i32.and (i32.gt_u (local.get $in_len) (i32.const 0))
+                       (call $is_ws (i32.load8_u (i32.add (local.get $in_ptr) (i32.sub (local.get $in_len) (i32.const 1))))))
+            (then
+              (local.set $in_len (i32.sub (local.get $in_len) (i32.const 1)))
+              (br $rtrim_p)
+            )
+          )
+        )
+        (if (i32.or (i32.eqz (local.get $in_len)) (i32.ne (i32.load8_u (local.get $in_ptr)) (i32.const 123)))
+          (then
+            (local.set $in_len (call $strip_lang_suffix (local.get $in_ptr) (local.get $in_len)))
+            (if (i32.le_s (local.get $in_len) (i32.const 0))
+              (then (return (call $return_static (i32.const 140000))))
+            )
+            ;; Handle plain-text help / status / disconnect / config <token>
+            (call $to_lower (local.get $in_ptr) (i32.const 1306000) (if (result i32) (i32.gt_u (local.get $in_len) (i32.const 64)) (then (i32.const 64)) (else (local.get $in_len))))
+            (if (i32.and (i32.eq (local.get $in_len) (i32.const 4))
+                         (i32.eq (call $find_substring (i32.const 1306000) (i32.const 4) (i32.const 149340) (i32.const 4)) (i32.const 0)))
+              (then (return (call $return_static (i32.const 140000))))
+            )
+            (if (i32.and (i32.eq (local.get $in_len) (i32.const 10))
+                         (i32.eq (call $find_substring (i32.const 1306000) (i32.const 10) (i32.const 149320) (i32.const 10)) (i32.const 0)))
+              (then
+                (local.set $req_len (call $zlen (i32.const 145320)))
+                (drop (call $host_call (i32.const 145320) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
+                (return (call $return_static (i32.const 142400)))
+              )
+            )
+            (if (i32.and (i32.eq (local.get $in_len) (i32.const 6))
+                         (i32.eq (call $find_substring (i32.const 1306000) (i32.const 6) (i32.const 149260) (i32.const 6)) (i32.const 0)))
+              (then
+                (local.set $raw_len (call $load_api_token))
+                (if (i32.eqz (local.get $raw_len))
+                  (then (return (call $return_static (i32.const 142000))))
+                )
+                (local.set $p (call $copy_zstr (i32.const 145720) (i32.const 200000)))
+                (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
+                (local.set $p (call $copy_zstr (i32.const 145920) (local.get $p)))
+                (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
+                (global.set $phase (i32.const 2))
+                (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
+                (return (i32.const 0))
+              )
+            )
+            (if (i32.and (i32.gt_u (local.get $in_len) (i32.const 7))
+                         (i32.and (i32.eq (call $find_substring (i32.const 1306000) (i32.const 6) (i32.const 149280) (i32.const 6)) (i32.const 0))
+                                  (call $is_ws (i32.load8_u (i32.add (local.get $in_ptr) (i32.const 6))))))
+              (then
+                (if (i32.gt_s (call $clean_notion_token (i32.add (local.get $in_ptr) (i32.const 7)) (i32.sub (local.get $in_len) (i32.const 7))) (i32.const 8))
+                  (then (return (call $save_and_verify_token)))
+                )
+                (return (call $return_static (i32.const 142000)))
+              )
+            )
+          )
+        )
+      )
     )
 
     ;; 2. Extract AI Intent Contract JSON fields (whitespace-tolerant)
@@ -1090,9 +1259,8 @@
       )
     )
 
-    ;; 3. Direct token paste ONLY when input is NOT an AI JSON intent payload
-    (if (i32.and (i32.eqz (global.get $op_len))
-                 (i32.and (i32.le_s (local.get $title_len) (i32.const 0)) (i32.le_s (local.get $content_len) (i32.const 0))))
+    ;; 3. Direct token paste (plain text OR JSON where token was pasted without page title)
+    (if (i32.le_s (local.get $title_len) (i32.const 0))
       (then
         (local.set $pos (call $find_substring (local.get $in_ptr) (local.get $in_len) (i32.const 149360) (i32.const 7)))
         (if (i32.lt_s (local.get $pos) (i32.const 0))
@@ -1102,45 +1270,8 @@
         )
         (if (i32.ge_s (local.get $pos) (i32.const 0))
           (then
-            (local.set $token_start (i32.add (local.get $in_ptr) (local.get $pos)))
-            (local.set $i (i32.const 0))
-            (loop $scan_direct_tok
-              (if (i32.lt_u (i32.add (local.get $token_start) (local.get $i)) (i32.add (local.get $in_ptr) (local.get $in_len)))
-                (then
-                  (if (i32.lt_u (local.get $i) (i32.const 120))
-                    (then
-                      (local.set $ch (i32.load8_u (i32.add (local.get $token_start) (local.get $i))))
-                      (if (i32.and
-                            (i32.and (i32.gt_u (local.get $ch) (i32.const 32)) (i32.ne (local.get $ch) (i32.const 34)))
-                            (i32.and (i32.ne (local.get $ch) (i32.const 39)) (i32.ne (local.get $ch) (i32.const 125))))
-                        (then
-                          (i32.store8 (i32.add (i32.const 1302000) (local.get $i)) (local.get $ch))
-                          (local.set $i (i32.add (local.get $i) (i32.const 1)))
-                          (br $scan_direct_tok)
-                        )
-                      )
-                    )
-                  )
-                )
-              )
-            )
-            (global.set $token_len (local.get $i))
-            (if (i32.gt_u (global.get $token_len) (i32.const 10))
-              (then
-                (local.set $p (call $copy_zstr (i32.const 145200) (i32.const 200000)))
-                (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-                (local.set $p (call $copy_zstr (i32.const 145300) (local.get $p)))
-                (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
-                (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
-
-                (local.set $p (call $copy_zstr (i32.const 145720) (i32.const 200000)))
-                (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-                (local.set $p (call $copy_zstr (i32.const 145920) (local.get $p)))
-                (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
-                (global.set $phase (i32.const 1))
-                (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
-                (return (i32.const 0))
-              )
+            (if (i32.gt_s (call $clean_notion_token (local.get $in_ptr) (local.get $in_len)) (i32.const 10))
+              (then (return (call $save_and_verify_token)))
             )
           )
         )
@@ -1180,36 +1311,66 @@
       )
     )
 
-    ;; D. "config"
-    (if (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149280) (i32.const 6)) (i32.const 0))
+    ;; D. "config" / "setup" / "connect" / "auth" / "login" / "set_token"
+    (if (i32.or
+          (i32.or
+            (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149280) (i32.const 6)) (i32.const 0))
+            (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149770) (i32.const 5)) (i32.const 0)))
+          (i32.or
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149785) (i32.const 7)) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149800) (i32.const 4)) (i32.const 0)))
+            (i32.or
+              (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149815) (i32.const 5)) (i32.const 0))
+              (i32.ge_s (call $find_substring (i32.const 1306000) (global.get $op_len) (i32.const 149830) (i32.const 9)) (i32.const 0)))))
       (then
-        (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149140) (i32.const 1302000) (i32.const 150)))
+        (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149140) (i32.const 1315000) (i32.const 200))) ;; token
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
+          (then (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149620) (i32.const 1315000) (i32.const 200)))) ;; api_key
+        )
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
+          (then (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149640) (i32.const 1315000) (i32.const 200)))) ;; apikey
+        )
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
+          (then (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149680) (i32.const 1315000) (i32.const 200)))) ;; secret
+        )
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
+          (then (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149700) (i32.const 1315000) (i32.const 200)))) ;; integration_secret
+        )
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
+          (then (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149660) (i32.const 1315000) (i32.const 200)))) ;; key
+        )
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
+          (then (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149600) (i32.const 1315000) (i32.const 200)))) ;; value
+        )
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
+          (then (local.set $tok_json_len (call $extract_json_raw_ws (local.get $in_ptr) (local.get $in_len) (i32.const 149730) (i32.const 1315000) (i32.const 200)))) ;; text
+        )
         (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
           (then
             (if (i32.gt_s (local.get $query_len) (i32.const 0))
               (then
-                (drop (call $copy_mem (i32.const 1312000) (i32.const 1302000) (local.get $query_len)))
+                (drop (call $copy_mem (i32.const 1312000) (i32.const 1315000) (local.get $query_len)))
                 (local.set $tok_json_len (local.get $query_len))
               )
             )
           )
         )
-        (if (i32.gt_s (local.get $tok_json_len) (i32.const 8))
+        (if (i32.le_s (local.get $tok_json_len) (i32.const 0))
           (then
-            (global.set $token_len (local.get $tok_json_len))
-            (local.set $p (call $copy_zstr (i32.const 145200) (i32.const 200000)))
-            (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-            (local.set $p (call $copy_zstr (i32.const 145300) (local.get $p)))
-            (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
-            (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 1300000) (i32.const 1024)))
-
-            (local.set $p (call $copy_zstr (i32.const 145720) (i32.const 200000)))
-            (local.set $p (call $copy_mem (i32.const 1302000) (local.get $p) (global.get $token_len)))
-            (local.set $p (call $copy_zstr (i32.const 145920) (local.get $p)))
-            (local.set $req_len (i32.sub (local.get $p) (i32.const 200000)))
-            (global.set $phase (i32.const 1))
-            (drop (call $host_call (i32.const 200000) (local.get $req_len) (i32.const 500000) (i32.const 400000)))
-            (return (i32.const 0))
+            (if (i32.gt_s (local.get $content_len) (i32.const 0))
+              (then
+                (drop (call $copy_mem (i32.const 1400000) (i32.const 1315000) (if (result i32) (i32.gt_u (local.get $content_len) (i32.const 200)) (then (i32.const 200)) (else (local.get $content_len)))))
+                (local.set $tok_json_len (if (result i32) (i32.gt_u (local.get $content_len) (i32.const 200)) (then (i32.const 200)) (else (local.get $content_len))))
+              )
+            )
+          )
+        )
+        (if (i32.gt_s (local.get $tok_json_len) (i32.const 0))
+          (then
+            (if (i32.gt_s (call $clean_notion_token (i32.const 1315000) (local.get $tok_json_len)) (i32.const 8))
+              (then (return (call $save_and_verify_token)))
+            )
           )
         )
         (return (call $return_static (i32.const 142000)))

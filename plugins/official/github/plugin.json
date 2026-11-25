@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.github",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "name": "GitHub Integration",
   "description": "Official GitHub developer integration powered by natural language and AI tool calling. Draft and open technical Issues, inspect repository issues, list your repositories, and search GitHub directly from chat.",
   "author": "Chattree Core Team",
@@ -29,13 +29,13 @@
     "code",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.1.0",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.1.0",
-  "changelog": "1.1.0: English predetermined UI strings with minimalist Chattree monochrome styling, Unicode \\uXXXX decoding, whitespace-tolerant JSON parsing, proper double-JSON escaping, bounded repo/issue parsing (filtering out user URLs), URL-safe query percent-encoding, owner/repo URL normalization, and token-safe AI content guidelines.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/icon.png?v=1.1.1",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/github/banner.png?v=1.1.1",
+  "changelog": "1.1.1: Fixed Personal Access Token saving across all JSON field aliases (token, api_key, pat, key, query), direct token paste inside AI payloads, token sanitization, whitespace-tolerant storage reads, and lang=<code> stripping for direct slash commands.",
   "runtime": "wasm",
   "entrypoint": "github_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "e60a3cd8d0adbe4d1729f4445b6ebe3966dced0e30c0a5eddc22d2ebd645b2d5",
+  "wasmSha256": "42640a793c4a3e28307059089d88e9fdc523fe7f1b422abc641139e6c645dd68",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 64,
   "timeoutMs": 35000,
@@ -100,7 +100,14 @@
             "name": "query",
             "key": "query",
             "type": "string",
-            "description": "Search query (for action='search'), Personal Access Token ghp_/github_pat_ (for action='config'), or 'owner/repo' (for action='set_repo' if 'repo' is omitted).",
+            "description": "Search query (for action='search') or 'owner/repo' (for action='set_repo' if 'repo' is omitted).",
+            "required": false
+          },
+          {
+            "name": "token",
+            "key": "token",
+            "type": "string",
+            "description": "GitHub Personal Access Token (ghp_..., github_pat_..., or gho_...) for action='config'.",
             "required": false
           }
         ],
@@ -143,7 +150,7 @@
             "output": {
               "tool": "github",
               "action": "config",
-              "query": "ghp_1234567890abcdef"
+              "token": "ghp_1234567890abcdef"
             }
           }
         ],
