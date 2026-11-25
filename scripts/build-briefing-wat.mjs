@@ -170,7 +170,7 @@ S.kv_city = registerData('kv_city', 'City');
 S.kv_coords = registerData('kv_coords', 'Coordinates');
 
 S.s_not_set_city = registerData('s_not_set_city', 'Not set (/briefing city <name>)');
-S.s_no_note = registerData('s_no_note', 'Create a note titled "Daily" to show it here');
+S.s_no_note = registerData('s_no_note', 'Create a note titled Daily to show it here');
 S.s_note_hdr_p = registerData('s_note_hdr_p', 'Note: ');
 S.s_note_hdr_s = registerData('s_note_hdr_s', '\\n');
 S.t_note_ok = registerData('t_note_ok', 'Briefing Note Saved');
@@ -1675,7 +1675,7 @@ const manifest = {
   $schema: '../../../schemas/plugin.manifest.v1.schema.json',
   schemaVersion: 1,
   id: 'com.chattree.official.briefing',
-  version: '1.0.1',
+  version: '1.0.2',
   name: 'Daily Briefing',
   description: 'Automatic morning summary combining today\'s calendar events, pending reminders, unread emails, your "Daily" Chattree note, and live Open-Meteo weather in one blue Flutter UI card with daily cron scheduling.',
   author: 'Chattree Core Team',
@@ -1700,9 +1700,9 @@ const manifest = {
     'geocoding-api.open-meteo.com',
   ],
   tags: ['briefing', 'morning', 'calendar', 'reminders', 'notes', 'email', 'weather', 'cron', 'ui', 'official'],
-  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.1',
-  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.1',
-  changelog: '1.0.1: Declared chattree.notes.search capability so Daily Briefing can search and display the "Daily" Chattree note without permission errors.',
+  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.2',
+  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.2',
+  changelog: '1.0.2: Fixed unescaped quotes in the fallback Daily Note message that prevented the blue Flutter UI card from rendering when no Daily note exists.',
   runtime: 'wasm',
   entrypoint: 'briefing_entry',
   wasmPath: 'plugin.wasm',
@@ -1952,4 +1952,20 @@ assert.equal(out.ui.badge, 'STATUS');
 out = runAsync('help lang=es', mockHost);
 assert.equal(out.ui.badge, 'GUIDE');
 
-console.log('[OK] All 8 Daily Briefing WASM async pipeline tests passed!');
+// 7. No Daily note + no city + email not configured (must emit valid JSON UI card)
+delete storage.briefing_city;
+delete storage.briefing_lat;
+delete storage.briefing_lon;
+delete storage.briefing_note;
+delete storage.briefing_date;
+out = runAsync('lang=es', (req) => {
+  if (req.api === 'chattree.notes') return { success: true, data: { notes: [], count: 0 } };
+  if (req.api === 'chattree.reminders') return { success: true, data: { reminders: [], count: 0 } };
+  if (req.api === 'email') return { success: false, error: 'Not configured' };
+  return mockHost(req);
+});
+assert.equal(out.type, 'ui');
+assert.equal(out.ui.badgeColor, 'blue');
+assert.equal(out.ui.elements[0].items[4].value, 'Create a note titled Daily to show it here');
+
+console.log('[OK] All 9 Daily Briefing WASM async pipeline tests passed!');
