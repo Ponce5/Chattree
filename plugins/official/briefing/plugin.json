@@ -2,7 +2,7 @@
   "$schema": "../../../schemas/plugin.manifest.v1.schema.json",
   "schemaVersion": 1,
   "id": "com.chattree.official.briefing",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "name": "Daily Briefing",
   "description": "Automatic morning summary combining today's calendar events, pending reminders, unread emails, your \"Daily\" Chattree note, and live Open-Meteo weather in one blue Flutter UI card with daily cron scheduling.",
   "author": "Chattree Core Team",
@@ -28,7 +28,8 @@
   ],
   "allowedDomains": [
     "api.open-meteo.com",
-    "geocoding-api.open-meteo.com"
+    "geocoding-api.open-meteo.com",
+    "ipwho.is"
   ],
   "tags": [
     "briefing",
@@ -42,13 +43,13 @@
     "ui",
     "official"
   ],
-  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.2",
-  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.2",
-  "changelog": "1.0.2: Fixed unescaped quotes in the fallback Daily Note message that prevented the blue Flutter UI card from rendering when no Daily note exists.",
+  "iconUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.3",
+  "bannerUrl": "https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.3",
+  "changelog": "1.0.3: Auto-detects weather city and coordinates on first run via ipwho.is (no manual setup required) and stacks summary rows vertically in the blue Flutter UI card.",
   "runtime": "wasm",
   "entrypoint": "briefing_entry",
   "wasmPath": "plugin.wasm",
-  "wasmSha256": "62e3fddda0a95bca15f7350684d84b5e08ff4e30ebee6cb7bac7edb06bdd3ed9",
+  "wasmSha256": "f32a4a4a3eb6a421c71ff0b563cc1e4f650a147c81c2123e74ccfc716a878382",
   "runtimeApiVersion": "1.0.0",
   "maxMemoryPages": 32,
   "timeoutMs": 35000,

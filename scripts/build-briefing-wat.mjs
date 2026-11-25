@@ -70,6 +70,7 @@ S.req_note_p2 = registerData('req_note_p2', '","limit":1}}');
 
 S.req_geo_p1 = registerData('req_geo_p1', '{"api":"network","operation":"http_request","payload":{"url":"https://geocoding-api.open-meteo.com/v1/search?name=');
 S.req_geo_p2 = registerData('req_geo_p2', '&count=1&language=en&format=json","method":"GET","timeoutMs":15000}}');
+S.req_ipgeo = registerData('req_ipgeo', '{"api":"network","operation":"http_request","payload":{"url":"https://ipwho.is/?fields=success,city,latitude,longitude","method":"GET","timeoutMs":10000}}');
 
 S.req_wx_p1 = registerData('req_wx_p1', '{"api":"network","operation":"http_request","payload":{"url":"https://api.open-meteo.com/v1/forecast?latitude=');
 S.req_wx_p2 = registerData('req_wx_p2', '&longitude=');
@@ -893,23 +894,23 @@ ${dataBlock}
     (call $emit_zstr (i32.const ${S.ui_sub.offset})) (call $emit_zstr (i32.const ${S.t_status_sub.offset}))
     (call $emit_zstr (i32.const ${S.ui_badge.offset})) (call $emit_zstr (i32.const ${S.t_status_badge.offset}))
     (call $emit_zstr (i32.const ${S.ui_bc_green.offset}))
-    (call $emit_zstr (i32.const ${S.el_kv_start.offset}))
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_city.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_start.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_city.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (if (i32.gt_s (global.get $city_len) (i32.const 0))
       (then (call $emit_json_esc (i32.const 260350) (global.get $city_len)))
       (else (call $emit_zstr (i32.const ${S.s_not_set_city.offset})))
     )
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_note.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_note.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (call $emit_json_esc (i32.const 262500) (global.get $note_key_len))
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_schedule.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_schedule.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (if (i32.gt_s (global.get $sched_len) (i32.const 0))
       (then (call $emit_zstr (i32.const ${S.s_daily_at.offset})) (call $emit_mem (i32.const 260550) (global.get $sched_len)))
       (else (call $emit_zstr (i32.const ${S.s_not_sched.offset})))
     )
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset}))
-    (call $emit_zstr (i32.const ${S.el_kv_end.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_end.offset}))
     (call $emit_byte (i32.const 44)) (call $emit_zstr (i32.const ${S.el_btns_main.offset}))
     (call $emit_zstr (i32.const ${S.ui_end.offset}))
     (call $emit_len)
@@ -928,10 +929,10 @@ ${dataBlock}
     (call $emit_zstr (i32.const ${S.ui_badge.offset})) (call $emit_zstr (i32.const ${S.t_brief_badge.offset}))
     (call $emit_zstr (i32.const ${S.ui_bc_alarm.offset}))
 
-    ;; Key-value summary block
-    (call $emit_zstr (i32.const ${S.el_kv_start.offset}))
+    ;; Vertical summary list (one row below another)
+    (call $emit_zstr (i32.const ${S.el_list_start.offset}))
     ;; 1. Weather
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_weather.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_weather.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (if (global.get $wx_ok)
       (then
         (if (i32.gt_s (global.get $city_len) (i32.const 0))
@@ -961,7 +962,7 @@ ${dataBlock}
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
 
     ;; 2. Calendar Events
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_calendar.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_calendar.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (call $emit_uint (global.get $ev_count))
     (if (i32.eq (global.get $ev_count) (i32.const 1))
       (then (call $emit_zstr (i32.const ${S.s_event_word.offset})))
@@ -970,13 +971,13 @@ ${dataBlock}
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
 
     ;; 3. Reminders
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_reminders.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_reminders.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (call $emit_uint (global.get $rem_count))
     (call $emit_zstr (i32.const ${S.s_rems_word.offset}))
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
 
     ;; 4. Unread Emails
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_email.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_email.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (if (global.get $mail_ok)
       (then (call $emit_uint (global.get $mail_unread)) (call $emit_zstr (i32.const ${S.s_unread_word.offset})))
       (else (call $emit_zstr (i32.const ${S.s_not_cfg_mail.offset})))
@@ -984,7 +985,7 @@ ${dataBlock}
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
 
     ;; 5. Daily Note status
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_note.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_note.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (if (global.get $note_found)
       (then (call $emit_json_esc (i32.const 262600) (global.get $note_t_len)))
       (else (call $emit_zstr (i32.const ${S.s_no_note.offset})))
@@ -992,13 +993,13 @@ ${dataBlock}
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset})) (call $emit_byte (i32.const 44))
 
     ;; 6. Auto Schedule
-    (call $emit_zstr (i32.const ${S.el_kv_1.offset})) (call $emit_zstr (i32.const ${S.kv_schedule.offset})) (call $emit_zstr (i32.const ${S.el_kv_2.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_1.offset})) (call $emit_zstr (i32.const ${S.kv_schedule.offset})) (call $emit_zstr (i32.const ${S.el_list_2.offset}))
     (if (i32.gt_s (global.get $sched_len) (i32.const 0))
       (then (call $emit_zstr (i32.const ${S.s_daily_at.offset})) (call $emit_mem (i32.const 260550) (global.get $sched_len)))
       (else (call $emit_zstr (i32.const ${S.s_not_sched.offset})))
     )
     (call $emit_zstr (i32.const ${S.el_kv_item_end.offset}))
-    (call $emit_zstr (i32.const ${S.el_kv_end.offset}))
+    (call $emit_zstr (i32.const ${S.el_list_end.offset}))
 
     ;; Daily Note content section (if found & non-empty)
     (if (i32.and (global.get $note_found) (i32.gt_s (global.get $note_c_len) (i32.const 0)))
@@ -1019,6 +1020,8 @@ ${dataBlock}
     (local.set $any_list (i32.add (i32.add (global.get $ev_shown) (global.get $rem_shown)) (global.get $mail_shown)))
     (if (i32.gt_s (local.get $any_list) (i32.const 0))
       (then
+        (call $emit_byte (i32.const 44))
+        (call $emit_zstr (i32.const ${S.el_divider.offset}))
         (call $emit_byte (i32.const 44))
         (call $emit_zstr (i32.const ${S.el_list_start.offset}))
         (local.set $any_list (i32.const 0))
@@ -1110,21 +1113,26 @@ ${dataBlock}
     (i32.const 0)
   )
 
-  (func $dispatch_weather_or_finish (result i32)
+  (func $dispatch_weather (result i32)
     (local $p i32)
+    (local.set $p (call $copy_zstr (i32.const ${S.req_wx_p1.offset}) (i32.const 300000)))
+    (local.set $p (call $copy_mem (i32.const 260450) (local.get $p) (global.get $lat_len)))
+    (local.set $p (call $copy_zstr (i32.const ${S.req_wx_p2.offset}) (local.get $p)))
+    (local.set $p (call $copy_mem (i32.const 260500) (local.get $p) (global.get $lon_len)))
+    (local.set $p (call $copy_zstr (i32.const ${S.req_wx_p3.offset}) (local.get $p)))
+    (global.set $state (i32.const 5))
+    (drop (call $host_call (i32.const 300000) (i32.sub (local.get $p) (i32.const 300000)) (i32.const 350000) (i32.const 80000)))
+    (i32.const 0)
+  )
+
+  (func $dispatch_weather_or_finish (result i32)
     (if (i32.and (i32.gt_s (global.get $lat_len) (i32.const 0)) (i32.gt_s (global.get $lon_len) (i32.const 0)))
-      (then
-        (local.set $p (call $copy_zstr (i32.const ${S.req_wx_p1.offset}) (i32.const 300000)))
-        (local.set $p (call $copy_mem (i32.const 260450) (local.get $p) (global.get $lat_len)))
-        (local.set $p (call $copy_zstr (i32.const ${S.req_wx_p2.offset}) (local.get $p)))
-        (local.set $p (call $copy_mem (i32.const 260500) (local.get $p) (global.get $lon_len)))
-        (local.set $p (call $copy_zstr (i32.const ${S.req_wx_p3.offset}) (local.get $p)))
-        (global.set $state (i32.const 5))
-        (drop (call $host_call (i32.const 300000) (i32.sub (local.get $p) (i32.const 300000)) (i32.const 350000) (i32.const 80000)))
-        (return (i32.const 0))
-      )
+      (then (return (call $dispatch_weather)))
     )
-    (call $finish_or_notify)
+    ;; Auto-detect city/lat/lon via ipwho.is on first run
+    (global.set $state (i32.const 8))
+    (drop (call $host_call (i32.const ${S.req_ipgeo.offset}) (i32.const ${S.req_ipgeo.len}) (i32.const 350000) (i32.const 16000)))
+    (i32.const 0)
   )
 
   (func $finish_or_notify (result i32)
@@ -1532,6 +1540,40 @@ ${dataBlock}
       )
     )
 
+    ;; State 8: Auto IP geolocation (ipwho.is) -> save city/lat/lon -> fetch weather
+    (if (i32.eq (global.get $state) (i32.const 8))
+      (then
+        (if (call $extract_json_bool (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_success.offset}))
+          (then
+            (local.set $blen (call $extract_json_str (local.get $res_ptr) (local.get $res_len) (i32.const ${S.k_body.offset}) (i32.const 262800) (i32.const 8000)))
+            (if (i32.gt_s (local.get $blen) (i32.const 0))
+              (then
+                (local.set $nlen (call $extract_json_str (i32.const 262800) (local.get $blen) (i32.const ${S.k_city.offset}) (i32.const 260350) (i32.const 76)))
+                (local.set $llen (call $extract_json_num_str (i32.const 262800) (local.get $blen) (i32.const ${S.k_lat.offset}) (i32.const 260450) (i32.const 24)))
+                (local.set $rlen (call $extract_json_num_str (i32.const 262800) (local.get $blen) (i32.const ${S.k_lon.offset}) (i32.const 260500) (i32.const 24)))
+                (if (i32.and (i32.gt_s (local.get $llen) (i32.const 0)) (i32.gt_s (local.get $rlen) (i32.const 0)))
+                  (then
+                    (global.set $lat_len (local.get $llen))
+                    (global.set $lon_len (local.get $rlen))
+                    (call $st_set (i32.const ${S.sk_lat.offset}) (i32.const 260450) (global.get $lat_len))
+                    (call $st_set (i32.const ${S.sk_lon.offset}) (i32.const 260500) (global.get $lon_len))
+                    (if (i32.gt_s (local.get $nlen) (i32.const 0))
+                      (then
+                        (global.set $city_len (local.get $nlen))
+                        (call $st_set (i32.const ${S.sk_city.offset}) (i32.const 260350) (global.get $city_len))
+                      )
+                    )
+                    (return (call $dispatch_weather))
+                  )
+                )
+              )
+            )
+          )
+        )
+        (return (call $finish_or_notify))
+      )
+    )
+
     ;; State 5: Open-Meteo weather HTTP response -> parse body -> finish or notify
     (if (i32.eq (global.get $state) (i32.const 5))
       (then
@@ -1675,7 +1717,7 @@ const manifest = {
   $schema: '../../../schemas/plugin.manifest.v1.schema.json',
   schemaVersion: 1,
   id: 'com.chattree.official.briefing',
-  version: '1.0.2',
+  version: '1.0.3',
   name: 'Daily Briefing',
   description: 'Automatic morning summary combining today\'s calendar events, pending reminders, unread emails, your "Daily" Chattree note, and live Open-Meteo weather in one blue Flutter UI card with daily cron scheduling.',
   author: 'Chattree Core Team',
@@ -1698,11 +1740,12 @@ const manifest = {
   allowedDomains: [
     'api.open-meteo.com',
     'geocoding-api.open-meteo.com',
+    'ipwho.is',
   ],
   tags: ['briefing', 'morning', 'calendar', 'reminders', 'notes', 'email', 'weather', 'cron', 'ui', 'official'],
-  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.2',
-  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.2',
-  changelog: '1.0.2: Fixed unescaped quotes in the fallback Daily Note message that prevented the blue Flutter UI card from rendering when no Daily note exists.',
+  iconUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/icon.png?v=1.0.3',
+  bannerUrl: 'https://raw.githubusercontent.com/Ponce5/Chattree/main/plugins/official/briefing/banner.png?v=1.0.3',
+  changelog: '1.0.3: Auto-detects weather city and coordinates on first run via ipwho.is (no manual setup required) and stacks summary rows vertically in the blue Flutter UI card.',
   runtime: 'wasm',
   entrypoint: 'briefing_entry',
   wasmPath: 'plugin.wasm',
@@ -1887,6 +1930,9 @@ const mockHost = (req) => {
   if (req.api === 'network' && req.payload.url.includes('geocoding-api')) {
     return { success: true, data: { statusCode: 200, body: JSON.stringify({ results: [{ name: 'Madrid', latitude: 40.4165, longitude: -3.7026 }] }) } };
   }
+  if (req.api === 'network' && req.payload.url.includes('ipwho.is')) {
+    return { success: true, data: { statusCode: 200, body: JSON.stringify({ success: true, city: 'Mexico City', latitude: 19.4326, longitude: -99.1332 }) } };
+  }
   if (req.api === 'network' && req.payload.url.includes('api.open-meteo.com')) {
     return { success: true, data: { statusCode: 200, body: JSON.stringify({ current: { temperature_2m: 21.5, weather_code: 1 }, daily: { temperature_2m_max: [24.0], temperature_2m_min: [12.5] } }) } };
   }
@@ -1914,21 +1960,23 @@ assert.equal(out.ui.badge, 'SCHEDULED');
 assert.equal(storage.briefing_schedule, '07:30');
 assert.ok(calls.some((c) => c.api === 'scheduler' && c.payload.cronExpression === '30 7 * * *'));
 
-// 3. Full briefing (calendar + reminders + email + Daily note + weather) in BLUE theme
+// 3. Full briefing (calendar + reminders + email + Daily note + weather) in BLUE vertical list layout
 out = runAsync('lang=es', mockHost);
 assert.equal(out.type, 'ui');
 assert.equal(out.ui.badgeColor, 'blue');
-assert.match(out.ui.elements[0].items[0].value, /Madrid: 21\.5 C Partly Cloudy/);
-assert.equal(out.ui.elements[0].items[1].value, '2 events');
-assert.equal(out.ui.elements[0].items[2].value, '1 pending');
-assert.equal(out.ui.elements[0].items[3].value, '3 unread');
-assert.equal(out.ui.elements[0].items[4].value, 'Daily');
-assert.equal(out.ui.elements[0].items[5].value, 'Daily at 07:30');
-// Divider + Daily Note text block + highlights list
+assert.equal(out.ui.elements[0].type, 'list');
+assert.match(out.ui.elements[0].items[0].subtitle, /Madrid: 21\.5 C Partly Cloudy/);
+assert.equal(out.ui.elements[0].items[1].subtitle, '2 events');
+assert.equal(out.ui.elements[0].items[2].subtitle, '1 pending');
+assert.equal(out.ui.elements[0].items[3].subtitle, '3 unread');
+assert.equal(out.ui.elements[0].items[4].subtitle, 'Daily');
+assert.equal(out.ui.elements[0].items[5].subtitle, 'Daily at 07:30');
+// Divider + Daily Note text block + Divider + highlights list
 assert.equal(out.ui.elements[1].type, 'divider');
 assert.equal(out.ui.elements[2].type, 'text');
 assert.match(out.ui.elements[2].content, /Focus on shipping v1\.0/);
-assert.equal(out.ui.elements[3].items.length, 4); // 2 events + 1 reminder + 1 email
+assert.equal(out.ui.elements[3].type, 'divider');
+assert.equal(out.ui.elements[4].items.length, 4); // 2 events + 1 reminder + 1 email
 
 // 3b. Custom briefing note name
 out = runAsync('note Morning Goals lang=es', mockHost);
@@ -1941,7 +1989,7 @@ assert.ok(calls.some((c) => c.api === 'notifications' && c.operation === 'send')
 
 // 5. Graceful fallback when email is NOT configured
 out = runAsync('lang=es', (req) => req.api === 'email' ? { success: false, error: 'Not configured' } : mockHost(req));
-assert.equal(out.ui.elements[0].items[3].value, 'Not configured');
+assert.equal(out.ui.elements[0].items[3].subtitle, 'Not configured');
 
 // 6. Unschedule, Status, Help
 out = runAsync('unschedule lang=es', mockHost);
@@ -1949,16 +1997,29 @@ assert.equal(out.ui.badge, 'OFF');
 assert.equal(storage.briefing_schedule, '');
 out = runAsync('status lang=es', mockHost);
 assert.equal(out.ui.badge, 'STATUS');
+assert.equal(out.ui.elements[0].type, 'list');
 out = runAsync('help lang=es', mockHost);
 assert.equal(out.ui.badge, 'GUIDE');
 
-// 7. No Daily note + no city + email not configured (must emit valid JSON UI card)
+// 7. Auto-detect weather city via ipwho.is on first run (no city saved)
 delete storage.briefing_city;
 delete storage.briefing_lat;
 delete storage.briefing_lon;
 delete storage.briefing_note;
 delete storage.briefing_date;
+out = runAsync('lang=es', mockHost);
+assert.equal(out.type, 'ui');
+assert.equal(out.ui.badgeColor, 'blue');
+assert.equal(storage.briefing_city, 'Mexico City');
+assert.equal(storage.briefing_lat, '19.4326');
+assert.match(out.ui.elements[0].items[0].subtitle, /Mexico City: 21\.5 C Partly Cloudy/);
+
+// 8. Graceful fallback when ipwho.is fails + no Daily note + email not configured
+delete storage.briefing_city;
+delete storage.briefing_lat;
+delete storage.briefing_lon;
 out = runAsync('lang=es', (req) => {
+  if (req.api === 'network' && req.payload.url.includes('ipwho.is')) return { success: false, error: 'Offline' };
   if (req.api === 'chattree.notes') return { success: true, data: { notes: [], count: 0 } };
   if (req.api === 'chattree.reminders') return { success: true, data: { reminders: [], count: 0 } };
   if (req.api === 'email') return { success: false, error: 'Not configured' };
@@ -1966,6 +2027,7 @@ out = runAsync('lang=es', (req) => {
 });
 assert.equal(out.type, 'ui');
 assert.equal(out.ui.badgeColor, 'blue');
-assert.equal(out.ui.elements[0].items[4].value, 'Create a note titled Daily to show it here');
+assert.equal(out.ui.elements[0].items[0].subtitle, 'Not set (/briefing city <name>)');
+assert.equal(out.ui.elements[0].items[4].subtitle, 'Create a note titled Daily to show it here');
 
-console.log('[OK] All 9 Daily Briefing WASM async pipeline tests passed!');
+console.log('[OK] All 10 Daily Briefing WASM async pipeline tests passed!');
